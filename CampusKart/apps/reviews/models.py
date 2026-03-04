@@ -29,7 +29,7 @@ class Review(models.Model):
         ordering = ["-created_at"]
         constraints = [
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(product__isnull=False) | models.Q(vendor__isnull=False)
                 ),
                 name="review_must_target_product_or_vendor",
