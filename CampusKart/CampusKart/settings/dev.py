@@ -22,9 +22,9 @@ MIDDLEWARE = [  # noqa: F405
 INTERNAL_IPS = ["127.0.0.1"]
 
 # ---------------------------------------------------------------------------
-# Email — use console backend in dev
+# Email — read from .env so real SMTP (Gmail) works in dev too.
+# base.py already reads EMAIL_BACKEND, EMAIL_HOST_USER, etc. from env.
 # ---------------------------------------------------------------------------
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # ---------------------------------------------------------------------------
 # Database — honour POSTGRES_HOST env var (defaults to localhost for local

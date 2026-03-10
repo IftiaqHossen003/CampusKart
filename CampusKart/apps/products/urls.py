@@ -1,18 +1,15 @@
-from django.urls import path
-from .views import (
-    CategoryListView,
-    ProductListView,
-    ProductDetailView,
-    ProductCreateView,
-    ProductUpdateDestroyView,
-)
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
+
+from .views import CategoryViewSet, ProductViewSet
 
 app_name = "products"
 
+router = DefaultRouter()
+# Register categories first so the prefix isn't matched as a product slug
+router.register("categories", CategoryViewSet, basename="category")
+router.register("", ProductViewSet, basename="product")
+
 urlpatterns = [
-    path("categories/",        CategoryListView.as_view(),        name="category-list"),
-    path("",                   ProductListView.as_view(),         name="product-list"),
-    path("create/",            ProductCreateView.as_view(),       name="product-create"),
-    path("<slug:slug>/",       ProductDetailView.as_view(),       name="product-detail"),
-    path("<int:pk>/manage/",   ProductUpdateDestroyView.as_view(),name="product-manage"),
+    path("", include(router.urls)),
 ]
