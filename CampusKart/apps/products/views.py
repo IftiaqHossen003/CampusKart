@@ -11,17 +11,17 @@ class CategoryListView(generics.ListAPIView):
 
 
 class ProductListView(generics.ListAPIView):
-    queryset = Product.objects.filter(is_active=True).select_related("vendor", "category").prefetch_related("images")
+    queryset = Product.objects.filter(status=Product.Status.APPROVED).select_related("vendor", "category").prefetch_related("images", "tags")
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["category", "condition", "vendor"]
+    filterset_fields = ["category", "status", "vendor"]
     search_fields = ["name", "description"]
-    ordering_fields = ["price", "created_at"]
+    ordering_fields = ["price", "total_sold", "avg_rating", "created_at"]
 
 
 class ProductDetailView(generics.RetrieveAPIView):
-    queryset = Product.objects.filter(is_active=True)
+    queryset = Product.objects.filter(status=Product.Status.APPROVED)
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
     lookup_field = "slug"

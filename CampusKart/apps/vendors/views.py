@@ -7,8 +7,8 @@ class VendorListView(generics.ListAPIView):
     queryset = VendorProfile.objects.filter(status="approved")
     serializer_class = VendorProfileSerializer
     permission_classes = [permissions.AllowAny]
-    search_fields = ["shop_name", "college"]
-    ordering_fields = ["created_at", "total_sales"]
+    search_fields = ["shop_name", "description", "address"]
+    ordering_fields = ["created_at", "total_earnings"]
 
 
 class VendorDetailView(generics.RetrieveAPIView):

@@ -347,4 +347,87 @@ CampusKart/                   ← repo root
 
 ---
 
-_This file is maintained by GitHub Copilot. Updated: March 4, 2026._
+## Session 8 — Multi-Vendor Product Model Upgrade
+
+**Date:** March 6, 2026  
+**Request:** Build vendor/product system models with approval workflow, tags, images, composite indexes, `get_absolute_url`, and generate migrations.
+
+### Actions Taken
+
+- Reworked `apps/vendors/models.py`:
+- Added/updated fields: `shop_slug` (unique), `logo_url`, `banner_url`, `contact_email`, `contact_phone`, `address`, `commission_rate`, `total_earnings`, `approved_by`, `approved_at`
+- Kept role/status workflow with `pending/approved/suspended`
+- Added `get_absolute_url()` and retained `__str__()`
+
+- Reworked `apps/products/models.py`:
+- `Category`: added `icon_url`, `is_active`, `parent` support, `get_absolute_url()`
+- `Product`: added `discount_price`, `sku`, `status`, `approved_by`, `approved_at`, `total_sold`, `avg_rating`
+- Added composite indexes:
+  - `(status, category, created_at)`
+  - `(vendor, status)`
+- `ProductImage`: moved to URL-based image storage (`image_url`) + `sort_order`
+- Added `ProductTag` model (`product`, `tag`) with uniqueness per product
+- Added `__str__()` and `get_absolute_url()` on applicable models
+
+### Compatibility Fixes Needed During Startup
+
+The app initially entered a Django restart loop because old code still referenced removed fields (`is_active`, `condition`, `college`, `is_featured`, etc.).
+
+Updated to match new schemas:
+
+- `apps/products/views.py` (status-based filtering)
+- `apps/products/serializers.py` (new fields + tag serializer)
+- `apps/products/admin.py` (new list/filter fields)
+- `apps/vendors/serializers.py` (new vendor profile fields)
+- `apps/vendors/views.py` (new search/order fields)
+- `apps/vendors/admin.py` (new admin fields)
+
+### Migrations Generated (Docker)
+
+Used one-off container command to avoid service restart loop while generating migrations:
+
+```bash
+docker compose run --rm --no-deps django python manage.py makemigrations vendors products --skip-checks --no-input
+```
+
+Generated files:
+
+- `apps/vendors/migrations/0002_remove_vendorprofile_banner_and_more.py`
+- `apps/products/migrations/0002_producttag_alter_productimage_options_and_more.py`
+
+Notes:
+
+- To avoid non-null migration prompts for existing rows, `shop_slug`, `sku`, and `image_url` were made nullable during this migration step.
+
+---
+
+## Session 9 — Settings Redundancy Cleanup
+
+**Date:** March 10, 2026  
+**Request:** Verify which settings source is active and remove redundant settings files; scan for similar redundancy.
+
+### Findings
+
+- Active Django settings source is the package path `CampusKart.settings.dev`.
+- Confirmed references in:
+  - `manage.py`
+  - `CampusKart/asgi.py`
+  - `CampusKart/wsgi.py`
+  - `CampusKart/celery.py`
+  - `.env`
+  - `docker-compose.yml`
+- `CampusKart/settings.py` was a deprecated leftover file and not used by runtime.
+
+### Cleanup Performed
+
+- Deleted: `CampusKart/settings.py`
+- Redundancy sweep:
+  - No extra `settings.py` files found
+  - No `__pycache__` directories found
+  - No backup/temp artifacts (`*.bak`, `*.old`, `*.tmp`, `*.orig`, `*.rej`) found
+
+---
+
+admin.campuskart@gmail.com
+Admin@12345
+_This file is maintained by GitHub Copilot. Updated: March 10, 2026._
