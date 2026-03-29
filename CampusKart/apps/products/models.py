@@ -122,6 +122,7 @@ class Product(models.Model):
 
 class ProductImage(models.Model):
     product    = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
+    cloudinary_public_id = models.CharField(max_length=255, blank=True, default="")
     image_url  = models.URLField(max_length=500, null=True, blank=True)
     is_primary = models.BooleanField(default=False)
     sort_order = models.PositiveSmallIntegerField(default=0)

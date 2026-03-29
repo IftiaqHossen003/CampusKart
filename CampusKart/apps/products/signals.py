@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from .models import Product
+from .models import Product, ProductImage
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +31,22 @@ def invalidate_product_cache(sender, instance, **kwargs):
     cache.delete(f"{_PREFIX}:detail:{instance.slug}")
 
     # List caches — pattern delete requires django-redis
-    try:
-        cache.delete_pattern(f"{_PREFIX}:list:*")
-    except AttributeError:
+    delete_pattern = getattr(cache, "delete_pattern", None)
+    if callable(delete_pattern):
+        delete_pattern(f"{_PREFIX}:list:*")
+    else:
         # LocMemCache / DummyCache don't have delete_pattern → nuke all
         cache.clear()
 
     logger.debug("Product cache invalidated for slug=%s", instance.slug)
+
+
+@receiver([post_save, post_delete], sender=ProductImage)
+def invalidate_product_cache_on_image_change(sender, instance, **kwargs):
+    """Image changes affect product detail/list payloads, so invalidate both caches."""
+    cache.delete(f"{_PREFIX}:detail:{instance.product.slug}")
+    delete_pattern = getattr(cache, "delete_pattern", None)
+    if callable(delete_pattern):
+        delete_pattern(f"{_PREFIX}:list:*")
+    else:
+        cache.clear()

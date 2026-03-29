@@ -34,7 +34,8 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model  = ProductImage
-        fields = ["id", "image_url", "is_primary", "sort_order"]
+        fields = ["id", "cloudinary_public_id", "image_url", "is_primary", "sort_order"]
+        read_only_fields = ["id", "cloudinary_public_id"]
 
 
 class ProductTagSerializer(serializers.ModelSerializer):
