@@ -14,14 +14,14 @@ relevant detail key and all list keys via delete_pattern.
 """
 
 import hashlib
+import os
 import uuid
 from pathlib import Path
 
 import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
+from django.conf import settings
 from django.core.cache import cache
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -293,9 +293,13 @@ class ProductImageUploadView(APIView):
             image_url="",
         )
 
-        temp_name = f"tmp/product_uploads/{public_id}{suffix}"
-        saved_path = default_storage.save(temp_name, ContentFile(image_file.read()))
-        abs_path = str(Path(default_storage.path(saved_path)).resolve())
+        shared_tmp_dir = Path(settings.BASE_DIR) / ".tmp_uploads" / "product_uploads"
+        shared_tmp_dir.mkdir(parents=True, exist_ok=True)
+        abs_path = str((shared_tmp_dir / f"{public_id}{suffix}").resolve())
+
+        with open(abs_path, "wb") as dst:
+            for chunk in image_file.chunks():
+                dst.write(chunk)
 
         async_result = upload_product_image.delay(abs_path, product.id, public_id, placeholder.id)
 
