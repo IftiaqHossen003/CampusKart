@@ -40,7 +40,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 
 # ---------------------------------------------------------------------------
-# Register
+# Register  
 # ---------------------------------------------------------------------------
 
 class RegisterSerializer(serializers.ModelSerializer):
