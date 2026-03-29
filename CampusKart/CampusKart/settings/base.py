@@ -46,6 +46,8 @@ THIRD_PARTY_APPS = [
     "drf_spectacular",
     "django_filters",
     "channels",
+    "cloudinary_storage",
+    "cloudinary",
 ]
 
 LOCAL_APPS = [
@@ -239,6 +241,18 @@ EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "noreply@campuskart.com")
+
+# ---------------------------------------------------------------------------
+# Cloudinary
+# ---------------------------------------------------------------------------
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": os.environ.get("CLOUDINARY_CLOUD_NAME", ""),
+    "API_KEY": os.environ.get("CLOUDINARY_API_KEY", ""),
+    "API_SECRET": os.environ.get("CLOUDINARY_API_SECRET", ""),
+    "SECURE": True,
+}
+
+CLOUDINARY_URL = os.environ.get("CLOUDINARY_URL", "")
 
 # ---------------------------------------------------------------------------
 # DRF Spectacular (OpenAPI / Swagger)
