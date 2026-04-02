@@ -1,9 +1,28 @@
 import apiClient from './client'
 
+function hasValue(value) {
+  if (value === null || value === undefined) {
+    return false
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (!normalized || normalized === 'undefined' || normalized === 'null') {
+      return false
+    }
+  }
+
+  if (typeof value === 'number' && Number.isNaN(value)) {
+    return false
+  }
+
+  return true
+}
+
 function buildQueryString(params) {
   const query = new URLSearchParams()
 
-  if (params.category) {
+  if (hasValue(params.category)) {
     query.set('category', params.category)
   }
 
@@ -15,27 +34,27 @@ function buildQueryString(params) {
     })
   }
 
-  if (params.min_price !== '') {
+  if (hasValue(params.min_price)) {
     query.set('min_price', String(params.min_price))
   }
 
-  if (params.max_price !== '') {
+  if (hasValue(params.max_price)) {
     query.set('max_price', String(params.max_price))
   }
 
-  if (params.search) {
+  if (hasValue(params.search)) {
     query.set('search', params.search)
   }
 
-  if (params.vendor) {
+  if (hasValue(params.vendor)) {
     query.set('vendor', String(params.vendor))
   }
 
-  if (params.status) {
+  if (hasValue(params.status)) {
     query.set('status', params.status)
   }
 
-  if (params.ordering) {
+  if (hasValue(params.ordering)) {
     query.set('ordering', params.ordering)
   }
 

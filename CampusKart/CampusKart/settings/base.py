@@ -5,6 +5,7 @@ Shared across all environments.
 
 from pathlib import Path
 from datetime import timedelta
+import importlib.util
 import os
 from dotenv import load_dotenv
 
@@ -46,9 +47,13 @@ THIRD_PARTY_APPS = [
     "drf_spectacular",
     "django_filters",
     "channels",
-    "cloudinary_storage",
     "cloudinary",
 ]
+
+# Optional dependency: allow app startup even if django-cloudinary-storage
+# is not installed in the current runtime.
+if importlib.util.find_spec("cloudinary_storage") is not None:
+    THIRD_PARTY_APPS.append("cloudinary_storage")
 
 LOCAL_APPS = [
     "apps.auth_app",

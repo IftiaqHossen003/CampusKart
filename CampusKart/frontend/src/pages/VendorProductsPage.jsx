@@ -157,9 +157,17 @@ function VendorProductsPage() {
   const totalCount = productsQuery.data?.count || 0
   const pageSize = products.length > 0 ? products.length : 20
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
+  const vendorStatus = vendorQuery.data?.status
+  const isVendorApproved = vendorStatus === 'approved'
 
   const categoryOptions = useMemo(() => {
-    const categories = categoriesQuery.data || []
+    const categoriesData = categoriesQuery.data
+    const categories = Array.isArray(categoriesData)
+      ? categoriesData
+      : Array.isArray(categoriesData?.results)
+        ? categoriesData.results
+        : []
+
     return categories.flatMap((category) => [
       { id: category.id, name: category.name },
       ...(category.children || []).map((child) => ({ id: child.id, name: `${category.name} / ${child.name}` })),
@@ -167,12 +175,22 @@ function VendorProductsPage() {
   }, [categoriesQuery.data])
 
   const openCreateForm = () => {
+    if (!isVendorApproved) {
+      showError('Your vendor account is not yet approved. Please wait for admin approval.')
+      return
+    }
+
     setEditingProduct(null)
     form.reset(defaultValues)
     setIsFormOpen(true)
   }
 
   const openEditForm = (product) => {
+    if (!isVendorApproved) {
+      showError('Your vendor account is not yet approved. Please wait for admin approval.')
+      return
+    }
+
     setEditingProduct(product)
     form.reset({
       name: product.name || '',
@@ -196,6 +214,11 @@ function VendorProductsPage() {
   }
 
   const onSubmit = (values) => {
+    if (!isVendorApproved) {
+      showError('Your vendor account is not yet approved. Please wait for admin approval.')
+      return
+    }
+
     const payload = toPayload(values)
 
     if (editingProduct?.slug) {
@@ -217,11 +240,18 @@ function VendorProductsPage() {
           <button
             type="button"
             onClick={openCreateForm}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+            disabled={!isVendorApproved}
+            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:bg-slate-400"
           >
             Add New Product
           </button>
         </div>
+
+        {vendorQuery.isSuccess && !isVendorApproved ? (
+          <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Your vendor account is currently <span className="font-semibold">{vendorStatus}</span>. Product creation is enabled after admin approval.
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -313,6 +343,7 @@ function VendorProductsPage() {
                         <button
                           type="button"
                           onClick={() => openEditForm(product)}
+                          disabled={!isVendorApproved}
                           className="rounded border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
                         >
                           Edit
@@ -325,7 +356,7 @@ function VendorProductsPage() {
                             }
                           }}
                           className="rounded border border-error/40 px-2.5 py-1 text-xs font-medium text-error hover:bg-error/10"
-                          disabled={deleteMutation.isPending}
+                          disabled={!isVendorApproved || deleteMutation.isPending}
                         >
                           Delete
                         </button>
