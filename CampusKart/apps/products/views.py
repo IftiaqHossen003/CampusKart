@@ -14,25 +14,34 @@ relevant detail key and all list keys via delete_pattern.
 """
 
 import hashlib
+import uuid
+from pathlib import Path
 
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Count
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.auth_app.permissions import IsAdmin, IsVendor
 
 from .filters import ProductFilter
-from .models import Category, Product, ProductTag
+from .models import Category, Product, ProductImage, ProductTag
 from .serializers import (
     CategorySerializer,
     ProductSerializer,
     ProductWriteSerializer,
 )
+from .tasks import upload_product_image
 
 # Cache TTLs (seconds)
 _TTL_LIST     = 5 * 60       # 5 minutes
@@ -40,6 +49,9 @@ _TTL_DETAIL   = 10 * 60      # 10 minutes
 _TTL_CATEGORY = 60 * 60      # 1 hour
 _TTL_TAGS     = 5 * 60       # 5 minutes
 _PREFIX       = "products"
+_MAX_IMAGE_SIZE = 5 * 1024 * 1024
+_ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+_ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 def _list_cache_key(request) -> str:
@@ -47,6 +59,30 @@ def _list_cache_key(request) -> str:
     qs = request.META.get("QUERY_STRING", "")
     digest = hashlib.md5(qs.encode(), usedforsecurity=False).hexdigest()
     return f"{_PREFIX}:list:{digest}"
+
+
+def _ensure_vendor_owns_product(user, product: Product) -> None:
+    if not user.is_authenticated:
+        raise PermissionDenied("Authentication required.")
+    if user.role == "admin":
+        return
+    if user.role != "vendor":
+        raise PermissionDenied("Vendor role is required.")
+    if not hasattr(user, "vendor_profile") or product.vendor_id != user.vendor_profile.id:
+        raise PermissionDenied("You can only manage your own product images.")
+
+
+def _validate_image_file(image_file) -> str:
+    suffix = Path(image_file.name).suffix.lower()
+    content_type = getattr(image_file, "content_type", "")
+
+    if suffix not in _ALLOWED_EXTENSIONS or content_type not in _ALLOWED_MIME_TYPES:
+        raise PermissionDenied("Only jpg, png, and webp images are allowed.")
+
+    if image_file.size > _MAX_IMAGE_SIZE:
+        raise PermissionDenied("Image file must be smaller than 5MB.")
+
+    return suffix
 
 
 # ---------------------------------------------------------------------------
@@ -157,7 +193,6 @@ class ProductViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(vendor=user.vendor_profile)
             else:
                 qs = qs.filter(status=Product.Status.APPROVED)
-
         return qs
 
     # ── object-level ownership check ─────────────────────────────────────────
@@ -254,3 +289,94 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         cache.set(cache_key, data, _TTL_TAGS)
         return Response(data)
+
+
+class ProductImageUploadView(APIView):
+    """
+    POST /api/v1/products/{id}/images/
+
+    Accepts multipart file upload, validates type+size,
+    queues async Cloudinary upload, and returns 202.
+    """
+
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [permissions.IsAuthenticated, IsVendor]
+
+    def post(self, request, id: int):
+        product = get_object_or_404(Product.objects.select_related("vendor"), pk=id)
+        _ensure_vendor_owns_product(request.user, product)
+
+        image_file = request.FILES.get("image")
+        if not image_file:
+            return Response({"detail": "image file is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            suffix = _validate_image_file(image_file)
+        except PermissionDenied as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create predictable Cloudinary public ID so we can return display URL immediately.
+        public_id = f"product-{product.id}-{uuid.uuid4().hex}"
+
+        # Placeholder DB row so UI can reference image_id before async upload finishes.
+        placeholder = ProductImage.objects.create(
+            product=product,
+            cloudinary_public_id=public_id,
+            image_url="",
+        )
+
+        shared_tmp_dir = Path(settings.BASE_DIR) / ".tmp_uploads" / "product_uploads"
+        shared_tmp_dir.mkdir(parents=True, exist_ok=True)
+        abs_path = str((shared_tmp_dir / f"{public_id}{suffix}").resolve())
+
+        with open(abs_path, "wb") as dst:
+            for chunk in image_file.chunks():
+                dst.write(chunk)
+
+        async_result = upload_product_image.delay(abs_path, product.id, public_id, placeholder.id)
+
+        presigned_url, _ = cloudinary_url(
+            f"campuskart/products/{public_id}",
+            secure=True,
+            sign_url=True,
+            transformation=[{"width": 800, "crop": "limit"}],
+        )
+
+        return Response(
+            {
+                "detail": "Image upload queued.",
+                "task_id": async_result.id,
+                "product_id": product.id,
+                "image_id": placeholder.id,
+                "presigned_url": presigned_url,
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class ProductImageDeleteView(APIView):
+    """
+    DELETE /api/v1/products/{id}/images/{image_id}/
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsVendor]
+
+    def delete(self, request, id: int, image_id: int):
+        product = get_object_or_404(Product.objects.select_related("vendor"), pk=id)
+        _ensure_vendor_owns_product(request.user, product)
+
+        image = get_object_or_404(ProductImage, pk=image_id, product_id=product.id)
+
+        if image.cloudinary_public_id:
+            try:
+                cloudinary.uploader.destroy(
+                    image.cloudinary_public_id,
+                    resource_type="image",
+                    invalidate=True,
+                )
+            except Exception:
+                # Do not block DB cleanup when Cloudinary delete fails.
+                pass
+
+        image.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

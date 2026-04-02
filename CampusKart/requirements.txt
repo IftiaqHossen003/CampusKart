@@ -31,6 +31,8 @@ django-redis>=5.4
 
 # ── Media processing ─────────────────────────────────────────────────────────
 Pillow>=10.3
+cloudinary>=1.40
+django-cloudinary-storage>=0.3
 
 # ── Auth extras ──────────────────────────────────────────────────────────────
 # (SimpleJWT already listed above)

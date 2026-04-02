@@ -11,6 +11,7 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
+from apps.products.views import CategoryViewSet
 
 API_V1 = "api/v1/"
 
@@ -27,6 +28,9 @@ urlpatterns = [
     path(API_V1 + "auth/",          include("apps.auth_app.urls",     namespace="auth")),
     path(API_V1 + "vendors/",       include("apps.vendors.urls",      namespace="vendors")),
     path(API_V1 + "products/",      include("apps.products.urls",     namespace="products")),
+    path("api/products/",            include(("apps.products.urls", "products_public"), namespace="products_public")),
+    path("api/categories/",          CategoryViewSet.as_view({"get": "list"}), name="categories-public-list"),
+    path("api/categories/<int:pk>/", CategoryViewSet.as_view({"get": "retrieve"}), name="categories-public-detail"),
     path(API_V1 + "orders/",        include("apps.orders.urls",       namespace="orders")),
     path(API_V1 + "payments/",      include("apps.payments.urls",     namespace="payments")),
     path(API_V1 + "chat/",          include("apps.chat.urls",         namespace="chat")),
