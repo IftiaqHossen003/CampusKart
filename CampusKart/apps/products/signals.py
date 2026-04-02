@@ -9,12 +9,26 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from .models import Product, ProductTag
+from .models import Product, ProductImage, ProductTag
 
 logger = logging.getLogger(__name__)
 
 # Must match the prefix used in views.py
 _PREFIX = "products"
+
+
+def _invalidate_list_caches():
+    """
+    Clears all product list caches.
+
+    Falls back to cache.clear() for backends without delete_pattern
+    (e.g. LocMemCache during unit testing).
+    """
+    delete_pattern = getattr(cache, "delete_pattern", None)
+    if callable(delete_pattern):
+        delete_pattern(f"{_PREFIX}:list:*")
+    else:
+        cache.clear()
 
 
 def _invalidate_list_and_tags_caches():
@@ -24,12 +38,8 @@ def _invalidate_list_and_tags_caches():
     Falls back to cache.clear() for non-Redis backends (e.g. LocMemCache
     during unit testing).
     """
-    try:
-        cache.delete_pattern(f"{_PREFIX}:list:*")
-        cache.delete(f"{_PREFIX}:tags")
-    except AttributeError:
-        # LocMemCache / DummyCache don't have delete_pattern → nuke all
-        cache.clear()
+    _invalidate_list_caches()
+    cache.delete(f"{_PREFIX}:tags")
 
 
 @receiver([post_save, post_delete], sender=Product)
@@ -68,3 +78,16 @@ def invalidate_product_tag_cache(sender, instance, **kwargs):
     _invalidate_list_and_tags_caches()
 
     logger.debug("Product tag cache invalidated for product_id=%s", instance.product_id)
+
+
+@receiver([post_save, post_delete], sender=ProductImage)
+def invalidate_product_cache_on_image_change(sender, instance, **kwargs):
+    """Image mutations affect list/detail payloads, so invalidate those caches."""
+    if instance.product_id:
+        slug = Product.objects.filter(pk=instance.product_id).values_list("slug", flat=True).first()
+        if slug:
+            cache.delete(f"{_PREFIX}:detail:{slug}")
+
+    _invalidate_list_caches()
+
+    logger.debug("Product image cache invalidated for product_id=%s", instance.product_id)
