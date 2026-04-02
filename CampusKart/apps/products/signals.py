@@ -9,12 +9,27 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from .models import Product
+from .models import Product, ProductTag
 
 logger = logging.getLogger(__name__)
 
 # Must match the prefix used in views.py
 _PREFIX = "products"
+
+
+def _invalidate_list_and_tags_caches():
+    """
+    Clears list and global tags caches.
+
+    Falls back to cache.clear() for non-Redis backends (e.g. LocMemCache
+    during unit testing).
+    """
+    try:
+        cache.delete_pattern(f"{_PREFIX}:list:*")
+        cache.delete(f"{_PREFIX}:tags")
+    except AttributeError:
+        # LocMemCache / DummyCache don't have delete_pattern → nuke all
+        cache.clear()
 
 
 @receiver([post_save, post_delete], sender=Product)
@@ -23,6 +38,7 @@ def invalidate_product_cache(sender, instance, **kwargs):
     Clears:
     - The specific detail-cache entry for this product's slug.
     - All list-cache entries (wildcard pattern delete via django-redis).
+    - Global tags cache used by the product-tags endpoint.
 
     Falls back to cache.clear() for non-Redis backends (e.g. LocMemCache
     during unit testing).
@@ -30,11 +46,25 @@ def invalidate_product_cache(sender, instance, **kwargs):
     # Detail cache
     cache.delete(f"{_PREFIX}:detail:{instance.slug}")
 
-    # List caches — pattern delete requires django-redis
-    try:
-        cache.delete_pattern(f"{_PREFIX}:list:*")
-    except AttributeError:
-        # LocMemCache / DummyCache don't have delete_pattern → nuke all
-        cache.clear()
+    _invalidate_list_and_tags_caches()
 
     logger.debug("Product cache invalidated for slug=%s", instance.slug)
+
+
+@receiver([post_save, post_delete], sender=ProductTag)
+def invalidate_product_tag_cache(sender, instance, **kwargs):
+    """
+    Clears caches impacted by tag mutations.
+
+    - Detail cache for the related product.
+    - All list caches (tag filters/search rely on ProductTag relations).
+    - Global tags cache.
+    """
+    if instance.product_id:
+        slug = Product.objects.filter(pk=instance.product_id).values_list("slug", flat=True).first()
+        if slug:
+            cache.delete(f"{_PREFIX}:detail:{slug}")
+
+    _invalidate_list_and_tags_caches()
+
+    logger.debug("Product tag cache invalidated for product_id=%s", instance.product_id)
