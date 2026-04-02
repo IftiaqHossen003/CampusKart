@@ -46,3 +46,6 @@ htmlcov/
 Thumbs.db
 #other
 COPILOT_LOG.md
+
+CLAUDE.md
+settings.json
