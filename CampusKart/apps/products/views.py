@@ -14,7 +14,6 @@ relevant detail key and all list keys via delete_pattern.
 """
 
 import hashlib
-import os
 import uuid
 from pathlib import Path
 
@@ -22,6 +21,7 @@ import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -35,10 +35,9 @@ from rest_framework.views import APIView
 from apps.auth_app.permissions import IsAdmin, IsVendor
 
 from .filters import ProductFilter
-from .models import Category, Product, ProductImage
+from .models import Category, Product, ProductImage, ProductTag
 from .serializers import (
     CategorySerializer,
-    ProductImageSerializer,
     ProductSerializer,
     ProductWriteSerializer,
 )
@@ -48,6 +47,7 @@ from .tasks import upload_product_image
 _TTL_LIST     = 5 * 60       # 5 minutes
 _TTL_DETAIL   = 10 * 60      # 10 minutes
 _TTL_CATEGORY = 60 * 60      # 1 hour
+_TTL_TAGS     = 5 * 60       # 5 minutes
 _PREFIX       = "products"
 _MAX_IMAGE_SIZE = 5 * 1024 * 1024
 _ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
@@ -178,11 +178,21 @@ class ProductViewSet(viewsets.ModelViewSet):
             .select_related("vendor", "category", "approved_by")
             .prefetch_related("images", "tags")
         )
-        # Public list/detail: only approved products visible
+
+        # Access scope for list/retrieve:
+        # - public: approved only
+        # - admin: all products
+        # - vendor: own products (all statuses)
         user = self.request.user
-        is_admin = user.is_authenticated and user.role == "admin"
-        if self.action in ("list", "retrieve") and not is_admin:
-            qs = qs.filter(status=Product.Status.APPROVED)
+        if self.action in ("list", "retrieve"):
+            if not user.is_authenticated:
+                qs = qs.filter(status=Product.Status.APPROVED)
+            elif user.role == "admin":
+                pass
+            elif user.role == "vendor" and hasattr(user, "vendor_profile"):
+                qs = qs.filter(vendor=user.vendor_profile)
+            else:
+                qs = qs.filter(status=Product.Status.APPROVED)
         return qs
 
     # ── object-level ownership check ─────────────────────────────────────────
@@ -257,6 +267,28 @@ class ProductViewSet(viewsets.ModelViewSet):
             ProductSerializer(product, context={"request": request}).data,
             status=status.HTTP_200_OK,
         )
+
+    @action(detail=False, methods=["get"], url_path="tags")
+    def tags(self, request):
+        """
+        GET /api/v1/products/tags/
+        Returns globally available approved product tags with usage counts.
+        """
+        cache_key = f"{_PREFIX}:tags"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        data = list(
+            ProductTag.objects
+            .filter(product__status=Product.Status.APPROVED)
+            .values("tag")
+            .annotate(count=Count("id"))
+            .order_by("tag")
+        )
+
+        cache.set(cache_key, data, _TTL_TAGS)
+        return Response(data)
 
 
 class ProductImageUploadView(APIView):
