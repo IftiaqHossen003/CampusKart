@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import MainLayout from './components/layout/MainLayout'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import ToastViewport from './components/ui/ToastViewport'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import ProductDetailPage from './pages/ProductDetailPage'
@@ -25,6 +26,7 @@ function App() {
             <Route path="/shop" element={<ProductListingPage />} />
             <Route path="/shop/products/:slug" element={<ProductDetailPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
 

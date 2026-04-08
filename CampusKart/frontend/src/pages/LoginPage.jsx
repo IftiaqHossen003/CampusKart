@@ -11,6 +11,10 @@ const roleRedirects = {
   admin: '/admin',
 }
 
+function isUnverifiedEmailError(detail) {
+  return typeof detail === 'string' && /not verified|verify your email/i.test(detail)
+}
+
 function LoginPage() {
   const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
@@ -20,6 +24,7 @@ function LoginPage() {
 
   const {
     register,
+    getValues,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({
@@ -47,7 +52,17 @@ function LoginPage() {
       navigate(fromPath || roleRedirects[user?.role] || '/', { replace: true })
     } catch (error) {
       const detail = error?.response?.data?.detail
-      showError(detail || 'Invalid email or password.')
+      const message = detail || 'Invalid email or password.'
+
+      showError(message)
+
+      if (isUnverifiedEmailError(detail)) {
+        const email = values.email.trim().toLowerCase()
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`, {
+          replace: true,
+          state: { email },
+        })
+      }
     }
   }
 
@@ -91,7 +106,12 @@ function LoginPage() {
           <button
             type="button"
             className="mt-2 text-xs font-medium text-accent hover:underline"
-            onClick={() => showError('Forgot password flow will be added soon.')}
+            onClick={() => {
+              const email = getValues('email').trim().toLowerCase()
+              navigate(email ? `/forgot-password?email=${encodeURIComponent(email)}` : '/forgot-password', {
+                state: email ? { email } : undefined,
+              })
+            }}
           >
             Forgot password?
           </button>
