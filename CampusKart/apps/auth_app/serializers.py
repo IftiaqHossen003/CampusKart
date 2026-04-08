@@ -4,6 +4,7 @@ Serializers for auth_app.
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import (
@@ -173,6 +174,65 @@ class VerifyEmailSerializer(serializers.Serializer):
 
 
 # ---------------------------------------------------------------------------
+# Forgot / reset password
+# ---------------------------------------------------------------------------
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return User.objects.normalize_email(value).lower()
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6, min_length=6)
+    new_password = serializers.CharField(write_only=True)
+    new_password2 = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        email = User.objects.normalize_email(attrs["email"]).lower()
+        code = attrs["code"].strip()
+        new_password = attrs["new_password"]
+        new_password2 = attrs["new_password2"]
+
+        if new_password != new_password2:
+            raise serializers.ValidationError({"new_password2": "Passwords do not match."})
+
+        user = User.objects.filter(email=email, is_active=True).first()
+        if user is None:
+            raise serializers.ValidationError({"code": "Invalid reset code."})
+
+        try:
+            validate_password(new_password, user=user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"new_password": list(exc.messages)})
+
+        otp = (
+            OTP.objects.filter(
+                user=user,
+                purpose="password_reset",
+                is_used=False,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        if otp is None:
+            raise serializers.ValidationError({"code": "Invalid reset code."})
+
+        if otp.is_expired:
+            raise serializers.ValidationError({"code": "Reset code has expired. Please request a new one."})
+
+        if not otp.verify(code):
+            raise serializers.ValidationError({"code": "Invalid reset code."})
+
+        attrs["email"] = email
+        attrs["user"] = user
+        return attrs
+
+
+# ---------------------------------------------------------------------------
 # Change password
 # ---------------------------------------------------------------------------
 
@@ -203,6 +263,8 @@ __all__ = [
     "RegisterSerializer",
     "LoginSerializer",
     "VerifyEmailSerializer",
+    "ForgotPasswordSerializer",
+    "ResetPasswordSerializer",
     "ChangePasswordSerializer",
     "TokenRefreshSerializer",
 ]

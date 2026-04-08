@@ -175,6 +175,10 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
+    "DEFAULT_THROTTLE_RATES": {
+        "forgot_password": "5/min",
+        "reset_password": "10/min",
+    },
 }
 
 # ---------------------------------------------------------------------------
