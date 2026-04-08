@@ -20,7 +20,7 @@ media/
 # Env
 .env
 .env.*
-!.env.example
+
 
 # Virtualenv
 .venv/
@@ -46,6 +46,9 @@ htmlcov/
 Thumbs.db
 #other
 COPILOT_LOG.md
+*.md
+*.docx
+
 
 CLAUDE.md
 settings.json

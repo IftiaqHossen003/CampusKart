@@ -5,6 +5,7 @@ Serializers for auth_app.
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
@@ -112,6 +113,14 @@ class LoginSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
+        # Prevent issuing tokens until email verification is completed.
+        email = attrs.get(self.username_field)
+        password = attrs.get("password")
+        user = User.objects.filter(email__iexact=email).first()
+
+        if user and user.is_active and password and user.check_password(password) and not user.is_verified:
+            raise AuthenticationFailed("Email is not verified. Please verify your email before logging in.")
+
         data = super().validate(attrs)
         # Append user data alongside tokens for convenience
         data["user"] = {

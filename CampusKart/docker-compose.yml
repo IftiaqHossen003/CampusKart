@@ -7,8 +7,24 @@ x-django-env: &django-env
     REDIS_URL: redis://redis:6379/0
     CELERY_BROKER_URL: redis://redis:6379/1
     CELERY_RESULT_BACKEND: django-db
+    DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-admin@campuskart.local}
+    DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-Admin@12345}
+    DJANGO_SUPERUSER_FULL_NAME: ${DJANGO_SUPERUSER_FULL_NAME:-CampusKart Admin}
 
 services:
+  # ─────────── Frontend (Vite) ──────────────────────────────────────────────
+  frontend:
+    image: node:20-alpine
+    restart: unless-stopped
+    working_dir: /app/frontend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    volumes:
+      - .:/app
+    ports:
+      - "5173:5173"
+    depends_on:
+      - django
+
   # ─────────── PostgreSQL ────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
@@ -50,6 +66,7 @@ services:
     <<: *django-env
     command: >
       sh -c "python manage.py migrate --noinput &&
+             python manage.py create_default_superuser &&
              python manage.py collectstatic --noinput &&
              gunicorn CampusKart.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"
     volumes:
