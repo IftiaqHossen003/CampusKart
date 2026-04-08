@@ -9,6 +9,7 @@ import ProductDetailPage from './pages/ProductDetailPage'
 import ProductListingPage from './pages/ProductListingPage'
 import RegisterPage from './pages/RegisterPage'
 import RoutePlaceholderPage from './pages/RoutePlaceholderPage'
+import VerifyEmailPage from './pages/VerifyEmailPage'
 import VendorProductsPage from './pages/VendorProductsPage'
 
 const queryClient = new QueryClient()
@@ -25,6 +26,7 @@ function App() {
             <Route path="/shop/products/:slug" element={<ProductDetailPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
 
             <Route
               path="/admin"

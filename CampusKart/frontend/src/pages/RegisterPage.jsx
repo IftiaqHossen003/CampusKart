@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import apiClient from '../api/client'
+import { useToast } from '../hooks/useToast'
 
 function RegisterPage() {
   const [submitError, setSubmitError] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
+  const navigate = useNavigate()
+  const { showSuccess } = useToast()
 
   const {
     register,
@@ -31,7 +33,6 @@ function RegisterPage() {
 
   const onSubmit = async (values) => {
     setSubmitError('')
-    setSuccessMessage('')
 
     try {
       const payload = {
@@ -47,9 +48,14 @@ function RegisterPage() {
         payload.university = values.university
       }
 
-      await apiClient.post('auth/register/', payload)
+      await apiClient.post('/auth/register/', payload)
 
-      setSuccessMessage('Check your email for your verification code before signing in.')
+      const email = values.email.trim().toLowerCase()
+      showSuccess('Account created. Verify your email with the OTP sent to your inbox.')
+      navigate(`/verify-email?email=${encodeURIComponent(email)}`, {
+        replace: true,
+        state: { email },
+      })
     } catch (error) {
       const detail = error?.response?.data?.detail
       const fallback = 'Unable to create account. Please review your details and try again.'
@@ -61,12 +67,6 @@ function RegisterPage() {
     <section className="mx-auto max-w-2xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <h1 className="text-2xl font-semibold text-primary">Create your CampusKart account</h1>
       <p className="mt-1 text-sm text-muted">Student and vendor onboarding in one form.</p>
-
-      {successMessage ? (
-        <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          {successMessage}
-        </p>
-      ) : null}
 
       {submitError ? (
         <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

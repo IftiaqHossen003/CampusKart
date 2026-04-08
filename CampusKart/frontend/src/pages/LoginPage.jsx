@@ -24,7 +24,7 @@ function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
-      email: '',
+      email: location.state?.email || '',
       password: '',
     },
   })
