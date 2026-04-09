@@ -27,6 +27,40 @@ class OrderSerializer(serializers.ModelSerializer):
 class CreateOrderSerializer(serializers.Serializer):
     delivery_address = serializers.CharField()
     notes = serializers.CharField(required=False, allow_blank=True)
-    items = serializers.ListField(
-        child=serializers.DictField(), min_length=1
+
+
+class OrderStatusUpdateSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=[
+            Order.Status.CONFIRMED,
+            Order.Status.SHIPPED,
+            Order.Status.DELIVERED,
+        ]
     )
+
+    _NEXT_ALLOWED_STATUS = {
+        Order.Status.PENDING: Order.Status.CONFIRMED,
+        Order.Status.CONFIRMED: Order.Status.SHIPPED,
+        Order.Status.SHIPPED: Order.Status.DELIVERED,
+    }
+
+    default_error_messages = {
+        "invalid_transition": "Invalid status transition from '{current}' to '{next_status}'.",
+    }
+
+    def validate(self, attrs):
+        order = self.context.get("order")
+        next_status = attrs["status"]
+
+        if order is None:
+            raise serializers.ValidationError({"detail": "Order context is required."})
+
+        expected = self._NEXT_ALLOWED_STATUS.get(order.status)
+        if expected != next_status:
+            self.fail(
+                "invalid_transition",
+                current=order.status,
+                next_status=next_status,
+            )
+
+        return attrs
