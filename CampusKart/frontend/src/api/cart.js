@@ -86,8 +86,11 @@ export function normalizeCart(payload) {
   const computedTotalItems = items.reduce((sum, item) => sum + item.quantity, 0)
   const computedTotalPrice = items.reduce((sum, item) => sum + item.subtotal, 0)
 
-  const totalItems = toPositiveInteger(payload?.total_items ?? payload?.totalItems ?? computedTotalItems, 0)
-  const totalPrice = toNumber(payload?.total_price ?? payload?.totalPrice ?? computedTotalPrice)
+  const totalItems = toPositiveInteger(
+    payload?.total_quantity ?? payload?.total_items ?? payload?.totalItems ?? computedTotalItems,
+    0,
+  )
+  const totalPrice = toNumber(payload?.total_amount ?? payload?.total_price ?? payload?.totalPrice ?? computedTotalPrice)
 
   return {
     id: payload?.id ?? null,
@@ -102,18 +105,37 @@ export async function fetchCart() {
   return normalizeCart(response.data)
 }
 
-export async function replaceCart(items) {
-  const response = await apiClient.post('/cart/', { items })
+function normalizeReplaceItems(items) {
+  if (!Array.isArray(items)) {
+    return []
+  }
+
+  return items
+    .map((item) => ({
+      product: item?.product ?? item?.productId ?? item?.product_id ?? item?.product?.id,
+      quantity: toPositiveInteger(item?.quantity),
+    }))
+    .filter((item) => Boolean(item.product))
+}
+
+export async function replaceCart(items, { merge = false } = {}) {
+  const response = await apiClient.post('/cart/', {
+    items: normalizeReplaceItems(items),
+    merge,
+  })
   return normalizeCart(response.data)
 }
 
 export async function addCartItem({ productId, quantity = 1 }) {
-  const response = await apiClient.post('/cart/items/', {
-    product_id: productId,
-    quantity: toPositiveInteger(quantity),
-  })
-
-  return normalizeCart(response.data)
+  return replaceCart(
+    [
+      {
+        product: productId,
+        quantity: toPositiveInteger(quantity),
+      },
+    ],
+    { merge: true },
+  )
 }
 
 export async function updateCartItemQuantity(itemId, quantity) {
