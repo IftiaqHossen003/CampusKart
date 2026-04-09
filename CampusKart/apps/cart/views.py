@@ -9,7 +9,12 @@ from rest_framework.views import APIView
 from apps.products.models import Product
 
 from .models import Cart, CartItem
-from .serializers import CartItemQuantitySerializer, CartReplaceSerializer, CartSerializer
+from .serializers import (
+    CartItemCreateSerializer,
+    CartItemQuantitySerializer,
+    CartReplaceSerializer,
+    CartSerializer,
+)
 
 
 def _cart_queryset():
@@ -108,6 +113,43 @@ class CartView(APIView):
                 _validate_product_for_cart(payload["product"], payload["quantity"])
 
             _replace_cart_items(cart, final_items)
+
+        return Response(_serialize_cart(cart, request), status=status.HTTP_200_OK)
+
+
+class CartItemCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = CartItemCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        product = serializer.validated_data["product"]
+        quantity = serializer.validated_data["quantity"]
+
+        with transaction.atomic():
+            cart = _get_or_create_cart(request.user)
+            existing_item = (
+                CartItem.objects.select_related("product")
+                .filter(cart=cart, product=product)
+                .first()
+            )
+
+            final_quantity = quantity
+            if existing_item:
+                final_quantity += existing_item.quantity
+
+            _validate_product_for_cart(product, final_quantity)
+
+            if existing_item:
+                existing_item.quantity = final_quantity
+                existing_item.save(update_fields=["quantity"])
+            else:
+                CartItem.objects.create(
+                    cart=cart,
+                    product=product,
+                    quantity=final_quantity,
+                )
 
         return Response(_serialize_cart(cart, request), status=status.HTTP_200_OK)
 

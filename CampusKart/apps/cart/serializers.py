@@ -84,6 +84,34 @@ class CartReplaceSerializer(serializers.Serializer):
     merge = serializers.BooleanField(required=False, default=False)
 
 
+class CartItemCreateSerializer(serializers.Serializer):
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all(), required=False)
+    product_id = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all(), required=False)
+    quantity = serializers.IntegerField(required=False, default=1)
+
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Quantity must be a positive integer.")
+        return value
+
+    def validate(self, attrs):
+        product = attrs.get("product")
+        product_id = attrs.get("product_id")
+
+        if product and product_id and product != product_id:
+            raise serializers.ValidationError(
+                {"detail": "Conflicting values provided for 'product' and 'product_id'."}
+            )
+
+        resolved_product = product or product_id
+        if not resolved_product:
+            raise serializers.ValidationError(
+                {"detail": "Either 'product' or 'product_id' must be provided."}
+            )
+
+        attrs["product"] = resolved_product
+        return attrs
+
 class CartItemQuantitySerializer(serializers.Serializer):
     quantity = serializers.IntegerField()
 
