@@ -100,16 +100,16 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         if self.action == "list":
-            # Only root categories; children are prefetched and nested
-            return (
-                Category.objects
-                .filter(is_active=True, parent__isnull=True)
-                .prefetch_related("children")
-            )
+            # Prefer root categories with nested children.
+            # If no root exists, fall back to all active categories so UI still renders options.
+            root_categories = Category.objects.filter(is_active=True, parent__isnull=True)
+            if root_categories.exists():
+                return root_categories.prefetch_related("children")
+            return Category.objects.filter(is_active=True).prefetch_related("children")
         return Category.objects.filter(is_active=True).prefetch_related("children")
 
     def list(self, request, *args, **kwargs):
-        cache_key = f"{_PREFIX}:categories"
+        cache_key = f"{_PREFIX}:categories:v2"
         cached = cache.get(cache_key)
         if cached is not None:
             return Response(cached)

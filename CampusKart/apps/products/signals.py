@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from .models import Product, ProductImage, ProductTag
+from .models import Category, Product, ProductImage, ProductTag
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,20 @@ def _invalidate_list_and_tags_caches():
     """
     _invalidate_list_caches()
     cache.delete(f"{_PREFIX}:tags")
+
+
+def _invalidate_category_caches():
+    """
+    Clears category list/detail caches.
+    """
+    delete_pattern = getattr(cache, "delete_pattern", None)
+    if callable(delete_pattern):
+        delete_pattern(f"{_PREFIX}:category:*")
+    else:
+        cache.clear()
+
+    cache.delete(f"{_PREFIX}:categories")
+    cache.delete(f"{_PREFIX}:categories:v2")
 
 
 @receiver([post_save, post_delete], sender=Product)
@@ -91,3 +105,11 @@ def invalidate_product_cache_on_image_change(sender, instance, **kwargs):
     _invalidate_list_caches()
 
     logger.debug("Product image cache invalidated for product_id=%s", instance.product_id)
+
+
+@receiver([post_save, post_delete], sender=Category)
+def invalidate_category_cache(sender, instance, **kwargs):
+    """Category mutations should be reflected immediately in category endpoints."""
+    _invalidate_category_caches()
+
+    logger.debug("Category cache invalidated for category_id=%s", instance.id)
