@@ -3,6 +3,8 @@ Views for auth_app.
 All endpoints live under /api/v1/auth/
 """
 
+import logging
+
 from django.contrib.auth import get_user_model
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
@@ -12,6 +14,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView as BaseTokenRefreshView,
 )
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 from .models import OTP
 from .serializers import (
@@ -19,11 +22,17 @@ from .serializers import (
     RegisterSerializer,
     LoginSerializer,
     VerifyEmailSerializer,
+    ForgotPasswordSerializer,
+    ResetPasswordSerializer,
     ChangePasswordSerializer,
 )
-from .tasks import send_verification_email
+from .tasks import send_verification_email, send_password_reset_email
+from .throttles import ForgotPasswordThrottle, ResetPasswordThrottle
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+
+GENERIC_PASSWORD_RESET_MESSAGE = "If that email exists, a reset code has been sent."
 
 
 # ---------------------------------------------------------------------------
@@ -155,6 +164,69 @@ class ResendVerificationView(APIView):
             {"detail": "If that email exists, a new code has been sent."},
             status=status.HTTP_200_OK,
         )
+
+
+# ---------------------------------------------------------------------------
+# Forgot / reset password
+# ---------------------------------------------------------------------------
+
+class ForgotPasswordView(APIView):
+    """
+    POST /api/v1/auth/forgot-password/
+
+    Body: { "email": "..." }
+    Always returns a generic success message to prevent user enumeration.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [ForgotPasswordThrottle]
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+        user = User.objects.filter(email=email, is_active=True).first()
+
+        logger.info("Password reset requested email=%s user_found=%s", email, bool(user))
+
+        if user is not None:
+            OTP.objects.filter(user=user, purpose="password_reset", is_used=False).update(is_used=True)
+            send_password_reset_email.delay(user.pk)
+
+        return Response({"detail": GENERIC_PASSWORD_RESET_MESSAGE}, status=status.HTTP_200_OK)
+
+
+class ResetPasswordView(APIView):
+    """
+    POST /api/v1/auth/reset-password/
+
+    Body: { "email": "...", "code": "123456", "new_password": "...", "new_password2": "..." }
+    """
+
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [ResetPasswordThrottle]
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.validated_data["user"]
+        user.set_password(serializer.validated_data["new_password"])
+        user.save(update_fields=["password"])
+
+        self._blacklist_user_refresh_tokens(user)
+        logger.info("Password reset completed user_id=%s email=%s", user.pk, user.email)
+
+        return Response(
+            {"detail": "Password has been reset successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+    @staticmethod
+    def _blacklist_user_refresh_tokens(user):
+        for token in OutstandingToken.objects.filter(user=user):
+            BlacklistedToken.objects.get_or_create(token=token)
 
 
 # ---------------------------------------------------------------------------

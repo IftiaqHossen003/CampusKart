@@ -112,7 +112,6 @@ class CartItemCreateSerializer(serializers.Serializer):
         attrs["product"] = resolved_product
         return attrs
 
-
 class CartItemQuantitySerializer(serializers.Serializer):
     quantity = serializers.IntegerField()
 

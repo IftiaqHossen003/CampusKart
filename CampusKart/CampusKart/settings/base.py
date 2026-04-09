@@ -59,6 +59,7 @@ LOCAL_APPS = [
     "apps.auth_app",
     "apps.vendors",
     "apps.products",
+    "apps.cart",
     "apps.orders",
     "apps.payments",
     "apps.chat",
@@ -175,6 +176,10 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
+    "DEFAULT_THROTTLE_RATES": {
+        "forgot_password": "5/min",
+        "reset_password": "10/min",
+    },
 }
 
 # ---------------------------------------------------------------------------
