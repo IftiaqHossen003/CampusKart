@@ -1,5 +1,7 @@
+import { useMutation } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useToast } from '../../hooks/useToast'
+import { useCartStore } from '../../store/cartStore'
 
 function toNumber(value) {
   const number = Number(value)
@@ -19,17 +21,34 @@ function buildStarRow(avgRating) {
   return Array.from({ length: 5 }, (_, index) => index < filled)
 }
 
+function getApiErrorMessage(error, fallbackMessage) {
+  return error?.response?.data?.detail || fallbackMessage
+}
+
 function ProductCard({ product }) {
-  const { showToast } = useToast()
+  const { showError, showSuccess } = useToast()
+  const addItem = useCartStore((state) => state.addItem)
 
   const price = toNumber(product.price)
   const discountPrice = product.discount_price ? toNumber(product.discount_price) : null
   const hasDiscount = discountPrice !== null && discountPrice < price
   const discountPercent = hasDiscount ? Math.round(((price - discountPrice) / price) * 100) : 0
+  const hasStockInfo = product.stock !== null && product.stock !== undefined
+  const isOutOfStock = hasStockInfo && toNumber(product.stock) <= 0
   const imageUrl =
     product.images?.find((image) => image.is_primary)?.image_url ||
     product.images?.[0]?.image_url ||
     'https://placehold.co/800x600/e2e8f0/334155?text=CampusKart'
+
+  const addToCartMutation = useMutation({
+    mutationFn: () => addItem({ product, quantity: 1 }),
+    onSuccess: () => {
+      showSuccess(`${product.name} added to cart.`)
+    },
+    onError: (error) => {
+      showError(getApiErrorMessage(error, 'Could not add this product to cart.'))
+    },
+  })
 
   return (
     <article className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
@@ -80,10 +99,11 @@ function ProductCard({ product }) {
 
         <button
           type="button"
-          onClick={() => showToast('Cart integration will be added in M2-7.', 'info')}
-          className="w-full rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary"
+          disabled={isOutOfStock || addToCartMutation.isPending}
+          onClick={() => addToCartMutation.mutate()}
+          className="w-full rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-slate-400"
         >
-          Add to Cart
+          {isOutOfStock ? 'Out of Stock' : addToCartMutation.isPending ? 'Adding...' : 'Add to Cart'}
         </button>
       </div>
     </article>

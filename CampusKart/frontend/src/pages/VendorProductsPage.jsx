@@ -8,6 +8,7 @@ import {
   deleteProduct,
   fetchCategories,
   fetchProducts,
+  uploadProductImage,
   updateProduct,
 } from '../api/products'
 import { fetchMyVendorProfile } from '../api/vendors'
@@ -64,6 +65,10 @@ function formatPrice(value) {
   }).format(number)
 }
 
+function getApiErrorMessage(error, fallbackMessage) {
+  return error?.response?.data?.detail || fallbackMessage
+}
+
 function VendorProductsPage() {
   const queryClient = useQueryClient()
   const { showError, showSuccess } = useToast()
@@ -72,6 +77,7 @@ function VendorProductsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchInput, setSearchInput] = useState('')
   const [editingProduct, setEditingProduct] = useState(null)
+  const [selectedImageFile, setSelectedImageFile] = useState(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   const debouncedSearch = useDebouncedValue(searchInput, 400)
@@ -116,29 +122,89 @@ function VendorProductsPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: createProduct,
-    onSuccess: () => {
-      showSuccess('Product created and sent for approval.')
+    mutationFn: async ({ payload, imageFile }) => {
+      const product = await createProduct(payload)
+      let imageUploadError = null
+
+      if (imageFile) {
+        if (product?.id) {
+          try {
+            await uploadProductImage(product.id, imageFile)
+          } catch (error) {
+            imageUploadError = error
+          }
+        } else {
+          imageUploadError = new Error('Product ID missing from create response.')
+        }
+      }
+
+      return {
+        imageUploadError,
+        hasImageUploadRequest: Boolean(imageFile),
+      }
+    },
+    onSuccess: ({ imageUploadError, hasImageUploadRequest }) => {
+      if (hasImageUploadRequest && !imageUploadError) {
+        showSuccess('Product created and image upload queued.')
+      } else {
+        showSuccess('Product created and sent for approval.')
+      }
+
+      if (imageUploadError) {
+        showError(getApiErrorMessage(imageUploadError, 'Product was created, but image upload failed.'))
+      }
+
       setIsFormOpen(false)
       form.reset(defaultValues)
+      setSelectedImageFile(null)
       queryClient.invalidateQueries({ queryKey: ['vendor-products'] })
     },
     onError: (error) => {
-      showError(error?.response?.data?.detail || 'Could not create product.')
+      showError(getApiErrorMessage(error, 'Could not create product.'))
     },
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ slug, payload }) => updateProduct(slug, payload),
-    onSuccess: () => {
-      showSuccess('Product updated successfully.')
+    mutationFn: async ({ slug, payload, imageFile, productId }) => {
+      await updateProduct(slug, payload)
+      let imageUploadError = null
+
+      if (imageFile) {
+        if (productId) {
+          try {
+            await uploadProductImage(productId, imageFile)
+          } catch (error) {
+            imageUploadError = error
+          }
+        } else {
+          imageUploadError = new Error('Product ID missing for image upload.')
+        }
+      }
+
+      return {
+        imageUploadError,
+        hasImageUploadRequest: Boolean(imageFile),
+      }
+    },
+    onSuccess: ({ imageUploadError, hasImageUploadRequest }) => {
+      if (hasImageUploadRequest && !imageUploadError) {
+        showSuccess('Product updated and image upload queued.')
+      } else {
+        showSuccess('Product updated successfully.')
+      }
+
+      if (imageUploadError) {
+        showError(getApiErrorMessage(imageUploadError, 'Product was updated, but image upload failed.'))
+      }
+
       setEditingProduct(null)
       setIsFormOpen(false)
       form.reset(defaultValues)
+      setSelectedImageFile(null)
       queryClient.invalidateQueries({ queryKey: ['vendor-products'] })
     },
     onError: (error) => {
-      showError(error?.response?.data?.detail || 'Could not update product.')
+      showError(getApiErrorMessage(error, 'Could not update product.'))
     },
   })
 
@@ -182,6 +248,7 @@ function VendorProductsPage() {
 
     setEditingProduct(null)
     form.reset(defaultValues)
+    setSelectedImageFile(null)
     setIsFormOpen(true)
   }
 
@@ -201,6 +268,7 @@ function VendorProductsPage() {
       stock: product.stock || 0,
       sku: product.sku || '',
     })
+    setSelectedImageFile(null)
     setIsFormOpen(true)
   }
 
@@ -210,6 +278,7 @@ function VendorProductsPage() {
     }
     setIsFormOpen(false)
     setEditingProduct(null)
+    setSelectedImageFile(null)
     form.reset(defaultValues)
   }
 
@@ -222,11 +291,16 @@ function VendorProductsPage() {
     const payload = toPayload(values)
 
     if (editingProduct?.slug) {
-      updateMutation.mutate({ slug: editingProduct.slug, payload })
+      updateMutation.mutate({
+        slug: editingProduct.slug,
+        payload,
+        imageFile: selectedImageFile,
+        productId: editingProduct.id,
+      })
       return
     }
 
-    createMutation.mutate(payload)
+    createMutation.mutate({ payload, imageFile: selectedImageFile })
   }
 
   return (
@@ -506,6 +580,26 @@ function VendorProductsPage() {
                     <p className="mt-1 text-xs text-error">{form.formState.errors.sku.message}</p>
                   ) : null}
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="product-image">
+                  Product Image (optional)
+                </label>
+                <input
+                  id="product-image"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null
+                    setSelectedImageFile(file)
+                  }}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200 focus:border-accent focus:outline-none"
+                />
+                <p className="mt-1 text-xs text-muted">Supported formats: JPG, PNG, WEBP (max 5MB).</p>
+                {selectedImageFile ? (
+                  <p className="mt-1 text-xs text-slate-600">Selected: {selectedImageFile.name}</p>
+                ) : null}
               </div>
 
               <button

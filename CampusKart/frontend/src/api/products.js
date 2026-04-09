@@ -90,6 +90,14 @@ export async function createProduct(payload) {
   return response.data
 }
 
+export async function uploadProductImage(productId, imageFile) {
+  const formData = new FormData()
+  formData.append('image', imageFile)
+
+  const response = await apiClient.post(`/products/${productId}/images/`, formData)
+  return response.data
+}
+
 export async function updateProduct(slug, payload) {
   const response = await apiClient.patch(`/products/${slug}/`, payload)
   return response.data

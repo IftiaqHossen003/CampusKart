@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import ProductListingPage from './pages/ProductListingPage'
 import RegisterPage from './pages/RegisterPage'
+import CartPage from './pages/CartPage'
 import RoutePlaceholderPage from './pages/RoutePlaceholderPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
 import VendorProductsPage from './pages/VendorProductsPage'
@@ -39,14 +40,7 @@ function App() {
               }
             />
 
-            <Route
-              path="/cart"
-              element={
-                <ProtectedRoute>
-                  <RoutePlaceholderPage title="Cart" />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/cart" element={<CartPage />} />
 
             <Route
               path="/checkout"

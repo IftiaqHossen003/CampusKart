@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
+import { useCartStore } from '../../store/cartStore'
 
 function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const totalItems = useCartStore((state) => state.totalItems)
 
   const links = useMemo(() => {
     if (!user) {
@@ -79,7 +81,11 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
         <div className="ml-auto flex items-center gap-2">
           <Link to="/cart" className="relative rounded-md border border-white/30 px-2 py-1 text-xs">
             Cart
-            <span className="absolute -right-1.5 -top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-semibold">2</span>
+            {totalItems > 0 ? (
+              <span className="absolute -right-1.5 -top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-semibold">
+                {totalItems > 99 ? '99+' : totalItems}
+              </span>
+            ) : null}
           </Link>
           <Link to="/notifications" className="rounded-md border border-white/30 px-2 py-1 text-xs">
             Alerts
