@@ -224,6 +224,14 @@ CACHES = {
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
+SESSION_COOKIE_AGE = int(
+    os.environ.get(
+        "SESSION_COOKIE_AGE_SECONDS",
+        int(SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()),
+    )
+)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = os.environ.get("SESSION_EXPIRE_AT_BROWSER_CLOSE", "False") == "True"
+SESSION_SAVE_EVERY_REQUEST = os.environ.get("SESSION_SAVE_EVERY_REQUEST", "True") == "True"
 
 # ---------------------------------------------------------------------------
 # Celery
