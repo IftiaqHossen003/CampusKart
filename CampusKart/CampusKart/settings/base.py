@@ -59,6 +59,7 @@ LOCAL_APPS = [
     "apps.auth_app",
     "apps.vendors",
     "apps.products",
+    "apps.cart",
     "apps.orders",
     "apps.payments",
     "apps.chat",
