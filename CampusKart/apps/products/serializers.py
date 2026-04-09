@@ -82,9 +82,10 @@ class ProductWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Product
         fields = [
-            "name", "category", "description",
+            "id", "slug", "name", "category", "description",
             "price", "discount_price", "stock", "sku",
         ]
+        read_only_fields = ["id", "slug"]
 
     # ── slug helpers ─────────────────────────────────────────────────────────
 

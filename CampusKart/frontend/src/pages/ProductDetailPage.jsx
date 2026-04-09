@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { fetchProductBySlug, fetchProducts } from '../api/products'
 import { fetchReviewsByProduct } from '../api/reviews'
 import ProductCard from '../components/ui/ProductCard'
 import { useToast } from '../hooks/useToast'
+import { useCartStore } from '../store/cartStore'
 
 function toNumber(value) {
   const number = Number(value)
@@ -22,6 +24,10 @@ function formatPrice(value) {
 function buildStarRow(rating) {
   const filled = Math.round(toNumber(rating))
   return Array.from({ length: 5 }, (_, index) => index < filled)
+}
+
+function getApiErrorMessage(error, fallbackMessage) {
+  return error?.response?.data?.detail || fallbackMessage
 }
 
 function DetailSkeleton() {
@@ -51,7 +57,8 @@ function DetailSkeleton() {
 
 function ProductDetailPage() {
   const { slug } = useParams()
-  const { showToast } = useToast()
+  const { showError, showSuccess } = useToast()
+  const addItem = useCartStore((state) => state.addItem)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
 
@@ -100,6 +107,16 @@ function ProductDetailPage() {
   const selectedImage = images[selectedImageIndex]?.image_url || images[0]?.image_url
   const reviews = reviewsQuery.data || []
   const relatedProducts = (relatedQuery.data?.results || []).filter((item) => item.id !== product?.id).slice(0, 3)
+
+  const addToCartMutation = useMutation({
+    mutationFn: () => addItem({ product, quantity }),
+    onSuccess: () => {
+      showSuccess(`Added ${quantity} x ${product.name} to cart.`)
+    },
+    onError: (error) => {
+      showError(getApiErrorMessage(error, 'Could not add this product to cart.'))
+    },
+  })
 
   if (productQuery.isLoading) {
     return <DetailSkeleton />
@@ -237,16 +254,11 @@ function ProductDetailPage() {
 
           <button
             type="button"
-            disabled={product.stock <= 0}
-            onClick={() =>
-              showToast(
-                `Added ${quantity} x ${product.name} to cart (cart flow will be finalized in M2-7).`,
-                'success',
-              )
-            }
+            disabled={product.stock <= 0 || addToCartMutation.isPending}
+            onClick={() => addToCartMutation.mutate()}
             className="w-full rounded-md bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-slate-400"
           >
-            Add to Cart
+            {product.stock <= 0 ? 'Out of Stock' : addToCartMutation.isPending ? 'Adding...' : 'Add to Cart'}
           </button>
         </div>
       </div>

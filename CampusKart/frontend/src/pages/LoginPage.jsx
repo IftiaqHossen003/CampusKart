@@ -4,6 +4,7 @@ import Button from '../components/ui/Button'
 import apiClient from '../api/client'
 import { useToast } from '../hooks/useToast'
 import { useAuthStore } from '../store/authStore'
+import { useCartStore } from '../store/cartStore'
 
 const roleRedirects = {
   student: '/shop',
@@ -17,6 +18,7 @@ function isUnverifiedEmailError(detail) {
 
 function LoginPage() {
   const login = useAuthStore((state) => state.login)
+  const mergeGuestCartOnLogin = useCartStore((state) => state.mergeGuestCartOnLogin)
   const navigate = useNavigate()
   const location = useLocation()
   const { showError } = useToast()
@@ -48,6 +50,15 @@ function LoginPage() {
         refreshToken: refresh,
         user,
       })
+
+      const mergeResult = await mergeGuestCartOnLogin().catch(() => ({
+        mergedCount: 0,
+        failedCount: 0,
+      }))
+
+      if (mergeResult.failedCount > 0) {
+        showError('Some guest cart items could not be merged. Please review your cart.')
+      }
 
       navigate(fromPath || roleRedirects[user?.role] || '/', { replace: true })
     } catch (error) {
