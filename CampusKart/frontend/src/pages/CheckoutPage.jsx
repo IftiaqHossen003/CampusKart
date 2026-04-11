@@ -34,6 +34,13 @@ function formatPrice(value) {
   }).format(toNumber(value))
 }
 
+function buildDeliveryAddressString(values) {
+  return [values.fullName, values.phone, values.addressLine, values.areaCity]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join(', ')
+}
+
 function CheckoutPage() {
   const navigate = useNavigate()
   const { showError, showSuccess } = useToast()
@@ -60,9 +67,12 @@ function CheckoutPage() {
   })
 
   const placeOrderMutation = useMutation({
-    mutationFn: (values) =>
-      createOrder({
-        paymentMethod: values.paymentMethod,
+    mutationFn: (values) => {
+      const deliveryAddress = buildDeliveryAddressString(values)
+
+      return createOrder({
+        delivery_address: deliveryAddress,
+        payment_method: values.paymentMethod,
         notes: values.notes?.trim() || '',
         deliveryAddress: {
           fullName: values.fullName,
@@ -71,7 +81,8 @@ function CheckoutPage() {
           areaCity: values.areaCity,
           notes: values.notes?.trim() || '',
         },
-      }),
+      })
+    },
     onSuccess: async (order) => {
       showSuccess('Order placed successfully.')
 

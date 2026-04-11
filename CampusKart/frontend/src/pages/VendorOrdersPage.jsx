@@ -117,7 +117,8 @@ function VendorOrdersPage() {
         return {
           ...current,
           results: current.results.map((order) => {
-            if (String(order.id) !== String(orderId)) {
+            const targetOrderId = order.statusUpdateId || order.id
+            if (String(targetOrderId) !== String(orderId)) {
               return order
             }
 

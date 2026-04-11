@@ -263,9 +263,21 @@ function normalizeOrder(rawOrder, index = 0) {
     subtotal,
     total,
     customerName: asString(
-      pickFirst(order?.customer_name, order?.student_name, order?.full_name, order?.user?.full_name, order?.user?.name),
+      pickFirst(
+        order?.customer_name,
+        order?.student_name,
+        order?.full_name,
+        order?.buyer_name,
+        order?.buyer_full_name,
+        order?.user?.full_name,
+        order?.user?.name,
+        order?.buyer?.full_name,
+        order?.buyer_email,
+        order?.buyer?.email,
+      ),
       '',
     ),
+    customerEmail: asString(pickFirst(order?.buyer_email, order?.buyer?.email, order?.user?.email), ''),
     deliveryAddress: normalizeAddress(
       pickFirst(order?.delivery_address, order?.shipping_address, order?.address, order?.deliveryAddress),
       order,
@@ -342,6 +354,15 @@ function compactObject(object) {
   return Object.fromEntries(Object.entries(object || {}).filter(([, value]) => hasValue(value)))
 }
 
+function buildDeliveryAddressText(parts = []) {
+  const text = parts
+    .map((part) => asString(part).trim())
+    .filter(Boolean)
+    .join(', ')
+
+  return text
+}
+
 function buildCreateOrderPayloadCandidates(payload = {}) {
   const source = payload || {}
   const deliveryAddressSource =
@@ -373,6 +394,16 @@ function buildCreateOrderPayloadCandidates(payload = {}) {
   const notes = pickFirst(deliveryAddressSource?.notes, source?.notes, '')
   const paymentMethod = pickFirst(source?.payment_method, source?.paymentMethod, 'cod')
   const items = Array.isArray(source?.items) ? source.items : undefined
+  const deliveryAddressText = asString(
+    pickFirst(
+      source?.delivery_address,
+      source?.deliveryAddressString,
+      source?.address,
+      source?.address_line,
+      buildDeliveryAddressText([fullName, phone, addressLine, areaCity]),
+    ),
+    '',
+  )
 
   const snakeAddress = compactObject({
     full_name: fullName,
@@ -393,14 +424,21 @@ function buildCreateOrderPayloadCandidates(payload = {}) {
   const candidates = [
     source,
     compactObject({
-      payment_method: paymentMethod,
+      delivery_address: deliveryAddressText,
       notes,
-      ...(Object.keys(snakeAddress).length > 0 ? { delivery_address: snakeAddress } : {}),
+      payment_method: paymentMethod,
       ...(items ? { items } : {}),
     }),
     compactObject({
       payment_method: paymentMethod,
       notes,
+      delivery_address: deliveryAddressText,
+      ...(items ? { items } : {}),
+    }),
+    compactObject({
+      payment_method: paymentMethod,
+      notes,
+      delivery_address: deliveryAddressText,
       ...snakeAddress,
       ...(items ? { items } : {}),
     }),
@@ -425,6 +463,34 @@ function buildCreateOrderPayloadCandidates(payload = {}) {
   })
 }
 
+function shouldRetryWithAnotherPayload(statusCode, responseData) {
+  if (statusCode !== 400 && statusCode !== 422) {
+    return false
+  }
+
+  if (!responseData || typeof responseData !== 'object' || Array.isArray(responseData)) {
+    return false
+  }
+
+  if (typeof responseData?.detail === 'string' || typeof responseData?.message === 'string') {
+    return false
+  }
+
+  const payloadShapeKeys = new Set([
+    'delivery_address',
+    'deliveryAddress',
+    'address_line',
+    'addressLine',
+    'full_name',
+    'fullName',
+    'phone',
+    'payment_method',
+    'paymentMethod',
+  ])
+
+  return Object.keys(responseData).some((key) => payloadShapeKeys.has(key))
+}
+
 async function postWithPayloadFallback(url, payloadCandidates) {
   let lastError = null
 
@@ -434,8 +500,9 @@ async function postWithPayloadFallback(url, payloadCandidates) {
     } catch (error) {
       lastError = error
       const statusCode = error?.response?.status
+      const responseData = error?.response?.data
 
-      if (statusCode === 400 || statusCode === 422) {
+      if (shouldRetryWithAnotherPayload(statusCode, responseData)) {
         continue
       }
 
@@ -530,9 +597,10 @@ export async function fetchVendorOrders(params = {}) {
   const fallbackScopeQuery = appendQueryParam(queryString, 'scope', 'vendor')
 
   const response = await getWithFallback([
-    `/vendor/orders/${queryString}`,
-    `/orders/vendor/${queryString}`,
     `/orders/${fallbackScopeQuery}`,
+    `/orders/${queryString}`,
+    `/orders/vendor/${queryString}`,
+    `/vendor/orders/${queryString}`,
   ])
 
   return normalizeOrdersList(response.data, Math.max(1, toNumber(params.page) || 1))
