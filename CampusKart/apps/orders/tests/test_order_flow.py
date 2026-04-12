@@ -114,6 +114,38 @@ class OrderFlowTests(APITestCase):
         order.save(update_fields=["total_amount", "updated_at"])
         return order
 
+    @staticmethod
+    def _extract_results(payload):
+        if isinstance(payload, list):
+            return payload
+        if isinstance(payload, dict):
+            return payload.get("results", [])
+        return []
+
+    def _create_mixed_vendor_order(self):
+        order = Order.objects.create(
+            buyer=self.buyer,
+            delivery_address="Dorm 301",
+            notes="Mixed order",
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=self.product_1,
+            quantity=2,
+            unit_price=self.product_1.effective_price,
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=self.product_2,
+            quantity=1,
+            unit_price=self.product_2.effective_price,
+        )
+        order.total_amount = (Decimal(str(self.product_1.effective_price)) * Decimal("2")) + Decimal(
+            str(self.product_2.effective_price)
+        )
+        order.save(update_fields=["total_amount", "updated_at"])
+        return order
+
     def test_checkout_creates_order_items_updates_stock_clears_cart_and_notifies(self):
         cart = Cart.objects.create(user=self.buyer)
         CartItem.objects.create(cart=cart, product=self.product_1, quantity=2)
@@ -220,3 +252,55 @@ class OrderFlowTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("invalid status transition", str(response.data).lower())
+
+    def test_vendor_order_list_only_contains_orders_for_their_shop(self):
+        vendor_1_order = self._create_order_with_item(self.product_1)
+        self._create_order_with_item(self.product_2)
+
+        self._auth(self.vendor_user_1)
+        response = self.client.get("/api/v1/orders/vendor/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = self._extract_results(response.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["id"], vendor_1_order.id)
+
+    def test_mixed_vendor_order_each_vendor_sees_only_their_items(self):
+        mixed_order = self._create_mixed_vendor_order()
+
+        self._auth(self.vendor_user_1)
+        vendor_1_response = self.client.get("/api/v1/orders/vendor/")
+        self.assertEqual(vendor_1_response.status_code, status.HTTP_200_OK)
+        vendor_1_results = self._extract_results(vendor_1_response.data)
+        self.assertEqual(len(vendor_1_results), 1)
+        self.assertEqual(vendor_1_results[0]["id"], mixed_order.id)
+        self.assertEqual(len(vendor_1_results[0]["items"]), 1)
+        self.assertEqual(vendor_1_results[0]["items"][0]["product"], self.product_1.id)
+
+        self._auth(self.vendor_user_2)
+        vendor_2_response = self.client.get("/api/v1/orders/vendor/")
+        self.assertEqual(vendor_2_response.status_code, status.HTTP_200_OK)
+        vendor_2_results = self._extract_results(vendor_2_response.data)
+        self.assertEqual(len(vendor_2_results), 1)
+        self.assertEqual(vendor_2_results[0]["id"], mixed_order.id)
+        self.assertEqual(len(vendor_2_results[0]["items"]), 1)
+        self.assertEqual(vendor_2_results[0]["items"][0]["product"], self.product_2.id)
+
+    def test_mixed_vendor_order_vendors_cannot_change_order_status(self):
+        mixed_order = self._create_mixed_vendor_order()
+
+        self._auth(self.vendor_user_1)
+        vendor_1_response = self.client.patch(
+            f"/api/v1/orders/{mixed_order.id}/status/",
+            {"status": Order.Status.CONFIRMED},
+            format="json",
+        )
+        self.assertEqual(vendor_1_response.status_code, status.HTTP_403_FORBIDDEN)
+
+        self._auth(self.vendor_user_2)
+        vendor_2_response = self.client.patch(
+            f"/api/v1/orders/{mixed_order.id}/status/",
+            {"status": Order.Status.CONFIRMED},
+            format="json",
+        )
+        self.assertEqual(vendor_2_response.status_code, status.HTTP_403_FORBIDDEN)

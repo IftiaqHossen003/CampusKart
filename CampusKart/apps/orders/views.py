@@ -21,6 +21,26 @@ from .serializers import (
 )
 
 
+def _base_orders_queryset():
+    return Order.objects.select_related("buyer").prefetch_related(
+        Prefetch(
+            "items",
+            queryset=OrderItem.objects.select_related("product", "product__vendor"),
+        )
+    )
+
+
+def _vendor_orders_queryset(user, *, scope: str = ""):
+    vendor_profile = getattr(user, "vendor_profile", None)
+    if vendor_profile is None:
+        return Order.objects.none()
+
+    if scope == "buyer":
+        return _base_orders_queryset().filter(buyer=user)
+
+    return _base_orders_queryset().filter(items__product__vendor=vendor_profile).distinct()
+
+
 class OrderListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -30,7 +50,17 @@ class OrderListCreateView(generics.ListCreateAPIView):
         return OrderSerializer
 
     def get_queryset(self):
-        return Order.objects.filter(buyer=self.request.user).prefetch_related("items")
+        user = self.request.user
+        role = getattr(user, "role", "")
+        scope = (self.request.query_params.get("scope") or "").strip().lower()
+
+        if role == "admin":
+            return _base_orders_queryset()
+
+        if role == "vendor":
+            return _vendor_orders_queryset(user, scope=scope)
+
+        return _base_orders_queryset().filter(buyer=user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -137,7 +167,33 @@ class OrderDetailView(generics.RetrieveAPIView):
     serializer_class = OrderSerializer
 
     def get_queryset(self):
-        return Order.objects.filter(buyer=self.request.user)
+        user = self.request.user
+        role = getattr(user, "role", "")
+
+        if role == "admin":
+            return _base_orders_queryset()
+
+        if role == "vendor":
+            return _vendor_orders_queryset(user)
+
+        return _base_orders_queryset().filter(buyer=user)
+
+
+class VendorOrderListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        role = getattr(user, "role", "")
+
+        if role == "admin":
+            return _base_orders_queryset()
+
+        if role != "vendor":
+            raise PermissionDenied("Only vendor users can access vendor orders.")
+
+        return _vendor_orders_queryset(user)
 
 
 class OrderStatusUpdateView(APIView):
