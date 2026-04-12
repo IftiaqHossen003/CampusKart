@@ -12,7 +12,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True, read_only=True)
+    items = serializers.SerializerMethodField()
     buyer_email = serializers.EmailField(source="buyer.email", read_only=True)
 
     class Meta:
@@ -22,6 +22,20 @@ class OrderSerializer(serializers.ModelSerializer):
             "delivery_address", "notes", "items", "created_at",
         ]
         read_only_fields = ["id", "order_number", "total_amount", "created_at"]
+
+    def get_items(self, obj):
+        items = obj.items.all()
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+
+        if user is not None and getattr(user, "role", "") == "vendor":
+            vendor_profile = getattr(user, "vendor_profile", None)
+            if vendor_profile is None:
+                items = items.none()
+            else:
+                items = items.filter(product__vendor=vendor_profile)
+
+        return OrderItemSerializer(items, many=True, context=self.context).data
 
 
 class CreateOrderSerializer(serializers.Serializer):

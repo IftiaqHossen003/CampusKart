@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from django.db import models
 from django.conf import settings
 from apps.products.models import Product
@@ -43,7 +44,9 @@ class OrderItem(models.Model):
 
     @property
     def subtotal(self):
-        return self.unit_price * self.quantity
+        unit_price = self.unit_price if self.unit_price is not None else Decimal("0")
+        quantity = self.quantity if self.quantity is not None else 0
+        return unit_price * quantity
 
     def __str__(self):
         return f"{self.product} x{self.quantity}"

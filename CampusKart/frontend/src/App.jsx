@@ -6,12 +6,16 @@ import ToastViewport from './components/ui/ToastViewport'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import CheckoutPage from './pages/CheckoutPage'
+import OrderDetailPage from './pages/OrderDetailPage'
+import OrdersPage from './pages/OrdersPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import ProductListingPage from './pages/ProductListingPage'
 import RegisterPage from './pages/RegisterPage'
 import CartPage from './pages/CartPage'
 import RoutePlaceholderPage from './pages/RoutePlaceholderPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
+import VendorOrdersPage from './pages/VendorOrdersPage'
 import VendorProductsPage from './pages/VendorProductsPage'
 
 const queryClient = new QueryClient()
@@ -46,7 +50,7 @@ function App() {
               path="/checkout"
               element={
                 <ProtectedRoute allowedRoles={['student']}>
-                  <RoutePlaceholderPage title="Checkout" />
+                  <CheckoutPage />
                 </ProtectedRoute>
               }
             />
@@ -55,7 +59,7 @@ function App() {
               path="/orders"
               element={
                 <ProtectedRoute allowedRoles={['student']}>
-                  <RoutePlaceholderPage title="Order History" />
+                  <OrdersPage />
                 </ProtectedRoute>
               }
             />
@@ -64,7 +68,7 @@ function App() {
               path="/orders/:orderNumber"
               element={
                 <ProtectedRoute allowedRoles={['student']}>
-                  <RoutePlaceholderPage title="Order Detail" />
+                  <OrderDetailPage />
                 </ProtectedRoute>
               }
             />
@@ -145,7 +149,7 @@ function App() {
               path="/vendor/orders"
               element={
                 <ProtectedRoute allowedRoles={['vendor']}>
-                  <RoutePlaceholderPage title="Vendor Orders" />
+                  <VendorOrdersPage />
                 </ProtectedRoute>
               }
             />
