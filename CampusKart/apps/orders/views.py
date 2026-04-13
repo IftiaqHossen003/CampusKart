@@ -15,16 +15,24 @@ from apps.products.models import Product
 from apps.vendors.models import VendorProfile
 
 from .events import emit_domain_event
-from .models import Order, OrderItem, VendorOrder
+from .models import DomainEvent, Order, OrderItem, VendorOrder
 from .serializers import (
     CreateOrderSerializer,
+    DomainEventRetrySerializer,
+    DomainEventSerializer,
     OrderSerializer,
     OrderStatusUpdateSerializer,
 )
+from .tasks import process_domain_event
 
 
 def _money(value: Decimal) -> Decimal:
     return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _require_admin(user):
+    if getattr(user, "role", "") != "admin":
+        raise PermissionDenied("Only admin users can access domain event operations.")
 
 
 def _base_orders_queryset():
@@ -77,14 +85,33 @@ class OrderListCreateView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        order = self.perform_create(serializer)
+        order, replayed = self.perform_create(serializer)
 
         response_serializer = OrderSerializer(order, context={"request": request})
         headers = self.get_success_headers(response_serializer.data)
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        response_status = status.HTTP_200_OK if replayed else status.HTTP_201_CREATED
+        return Response(response_serializer.data, status=response_status, headers=headers)
+
+    def _find_existing_order(self, request_id: str | None):
+        if not request_id:
+            return None
+
+        return _base_orders_queryset().filter(
+            buyer=self.request.user,
+            checkout_request_id=request_id,
+        ).first()
 
     def perform_create(self, serializer):
+        request_id = serializer.validated_data.get("request_id")
+        existing_order = self._find_existing_order(request_id)
+        if existing_order is not None:
+            return existing_order, True
+
         with transaction.atomic():
+            existing_order = self._find_existing_order(request_id)
+            if existing_order is not None:
+                return existing_order, True
+
             cart = (
                 Cart.objects.select_for_update()
                 .filter(user=self.request.user)
@@ -95,10 +122,16 @@ class OrderListCreateView(generics.ListCreateAPIView):
             )
 
             if cart is None:
+                replayed_order = self._find_existing_order(request_id)
+                if replayed_order is not None:
+                    return replayed_order, True
                 raise ValidationError({"detail": "Your cart is empty."})
 
             cart_items = list(cart.items.all())
             if not cart_items:
+                replayed_order = self._find_existing_order(request_id)
+                if replayed_order is not None:
+                    return replayed_order, True
                 raise ValidationError({"detail": "Your cart is empty."})
 
             product_ids = [item.product_id for item in cart_items]
@@ -118,6 +151,7 @@ class OrderListCreateView(generics.ListCreateAPIView):
 
             order = Order.objects.create(
                 buyer=self.request.user,
+                checkout_request_id=request_id,
                 delivery_address=serializer.validated_data["delivery_address"],
                 payment_method=serializer.validated_data.get("payment_method", Order.PaymentMethod.COD),
                 notes=serializer.validated_data.get("notes", ""),
@@ -254,7 +288,7 @@ class OrderListCreateView(generics.ListCreateAPIView):
                     },
                 )
 
-            return order
+            return order, False
 
 
 class OrderDetailView(generics.RetrieveAPIView):
@@ -405,3 +439,71 @@ class OrderStatusUpdateView(APIView):
             return False
 
         return vendor_ids == {vendor_profile.id}
+
+
+class DomainEventListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DomainEventSerializer
+
+    def get_queryset(self):
+        _require_admin(self.request.user)
+
+        queryset = DomainEvent.objects.select_related("order", "vendor_order")
+
+        status_filter = (self.request.query_params.get("status") or "").strip().lower()
+        if status_filter in {
+            DomainEvent.Status.PENDING,
+            DomainEvent.Status.PROCESSED,
+            DomainEvent.Status.FAILED,
+        }:
+            queryset = queryset.filter(status=status_filter)
+
+        event_type_filter = (self.request.query_params.get("event_type") or "").strip()
+        if event_type_filter:
+            queryset = queryset.filter(event_type=event_type_filter)
+
+        order_id_filter = (self.request.query_params.get("order_id") or "").strip()
+        if order_id_filter.isdigit():
+            queryset = queryset.filter(order_id=int(order_id_filter))
+
+        return queryset
+
+
+class DomainEventRetryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, id: int):
+        _require_admin(request.user)
+
+        event = get_object_or_404(DomainEvent, pk=id)
+        serializer = DomainEventRetrySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        force_reset = bool(serializer.validated_data.get("force_reset", True))
+
+        if event.status == DomainEvent.Status.PROCESSED:
+            return Response(
+                {"detail": "Processed events cannot be retried."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if event.status == DomainEvent.Status.FAILED and not force_reset:
+            return Response(
+                {"detail": "Failed event requires force_reset=true for manual retry."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if force_reset:
+            event.status = DomainEvent.Status.PENDING
+            event.retry_count = 0
+            event.error_message = ""
+            event.processed_at = None
+            event.save(update_fields=["status", "retry_count", "error_message", "processed_at", "updated_at"])
+
+        process_domain_event.delay(event.id)
+        return Response(
+            {
+                "detail": "Domain event retry queued.",
+                "event": DomainEventSerializer(event, context={"request": request}).data,
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )

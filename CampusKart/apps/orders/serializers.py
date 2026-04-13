@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem
+from .models import DomainEvent, Order, OrderItem
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -14,11 +14,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = serializers.SerializerMethodField()
     buyer_email = serializers.EmailField(source="buyer.email", read_only=True)
+    request_id = serializers.CharField(source="checkout_request_id", read_only=True)
 
     class Meta:
         model = Order
         fields = [
-            "id", "order_number", "buyer_email", "status", "payment_method", "total_amount",
+            "id", "order_number", "buyer_email", "status", "payment_method", "request_id", "total_amount",
             "delivery_address", "notes", "items", "created_at",
         ]
         read_only_fields = ["id", "order_number", "total_amount", "created_at"]
@@ -41,6 +42,8 @@ class OrderSerializer(serializers.ModelSerializer):
 class CreateOrderSerializer(serializers.Serializer):
     delivery_address = serializers.JSONField(required=False)
     deliveryAddress = serializers.JSONField(required=False, write_only=True)
+    request_id = serializers.CharField(required=False, allow_blank=True, max_length=100, write_only=True)
+    requestId = serializers.CharField(required=False, allow_blank=True, max_length=100, write_only=True)
     payment_method = serializers.CharField(required=False, allow_blank=True, write_only=True)
     paymentMethod = serializers.CharField(required=False, allow_blank=True, write_only=True)
     full_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
@@ -53,6 +56,7 @@ class CreateOrderSerializer(serializers.Serializer):
     default_error_messages = {
         "delivery_address_required": "Delivery address is required.",
         "delivery_address_invalid": "Delivery address must be a non-empty string or an object.",
+        "request_id_invalid": "request_id must be a non-empty string when provided.",
         "payment_method_invalid": "payment_method must be either 'cod' or 'sslcommerz'.",
     }
 
@@ -116,6 +120,18 @@ class CreateOrderSerializer(serializers.Serializer):
 
         attrs["payment_method"] = normalized_method
 
+        raw_request_id = (
+            attrs.get("request_id")
+            or attrs.get("requestId")
+            or raw_payload.get("request_id")
+            or raw_payload.get("requestId")
+        )
+        if raw_request_id is not None:
+            normalized_request_id = str(raw_request_id).strip()
+            if not normalized_request_id:
+                self.fail("request_id_invalid")
+            attrs["request_id"] = normalized_request_id
+
         if raw_address is not None:
             attrs["delivery_address"] = self._normalize_delivery_address(raw_address)
             return attrs
@@ -168,3 +184,29 @@ class OrderStatusUpdateSerializer(serializers.Serializer):
             )
 
         return attrs
+
+
+class DomainEventSerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(source="order.id", read_only=True)
+    vendor_order_id = serializers.IntegerField(source="vendor_order.id", read_only=True)
+
+    class Meta:
+        model = DomainEvent
+        fields = [
+            "id",
+            "event_type",
+            "idempotency_key",
+            "order_id",
+            "vendor_order_id",
+            "status",
+            "retry_count",
+            "error_message",
+            "processed_at",
+            "created_at",
+            "updated_at",
+            "payload",
+        ]
+
+
+class DomainEventRetrySerializer(serializers.Serializer):
+    force_reset = serializers.BooleanField(required=False, default=True)

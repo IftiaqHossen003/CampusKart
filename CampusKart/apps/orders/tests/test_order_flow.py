@@ -245,6 +245,59 @@ class OrderFlowTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("empty", str(response.data).lower())
 
+    def test_checkout_with_same_request_id_replays_existing_order(self):
+        cart = Cart.objects.create(user=self.buyer)
+        CartItem.objects.create(cart=cart, product=self.product_1, quantity=2)
+
+        self._auth(self.buyer)
+        payload = {
+            "delivery_address": "Dorm 201",
+            "notes": "Call me",
+            "request_id": "checkout-req-001",
+        }
+
+        first_response = self.client.post(self.orders_url, payload, format="json")
+        self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+
+        first_order_id = first_response.data["id"]
+        first_order_number = first_response.data["order_number"]
+
+        second_response = self.client.post(self.orders_url, payload, format="json")
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.data["id"], first_order_id)
+        self.assertEqual(second_response.data["order_number"], first_order_number)
+
+        self.assertEqual(Order.objects.filter(buyer=self.buyer).count(), 1)
+        self.assertEqual(Notification.objects.filter(recipient=self.buyer).count(), 1)
+        self.assertEqual(
+            DomainEvent.objects.filter(event_type="OrderCreatedEvent").count(),
+            1,
+        )
+        self.assertEqual(
+            DomainEvent.objects.filter(event_type="VendorOrderCreatedEvent").count(),
+            1,
+        )
+
+        self.product_1.refresh_from_db()
+        self.assertEqual(self.product_1.stock, 8)
+
+    def test_checkout_rejects_blank_request_id(self):
+        cart = Cart.objects.create(user=self.buyer)
+        CartItem.objects.create(cart=cart, product=self.product_1, quantity=1)
+
+        self._auth(self.buyer)
+        response = self.client.post(
+            self.orders_url,
+            {
+                "delivery_address": "Dorm 201",
+                "request_id": "   ",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("request_id", str(response.data).lower())
+
     def test_vendor_can_update_status_for_owned_order(self):
         order = self._create_order_with_item(self.product_1)
 

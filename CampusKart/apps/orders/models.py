@@ -30,6 +30,7 @@ class Order(models.Model):
         choices=PaymentMethod.choices,
         default=PaymentMethod.COD,
     )
+    checkout_request_id = models.CharField(max_length=100, null=True, blank=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     delivery_address = models.TextField()
     notes = models.TextField(blank=True)
@@ -39,6 +40,13 @@ class Order(models.Model):
     class Meta:
         db_table = "orders"
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["buyer", "checkout_request_id"],
+                condition=models.Q(checkout_request_id__isnull=False),
+                name="uniq_order_checkout_req_per_buyer",
+            ),
+        ]
 
     def __str__(self):
         return str(self.order_number)
