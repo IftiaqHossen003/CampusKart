@@ -1,7 +1,6 @@
-import hashlib
 from decimal import Decimal
+from unittest.mock import patch
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 from rest_framework import status
@@ -20,11 +19,31 @@ from apps.vendors.models import VendorProfile
             "LOCATION": "payments-tests-cache",
         }
     },
+    SSLCOMMERZ_STORE_ID="test-store-id",
     SSLCOMMERZ_STORE_PASSWORD="test-store-password",
-    SSLCOMMERZ_VALIDATE_SIGNATURE=True,
+    SSLCOMMERZ_VALIDATE_IPN_HASH=True,
 )
 class PaymentFlowTests(APITestCase):
     def setUp(self):
+        self.ssl_session_patcher = patch(
+            "apps.payments.views._create_sslcommerz_session",
+            autospec=True,
+            return_value={
+                "GatewayPageURL": "https://sandbox.sslcommerz.com/gwprocess/v4/gateway.php",
+                "status": "SUCCESS",
+            },
+        )
+        self.mock_create_session = self.ssl_session_patcher.start()
+        self.addCleanup(self.ssl_session_patcher.stop)
+
+        self.ssl_hash_validation_patcher = patch(
+            "apps.payments.views._hash_validate_ipn",
+            autospec=True,
+            return_value=True,
+        )
+        self.mock_hash_validate_ipn = self.ssl_hash_validation_patcher.start()
+        self.addCleanup(self.ssl_hash_validation_patcher.stop)
+
         user_model = get_user_model()
 
         self.buyer = user_model.objects.create_user(
@@ -73,16 +92,7 @@ class PaymentFlowTests(APITestCase):
         self.webhook_url = "/api/v1/payments/webhook/"
         self.payouts_url = "/api/v1/payments/payouts/"
 
-    def _sslcommerz_sign_payload(self, payload: dict) -> str:
-        verify_keys = [k.strip() for k in str(payload.get("verify_key") or "").split(",") if k.strip()]
-        params = {key: str(payload.get(key) or "").strip() for key in verify_keys}
-        params["store_passwd"] = hashlib.md5(
-            str(getattr(settings, "SSLCOMMERZ_STORE_PASSWORD", "")).encode("utf-8")
-        ).hexdigest()
-        sign_base = "&".join(f"{key}={params[key]}" for key in sorted(params))
-        return hashlib.md5(sign_base.encode("utf-8")).hexdigest()
-
-    def _signed_callback_payload(
+    def _callback_payload(
         self,
         payment: Payment,
         *,
@@ -98,12 +108,10 @@ class PaymentFlowTests(APITestCase):
             "amount": amount or str(payment.amount),
             "currency": currency or payment.currency,
             "val_id": val_id,
+            "store_id": "test-store-id",
         }
         if extra:
             payload.update(extra)
-
-        payload["verify_key"] = "amount,currency,status,tran_id,val_id"
-        payload["verify_sign"] = self._sslcommerz_sign_payload(payload)
         return payload
 
     def _auth(self):
@@ -211,6 +219,7 @@ class PaymentFlowTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("transaction_id", response.data)
+        self.assertIn("gateway_url", response.data)
 
         payment = Payment.objects.get(order=order)
         self.assertEqual(payment.gateway, Payment.Gateway.SSLCOMMERZ)
@@ -233,7 +242,7 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(init_response.status_code, status.HTTP_201_CREATED)
 
         payment = Payment.objects.get(order=order)
-        payload = self._signed_callback_payload(payment, callback_status="VALID")
+        payload = self._callback_payload(payment, callback_status="VALID")
 
         first = self.client.post(self.webhook_url, payload, format="json")
         self.assertEqual(first.status_code, status.HTTP_200_OK)
@@ -258,7 +267,7 @@ class PaymentFlowTests(APITestCase):
         ).first()
         self.assertIsNotNone(payment_event)
 
-    def test_sslcommerz_webhook_rejects_invalid_signature(self):
+    def test_sslcommerz_webhook_rejects_invalid_hash(self):
         order = self._create_order(payment_method=Order.PaymentMethod.SSLCOMMERZ)
 
         self._auth()
@@ -274,8 +283,8 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(init_response.status_code, status.HTTP_201_CREATED)
 
         payment = Payment.objects.get(order=order)
-        payload = self._signed_callback_payload(payment, callback_status="VALID")
-        payload["verify_sign"] = "invalid-signature"
+        payload = self._callback_payload(payment, callback_status="VALID")
+        self.mock_hash_validate_ipn.return_value = False
 
         response = self.client.post(self.webhook_url, payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -300,7 +309,7 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(init_response.status_code, status.HTTP_201_CREATED)
 
         payment = Payment.objects.get(order=order)
-        payload = self._signed_callback_payload(
+        payload = self._callback_payload(
             payment,
             callback_status="FAILED",
             extra={"failedreason": "bank_declined"},
@@ -343,11 +352,11 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(init_response.status_code, status.HTTP_201_CREATED)
 
         payment = Payment.objects.get(order=order)
-        success_payload = self._signed_callback_payload(payment, callback_status="VALID", val_id="val-ok-1")
+        success_payload = self._callback_payload(payment, callback_status="VALID", val_id="val-ok-1")
         success_response = self.client.post(self.webhook_url, success_payload, format="json")
         self.assertEqual(success_response.status_code, status.HTTP_200_OK)
 
-        failed_payload = self._signed_callback_payload(
+        failed_payload = self._callback_payload(
             payment,
             callback_status="FAILED",
             val_id="val-late-fail",
@@ -381,7 +390,7 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(init_response.status_code, status.HTTP_201_CREATED)
 
         payment = Payment.objects.get(order=order)
-        mismatch_payload = self._signed_callback_payload(
+        mismatch_payload = self._callback_payload(
             payment,
             callback_status="VALID",
             amount="999.99",

@@ -44,6 +44,7 @@ whitenoise[brotli]>=6.7
 # ── Payment gateways (install as needed) ─────────────────────────────────────
 razorpay>=1.4
 stripe>=9.0
+sslcommerz-lib>=1.0
 
 # ── Error tracking ───────────────────────────────────────────────────────────
 sentry-sdk[django,celery,redis]>=2.4

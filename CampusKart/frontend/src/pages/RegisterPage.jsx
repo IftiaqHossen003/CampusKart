@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import Button from '../components/ui/Button'
 import apiClient from '../api/client'
@@ -12,7 +12,8 @@ function RegisterPage() {
 
   const {
     register,
-    watch,
+    control,
+    getValues,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({
@@ -29,7 +30,11 @@ function RegisterPage() {
     },
   })
 
-  const selectedRole = watch('role')
+  const selectedRole = useWatch({
+    control,
+    name: 'role',
+    defaultValue: 'student',
+  })
 
   const onSubmit = async (values) => {
     setSubmitError('')
@@ -124,7 +129,7 @@ function RegisterPage() {
             className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-accent"
             {...register('confirm_password', {
               required: 'Please confirm your password.',
-              validate: (value) => value === watch('password') || 'Passwords do not match.',
+              validate: (value) => value === getValues('password') || 'Passwords do not match.',
             })}
           />
           {errors.confirm_password ? (

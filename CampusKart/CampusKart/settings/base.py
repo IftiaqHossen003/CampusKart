@@ -223,10 +223,6 @@ AUTH_REFRESH_COOKIE_SAMESITE = os.environ.get("AUTH_REFRESH_COOKIE_SAMESITE", "L
 # ---------------------------------------------------------------------------
 SSLCOMMERZ_STORE_ID = os.environ.get("SSLCOMMERZ_STORE_ID", "")
 SSLCOMMERZ_STORE_PASSWORD = os.environ.get("SSLCOMMERZ_STORE_PASSWORD", "")
-SSLCOMMERZ_INIT_URL = os.environ.get(
-    "SSLCOMMERZ_INIT_URL",
-    "https://sandbox.sslcommerz.com/gwprocess/v4/api.php",
-)
 SSLCOMMERZ_SUCCESS_URL = os.environ.get(
     "SSLCOMMERZ_SUCCESS_URL",
     "http://localhost:8000/api/v1/payments/webhook/",
@@ -239,7 +235,8 @@ SSLCOMMERZ_CANCEL_URL = os.environ.get(
     "SSLCOMMERZ_CANCEL_URL",
     "http://localhost:8000/api/v1/payments/webhook/",
 )
-SSLCOMMERZ_VALIDATE_SIGNATURE = env_bool("SSLCOMMERZ_VALIDATE_SIGNATURE", True)
+SSLCOMMERZ_IS_SANDBOX = env_bool("SSLCOMMERZ_IS_SANDBOX", True)
+SSLCOMMERZ_VALIDATE_IPN_HASH = env_bool("SSLCOMMERZ_VALIDATE_IPN_HASH", True)
 
 # ---------------------------------------------------------------------------
 # CORS

@@ -1,7 +1,7 @@
 import hashlib
-import hmac
 import time
 from decimal import Decimal, InvalidOperation
+from importlib import import_module
 
 from django.conf import settings
 from django.db import transaction
@@ -47,25 +47,46 @@ def _payment_webhook_fingerprint(payload: dict) -> str:
     return hashlib.sha256(fingerprint_input.encode("utf-8")).hexdigest()
 
 
-def _md5_hexdigest(value: str) -> str:
-    return hashlib.md5(value.encode("utf-8")).hexdigest()
+def _get_sslcommerz_client():
+    try:
+        sslcommerz_module = import_module("sslcommerz_lib")
+        sslcommerz_client = getattr(sslcommerz_module, "SSLCOMMERZ")
+    except ImportError as exc:
+        raise ValidationError({"detail": "SSLCommerz library is not installed."}) from exc
 
-
-def _is_valid_sslcommerz_signature(payload: dict) -> bool:
+    store_id = str(getattr(settings, "SSLCOMMERZ_STORE_ID", "") or "").strip()
     store_password = str(getattr(settings, "SSLCOMMERZ_STORE_PASSWORD", "") or "").strip()
-    verify_sign = str(payload.get("verify_sign") or "").strip().lower()
-    verify_key = str(payload.get("verify_key") or "").strip()
-    if not store_password or not verify_sign or not verify_key:
-        return False
+    is_sandbox = bool(getattr(settings, "SSLCOMMERZ_IS_SANDBOX", True))
 
-    params = {}
-    for key in [part.strip() for part in verify_key.split(",") if part.strip()]:
-        params[key] = str(payload.get(key) or "").strip()
+    if not store_id or not store_password:
+        raise ValidationError({"detail": "SSLCommerz credentials are not configured."})
 
-    params["store_passwd"] = _md5_hexdigest(store_password)
-    query_string = "&".join(f"{key}={params[key]}" for key in sorted(params.keys()))
-    generated_sign = _md5_hexdigest(query_string)
-    return hmac.compare_digest(generated_sign, verify_sign)
+    return sslcommerz_client(
+        {
+            "store_id": store_id,
+            "store_pass": store_password,
+            "issandbox": is_sandbox,
+        }
+    )
+
+
+def _create_sslcommerz_session(post_body: dict) -> dict:
+    client = _get_sslcommerz_client()
+    response = client.createSession(post_body)
+    return response if isinstance(response, dict) else {}
+
+
+def _hash_validate_ipn(payload: dict) -> bool:
+    client = _get_sslcommerz_client()
+    return bool(client.hash_validate_ipn(payload))
+
+
+def _extract_gateway_url(session_response: dict) -> str:
+    for key in ["GatewayPageURL", "gateway_url", "redirectGatewayURL", "redirectGatewayUrl"]:
+        value = session_response.get(key)
+        if value:
+            return str(value).strip()
+    return ""
 
 
 def _decimal_from_payload(value) -> Decimal | None:
@@ -223,12 +244,38 @@ class InitiatePaymentView(APIView):
                 status=status.HTTP_201_CREATED,
             )
 
-        # SSLCommerz path: create and return a gateway intent payload.
+        # SSLCommerz path: create a gateway session via sslcommerz-lib.
         transaction_id = f"CK-{order.pk}-{int(time.time())}"
-        init_url = getattr(settings, "SSLCOMMERZ_INIT_URL", "").strip()
         success_url = getattr(settings, "SSLCOMMERZ_SUCCESS_URL", "").strip()
         fail_url = getattr(settings, "SSLCOMMERZ_FAIL_URL", "").strip()
         cancel_url = getattr(settings, "SSLCOMMERZ_CANCEL_URL", "").strip()
+
+        if not success_url or not fail_url or not cancel_url:
+            raise ValidationError({"detail": "SSLCommerz callback URLs are not configured."})
+
+        customer_name = str(getattr(request.user, "full_name", "") or request.user.email or "CampusKart Customer")
+        customer_phone = str(getattr(request.user, "phone", "") or "")
+        order_label = str(order.order_number or order.pk)
+
+        session_payload = {
+            "total_amount": str(order.total_amount),
+            "currency": "BDT",
+            "tran_id": transaction_id,
+            "success_url": success_url,
+            "fail_url": fail_url,
+            "cancel_url": cancel_url,
+            "cus_name": customer_name,
+            "cus_email": str(request.user.email),
+            "cus_add1": str(order.delivery_address or "Campus Address"),
+            "cus_city": "Dhaka",
+            "cus_postcode": "1200",
+            "cus_country": "Bangladesh",
+            "cus_phone": customer_phone,
+            "shipping_method": "NO",
+            "product_name": f"CampusKart Order {order_label}",
+            "product_category": "Marketplace",
+            "product_profile": "general",
+        }
 
         payment.gateway = Payment.Gateway.SSLCOMMERZ
         payment.amount = order.total_amount
@@ -238,7 +285,7 @@ class InitiatePaymentView(APIView):
         payment.raw_response = {
             "mode": "sslcommerz",
             "transaction_id": transaction_id,
-            "init_url": init_url,
+            "request": session_payload,
             "success_url": success_url,
             "fail_url": fail_url,
             "cancel_url": cancel_url,
@@ -256,6 +303,44 @@ class InitiatePaymentView(APIView):
             ]
         )
 
+        try:
+            session_response = _create_sslcommerz_session(session_payload)
+        except ValidationError:
+            payment.status = Payment.Status.FAILED
+            payment.failure_reason = "Failed to create SSLCommerz session"
+            payment.save(update_fields=["status", "failure_reason", "updated_at"])
+            raise
+        except Exception as exc:
+            payment.status = Payment.Status.FAILED
+            payment.failure_reason = "Failed to create SSLCommerz session"
+            payment.save(update_fields=["status", "failure_reason", "updated_at"])
+            raise ValidationError({"detail": "SSLCommerz session creation failed."}) from exc
+
+        gateway_url = _extract_gateway_url(session_response)
+        if not gateway_url:
+            payment.status = Payment.Status.FAILED
+            payment.failure_reason = "Gateway URL missing in SSLCommerz response"
+            payment.raw_response = {
+                "mode": "sslcommerz",
+                "transaction_id": transaction_id,
+                "request": session_payload,
+                "response": session_response,
+            }
+            payment.save(update_fields=["status", "failure_reason", "raw_response", "updated_at"])
+            raise ValidationError({"detail": "Gateway URL missing in SSLCommerz response."})
+
+        payment.failure_reason = ""
+        payment.raw_response = {
+            "mode": "sslcommerz",
+            "transaction_id": transaction_id,
+            "request": session_payload,
+            "response": session_response,
+            "success_url": success_url,
+            "fail_url": fail_url,
+            "cancel_url": cancel_url,
+        }
+        payment.save(update_fields=["failure_reason", "raw_response", "updated_at"])
+
         sync_vendor_payouts_for_payment(
             payment=payment,
             payout_status=VendorPayout.Status.PENDING,
@@ -266,7 +351,7 @@ class InitiatePaymentView(APIView):
                 "detail": "SSLCommerz payment initiated.",
                 "payment": PaymentSerializer(payment).data,
                 "transaction_id": transaction_id,
-                "gateway_url": init_url,
+                "gateway_url": gateway_url,
                 "success_url": success_url,
                 "fail_url": fail_url,
                 "cancel_url": cancel_url,
@@ -290,9 +375,17 @@ class PaymentWebhookView(APIView):
         if configured_store_id and incoming_store_id and configured_store_id != incoming_store_id:
             return Response({"detail": "Invalid store id."}, status=status.HTTP_400_BAD_REQUEST)
 
-        verify_signature = bool(getattr(settings, "SSLCOMMERZ_VALIDATE_SIGNATURE", True))
-        if verify_signature and not _is_valid_sslcommerz_signature(payload):
-            return Response({"detail": "Invalid callback signature."}, status=status.HTTP_400_BAD_REQUEST)
+        verify_ipn_hash = bool(getattr(settings, "SSLCOMMERZ_VALIDATE_IPN_HASH", True))
+        if verify_ipn_hash:
+            try:
+                is_valid_hash = _hash_validate_ipn(payload)
+            except ValidationError:
+                raise
+            except Exception:
+                is_valid_hash = False
+
+            if not is_valid_hash:
+                return Response({"detail": "Invalid callback hash."}, status=status.HTTP_400_BAD_REQUEST)
 
         payment = Payment.objects.filter(
             gateway=Payment.Gateway.SSLCOMMERZ,
