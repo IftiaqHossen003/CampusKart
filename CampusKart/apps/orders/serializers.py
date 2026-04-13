@@ -210,3 +210,17 @@ class DomainEventSerializer(serializers.ModelSerializer):
 
 class DomainEventRetrySerializer(serializers.Serializer):
     force_reset = serializers.BooleanField(required=False, default=True)
+
+
+class DomainEventBulkRetrySerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=[
+            DomainEvent.Status.PENDING,
+            DomainEvent.Status.FAILED,
+        ],
+        required=False,
+    )
+    event_type = serializers.CharField(required=False, allow_blank=False, max_length=80)
+    order_id = serializers.IntegerField(required=False, min_value=1)
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=100, default=50)
+    force_reset = serializers.BooleanField(required=False, default=True)

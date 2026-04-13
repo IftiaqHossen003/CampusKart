@@ -18,6 +18,7 @@ from .events import emit_domain_event
 from .models import DomainEvent, Order, OrderItem, VendorOrder
 from .serializers import (
     CreateOrderSerializer,
+    DomainEventBulkRetrySerializer,
     DomainEventRetrySerializer,
     DomainEventSerializer,
     OrderSerializer,
@@ -504,6 +505,79 @@ class DomainEventRetryView(APIView):
             {
                 "detail": "Domain event retry queued.",
                 "event": DomainEventSerializer(event, context={"request": request}).data,
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+class DomainEventBulkRetryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        _require_admin(request.user)
+
+        serializer = DomainEventBulkRetrySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+
+        force_reset = bool(validated_data.get("force_reset", True))
+        limit = int(validated_data.get("limit", 50))
+
+        queryset = DomainEvent.objects.all()
+
+        status_filter = validated_data.get("status")
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        else:
+            queryset = queryset.exclude(status=DomainEvent.Status.PROCESSED)
+
+        event_type_filter = validated_data.get("event_type")
+        if event_type_filter:
+            queryset = queryset.filter(event_type=event_type_filter)
+
+        order_id_filter = validated_data.get("order_id")
+        if order_id_filter is not None:
+            queryset = queryset.filter(order_id=order_id_filter)
+
+        events = list(queryset.order_by("created_at", "id")[:limit])
+        if not events:
+            return Response(
+                {
+                    "detail": "No matching domain events found.",
+                    "queued": 0,
+                    "selected": 0,
+                    "skipped_failed": 0,
+                    "event_ids": [],
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        selected_ids = [event.id for event in events]
+        failed_ids = [event.id for event in events if event.status == DomainEvent.Status.FAILED]
+
+        if force_reset:
+            DomainEvent.objects.filter(id__in=selected_ids).update(
+                status=DomainEvent.Status.PENDING,
+                retry_count=0,
+                error_message="",
+                processed_at=None,
+            )
+            queued_ids = selected_ids
+            skipped_failed = 0
+        else:
+            queued_ids = [event.id for event in events if event.status == DomainEvent.Status.PENDING]
+            skipped_failed = len(failed_ids)
+
+        for event_id in queued_ids:
+            process_domain_event.delay(event_id)
+
+        return Response(
+            {
+                "detail": "Domain event bulk retry queued.",
+                "selected": len(selected_ids),
+                "queued": len(queued_ids),
+                "skipped_failed": skipped_failed,
+                "event_ids": queued_ids,
             },
             status=status.HTTP_202_ACCEPTED,
         )

@@ -102,3 +102,69 @@ class DomainEventAdminApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         mocked_delay.assert_not_called()
+
+    @patch("apps.orders.views.process_domain_event.delay")
+    def test_admin_bulk_retry_failed_events_with_limit(self, mocked_delay):
+        another_failed = DomainEvent.objects.create(
+            event_type="PaymentCompletedEvent",
+            order=self.order,
+            status=DomainEvent.Status.FAILED,
+            retry_count=3,
+            error_message="bank timeout",
+        )
+
+        self._auth_admin()
+        response = self.client.post(
+            "/api/v1/orders/domain-events/retry/",
+            {
+                "status": "failed",
+                "event_type": "PaymentCompletedEvent",
+                "limit": 1,
+                "force_reset": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.data["selected"], 1)
+        self.assertEqual(response.data["queued"], 1)
+        self.assertEqual(len(response.data["event_ids"]), 1)
+        mocked_delay.assert_called_once()
+
+        queued_id = response.data["event_ids"][0]
+        refreshed = DomainEvent.objects.get(pk=queued_id)
+        self.assertEqual(refreshed.status, DomainEvent.Status.PENDING)
+        self.assertEqual(refreshed.retry_count, 0)
+        self.assertEqual(refreshed.error_message, "")
+
+        another_failed.refresh_from_db()
+        self.assertEqual(another_failed.status, DomainEvent.Status.FAILED)
+
+    @patch("apps.orders.views.process_domain_event.delay")
+    def test_bulk_retry_without_force_reset_skips_failed(self, mocked_delay):
+        self._auth_admin()
+        response = self.client.post(
+            "/api/v1/orders/domain-events/retry/",
+            {
+                "status": "failed",
+                "force_reset": False,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.data["selected"], 1)
+        self.assertEqual(response.data["queued"], 0)
+        self.assertEqual(response.data["skipped_failed"], 1)
+        mocked_delay.assert_not_called()
+
+    def test_non_admin_cannot_bulk_retry_events(self):
+        self._auth_buyer()
+        response = self.client.post(
+            "/api/v1/orders/domain-events/retry/",
+            {
+                "status": "failed",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
