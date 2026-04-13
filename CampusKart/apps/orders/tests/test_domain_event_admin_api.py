@@ -1,6 +1,8 @@
 from unittest.mock import patch
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -168,3 +170,67 @@ class DomainEventAdminApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    @patch("apps.orders.views.process_domain_event.delay")
+    def test_bulk_retry_dry_run_does_not_mutate_or_queue(self, mocked_delay):
+        self._auth_admin()
+        response = self.client.post(
+            "/api/v1/orders/domain-events/retry/",
+            {
+                "status": "failed",
+                "force_reset": True,
+                "dry_run": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["dry_run"])
+        self.assertEqual(response.data["selected"], 1)
+        self.assertEqual(response.data["queued"], 1)
+        mocked_delay.assert_not_called()
+
+        self.failed_event.refresh_from_db()
+        self.assertEqual(self.failed_event.status, DomainEvent.Status.FAILED)
+        self.assertEqual(self.failed_event.retry_count, 3)
+
+    @patch("apps.orders.views.process_domain_event.delay")
+    def test_bulk_retry_created_before_filters_candidates(self, mocked_delay):
+        older = DomainEvent.objects.create(
+            event_type="PaymentCompletedEvent",
+            order=self.order,
+            status=DomainEvent.Status.FAILED,
+            retry_count=3,
+            error_message="old timeout",
+        )
+        newer = DomainEvent.objects.create(
+            event_type="PaymentCompletedEvent",
+            order=self.order,
+            status=DomainEvent.Status.FAILED,
+            retry_count=3,
+            error_message="new timeout",
+        )
+
+        cutoff = timezone.now() - timedelta(seconds=1)
+        DomainEvent.objects.filter(pk=older.pk).update(created_at=cutoff - timedelta(seconds=10))
+        DomainEvent.objects.filter(pk=newer.pk).update(created_at=cutoff + timedelta(seconds=10))
+
+        self._auth_admin()
+        response = self.client.post(
+            "/api/v1/orders/domain-events/retry/",
+            {
+                "status": "failed",
+                "event_type": "PaymentCompletedEvent",
+                "created_before": cutoff.isoformat(),
+                "force_reset": True,
+                "limit": 10,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertIn(older.id, response.data["event_ids"])
+        self.assertNotIn(newer.id, response.data["event_ids"])
+        mocked_delay.assert_any_call(older.id)
+        newer.refresh_from_db()
+        self.assertEqual(newer.status, DomainEvent.Status.FAILED)

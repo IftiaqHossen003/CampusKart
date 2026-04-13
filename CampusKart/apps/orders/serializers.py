@@ -222,5 +222,7 @@ class DomainEventBulkRetrySerializer(serializers.Serializer):
     )
     event_type = serializers.CharField(required=False, allow_blank=False, max_length=80)
     order_id = serializers.IntegerField(required=False, min_value=1)
+    created_before = serializers.DateTimeField(required=False)
     limit = serializers.IntegerField(required=False, min_value=1, max_value=100, default=50)
     force_reset = serializers.BooleanField(required=False, default=True)
+    dry_run = serializers.BooleanField(required=False, default=False)
