@@ -144,3 +144,34 @@ class DomainEvent(models.Model):
 
     def __str__(self):
         return f"{self.event_type}:{self.status}"
+
+
+class DomainEventAdminAudit(models.Model):
+    class Action(models.TextChoices):
+        RETRY_SINGLE = "retry_single", "Retry Single"
+        RETRY_BULK = "retry_bulk", "Retry Bulk"
+        RETRY_BULK_DRY_RUN = "retry_bulk_dry_run", "Retry Bulk Dry Run"
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="domain_event_admin_audits",
+        null=True,
+        blank=True,
+    )
+    action = models.CharField(max_length=30, choices=Action.choices)
+    event_id = models.IntegerField(null=True, blank=True)
+    filters = models.JSONField(default=dict, blank=True)
+    result = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "domain_event_admin_audits"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["action", "created_at"], name="idx_dm_evt_ad_act_created"),
+            models.Index(fields=["actor", "created_at"], name="idx_dm_evt_ad_actor_created"),
+        ]
+
+    def __str__(self):
+        return f"{self.action}:{self.event_id or '-'}"

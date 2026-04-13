@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.orders.models import DomainEvent, Order
+from apps.orders.models import DomainEvent, DomainEventAdminAudit, Order
 
 
 class DomainEventAdminApiTests(APITestCase):
@@ -116,6 +116,11 @@ class DomainEventAdminApiTests(APITestCase):
         response = self.client.get("/api/v1/orders/domain-events/summary/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_non_admin_cannot_view_domain_event_audit_logs(self):
+        self._auth_buyer()
+        response = self.client.get("/api/v1/orders/domain-events/audit/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     @patch("apps.orders.views.process_domain_event.delay")
     def test_admin_retry_failed_event_resets_and_queues(self, mocked_delay):
         self._auth_admin()
@@ -133,6 +138,14 @@ class DomainEventAdminApiTests(APITestCase):
         self.assertEqual(self.failed_event.status, DomainEvent.Status.PENDING)
         self.assertEqual(self.failed_event.retry_count, 0)
         self.assertEqual(self.failed_event.error_message, "")
+
+        audit = DomainEventAdminAudit.objects.filter(
+            action=DomainEventAdminAudit.Action.RETRY_SINGLE,
+            event_id=self.failed_event.id,
+        ).first()
+        self.assertIsNotNone(audit)
+        self.assertEqual(audit.actor_id, self.admin.id)
+        self.assertEqual(audit.result.get("queued"), 1)
 
     @patch("apps.orders.views.process_domain_event.delay")
     def test_retry_processed_event_is_rejected(self, mocked_delay):
@@ -281,3 +294,62 @@ class DomainEventAdminApiTests(APITestCase):
         mocked_delay.assert_any_call(older.id)
         newer.refresh_from_db()
         self.assertEqual(newer.status, DomainEvent.Status.FAILED)
+
+    @patch("apps.orders.views.process_domain_event.delay")
+    def test_bulk_retry_creates_audit_record(self, mocked_delay):
+        self._auth_admin()
+
+        response = self.client.post(
+            "/api/v1/orders/domain-events/retry/",
+            {
+                "status": "failed",
+                "force_reset": True,
+                "limit": 5,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        audit = DomainEventAdminAudit.objects.filter(action=DomainEventAdminAudit.Action.RETRY_BULK).first()
+        self.assertIsNotNone(audit)
+        self.assertEqual(audit.actor_id, self.admin.id)
+        self.assertEqual(audit.filters.get("status"), "failed")
+        self.assertEqual(audit.result.get("queued"), response.data.get("queued"))
+
+    @patch("apps.orders.views.process_domain_event.delay")
+    def test_dry_run_bulk_retry_creates_dry_run_audit_record(self, mocked_delay):
+        self._auth_admin()
+
+        response = self.client.post(
+            "/api/v1/orders/domain-events/retry/",
+            {
+                "status": "failed",
+                "force_reset": True,
+                "dry_run": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        audit = DomainEventAdminAudit.objects.filter(action=DomainEventAdminAudit.Action.RETRY_BULK_DRY_RUN).first()
+        self.assertIsNotNone(audit)
+        self.assertEqual(audit.actor_id, self.admin.id)
+        self.assertTrue(audit.filters.get("dry_run"))
+
+    def test_admin_can_list_domain_event_audit_logs(self):
+        DomainEventAdminAudit.objects.create(
+            actor=self.admin,
+            action=DomainEventAdminAudit.Action.RETRY_SINGLE,
+            event_id=self.failed_event.id,
+            filters={"force_reset": True},
+            result={"queued": 1},
+        )
+        self._auth_admin()
+
+        response = self.client.get("/api/v1/orders/domain-events/audit/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get("results", response.data)
+        self.assertGreaterEqual(len(results), 1)
+        self.assertIn("action", results[0])
+        self.assertIn("actor_email", results[0])

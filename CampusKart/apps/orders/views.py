@@ -16,9 +16,10 @@ from apps.products.models import Product
 from apps.vendors.models import VendorProfile
 
 from .events import emit_domain_event
-from .models import DomainEvent, Order, OrderItem, VendorOrder
+from .models import DomainEvent, DomainEventAdminAudit, Order, OrderItem, VendorOrder
 from .serializers import (
     CreateOrderSerializer,
+    DomainEventAdminAuditSerializer,
     DomainEventBulkRetrySerializer,
     DomainEventRetrySerializer,
     DomainEventSerializer,
@@ -38,6 +39,23 @@ def _money(value: Decimal) -> Decimal:
 def _require_admin(user):
     if getattr(user, "role", "") != "admin":
         raise PermissionDenied("Only admin users can access domain event operations.")
+
+
+def _record_domain_event_admin_audit(
+    *,
+    actor,
+    action: str,
+    event_id: int | None = None,
+    filters: dict | None = None,
+    result: dict | None = None,
+):
+    DomainEventAdminAudit.objects.create(
+        actor=actor,
+        action=action,
+        event_id=event_id,
+        filters=filters or {},
+        result=result or {},
+    )
 
 
 def _base_orders_queryset():
@@ -536,6 +554,35 @@ class DomainEventSummaryView(APIView):
         )
 
 
+class DomainEventAuditListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DomainEventAdminAuditSerializer
+    throttle_classes = [DomainEventAdminListThrottle]
+
+    def get_queryset(self):
+        _require_admin(self.request.user)
+
+        queryset = DomainEventAdminAudit.objects.select_related("actor")
+
+        action_filter = (self.request.query_params.get("action") or "").strip()
+        if action_filter in {
+            DomainEventAdminAudit.Action.RETRY_SINGLE,
+            DomainEventAdminAudit.Action.RETRY_BULK,
+            DomainEventAdminAudit.Action.RETRY_BULK_DRY_RUN,
+        }:
+            queryset = queryset.filter(action=action_filter)
+
+        actor_id_filter = (self.request.query_params.get("actor_id") or "").strip()
+        if actor_id_filter.isdigit():
+            queryset = queryset.filter(actor_id=int(actor_id_filter))
+
+        event_id_filter = (self.request.query_params.get("event_id") or "").strip()
+        if event_id_filter.isdigit():
+            queryset = queryset.filter(event_id=int(event_id_filter))
+
+        return queryset.order_by("-created_at")
+
+
 class DomainEventRetryView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [DomainEventAdminRetryThrottle]
@@ -568,6 +615,18 @@ class DomainEventRetryView(APIView):
             event.save(update_fields=["status", "retry_count", "error_message", "processed_at", "updated_at"])
 
         process_domain_event.delay(event.id)
+        audit_result = {
+            "queued": 1,
+            "force_reset": force_reset,
+            "status_after": DomainEvent.Status.PENDING if force_reset else event.status,
+        }
+        _record_domain_event_admin_audit(
+            actor=request.user,
+            action=DomainEventAdminAudit.Action.RETRY_SINGLE,
+            event_id=event.id,
+            filters={"force_reset": force_reset},
+            result=audit_result,
+        )
         logger.info(
             "domain_event_manual_retry_queued",
             extra={
@@ -677,6 +736,31 @@ class DomainEventBulkRetryView(APIView):
                 "queued": len(queued_ids),
                 "skipped_failed": skipped_failed,
                 "dry_run": dry_run,
+            },
+        )
+
+        audit_action = (
+            DomainEventAdminAudit.Action.RETRY_BULK_DRY_RUN
+            if dry_run
+            else DomainEventAdminAudit.Action.RETRY_BULK
+        )
+        _record_domain_event_admin_audit(
+            actor=request.user,
+            action=audit_action,
+            filters={
+                "status": status_filter,
+                "event_type": event_type_filter,
+                "order_id": order_id_filter,
+                "created_before": created_before.isoformat() if created_before else None,
+                "limit": limit,
+                "force_reset": force_reset,
+                "dry_run": dry_run,
+            },
+            result={
+                "selected": len(selected_ids),
+                "queued": len(queued_ids),
+                "skipped_failed": skipped_failed,
+                "event_ids": queued_ids,
             },
         )
 

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import DomainEvent, Order, OrderItem
+from .models import DomainEvent, DomainEventAdminAudit, Order, OrderItem
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -226,3 +226,21 @@ class DomainEventBulkRetrySerializer(serializers.Serializer):
     limit = serializers.IntegerField(required=False, min_value=1, max_value=100, default=50)
     force_reset = serializers.BooleanField(required=False, default=True)
     dry_run = serializers.BooleanField(required=False, default=False)
+
+
+class DomainEventAdminAuditSerializer(serializers.ModelSerializer):
+    actor_id = serializers.IntegerField(source="actor.id", read_only=True)
+    actor_email = serializers.EmailField(source="actor.email", read_only=True)
+
+    class Meta:
+        model = DomainEventAdminAudit
+        fields = [
+            "id",
+            "action",
+            "actor_id",
+            "actor_email",
+            "event_id",
+            "filters",
+            "result",
+            "created_at",
+        ]
