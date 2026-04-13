@@ -187,6 +187,8 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "forgot_password": "5/min",
         "reset_password": "10/min",
+        "domain_event_admin_list": os.environ.get("DOMAIN_EVENT_ADMIN_LIST_THROTTLE", "120/min"),
+        "domain_event_admin_retry": os.environ.get("DOMAIN_EVENT_ADMIN_RETRY_THROTTLE", "30/min"),
     },
 }
 

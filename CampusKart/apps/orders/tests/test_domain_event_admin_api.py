@@ -62,11 +62,58 @@ class DomainEventAdminApiTests(APITestCase):
         self.assertEqual(results[0]["id"], self.failed_event.id)
         self.assertEqual(results[0]["status"], DomainEvent.Status.FAILED)
 
+    def test_admin_can_list_events_with_ordering(self):
+        self._auth_admin()
+        older = DomainEvent.objects.create(
+            event_type="OrderCreatedEvent",
+            order=self.order,
+            status=DomainEvent.Status.PENDING,
+        )
+        newer = DomainEvent.objects.create(
+            event_type="PaymentCompletedEvent",
+            order=self.order,
+            status=DomainEvent.Status.FAILED,
+        )
+        DomainEvent.objects.filter(pk=older.pk).update(created_at=timezone.now() - timedelta(minutes=5))
+        DomainEvent.objects.filter(pk=newer.pk).update(created_at=timezone.now() - timedelta(minutes=1))
+
+        response = self.client.get("/api/v1/orders/domain-events/?ordering=created_at")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get("results", response.data)
+        self.assertLessEqual(results[0]["created_at"], results[-1]["created_at"])
+
+    def test_admin_can_get_domain_event_summary(self):
+        DomainEvent.objects.create(
+            event_type="OrderCreatedEvent",
+            order=self.order,
+            status=DomainEvent.Status.PROCESSED,
+        )
+        DomainEvent.objects.create(
+            event_type="VendorOrderCreatedEvent",
+            order=self.order,
+            status=DomainEvent.Status.PENDING,
+        )
+
+        self._auth_admin()
+        response = self.client.get("/api/v1/orders/domain-events/summary/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("total", response.data)
+        self.assertIn("status_counts", response.data)
+        self.assertIn("top_event_types", response.data)
+        self.assertGreaterEqual(response.data["status_counts"]["failed"], 1)
+
     def test_non_admin_cannot_list_domain_events(self):
         self._auth_buyer()
 
         response = self.client.get("/api/v1/orders/domain-events/")
 
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_non_admin_cannot_view_domain_event_summary(self):
+        self._auth_buyer()
+        response = self.client.get("/api/v1/orders/domain-events/summary/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     @patch("apps.orders.views.process_domain_event.delay")

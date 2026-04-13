@@ -3,7 +3,7 @@ from decimal import Decimal, ROUND_HALF_UP
 import logging
 
 from django.db import transaction
-from django.db.models import Prefetch, Q
+from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -25,6 +25,7 @@ from .serializers import (
     OrderSerializer,
     OrderStatusUpdateSerializer,
 )
+from .throttles import DomainEventAdminListThrottle, DomainEventAdminRetryThrottle
 from .tasks import process_domain_event
 
 logger = logging.getLogger(__name__)
@@ -448,6 +449,7 @@ class OrderStatusUpdateView(APIView):
 class DomainEventListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = DomainEventSerializer
+    throttle_classes = [DomainEventAdminListThrottle]
 
     def get_queryset(self):
         _require_admin(self.request.user)
@@ -470,11 +472,73 @@ class DomainEventListView(generics.ListAPIView):
         if order_id_filter.isdigit():
             queryset = queryset.filter(order_id=int(order_id_filter))
 
+        ordering_param = (self.request.query_params.get("ordering") or "").strip()
+        allowed_ordering_fields = {
+            "created_at",
+            "updated_at",
+            "retry_count",
+            "event_type",
+            "status",
+        }
+        if ordering_param:
+            normalized_field = ordering_param.lstrip("-")
+            if normalized_field in allowed_ordering_fields:
+                queryset = queryset.order_by(ordering_param)
+            else:
+                queryset = queryset.order_by("-created_at")
+        else:
+            queryset = queryset.order_by("-created_at")
+
         return queryset
+
+
+class DomainEventSummaryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [DomainEventAdminListThrottle]
+
+    def get(self, request):
+        _require_admin(request.user)
+
+        queryset = DomainEvent.objects.all()
+
+        event_type_filter = (request.query_params.get("event_type") or "").strip()
+        if event_type_filter:
+            queryset = queryset.filter(event_type=event_type_filter)
+
+        order_id_filter = (request.query_params.get("order_id") or "").strip()
+        if order_id_filter.isdigit():
+            queryset = queryset.filter(order_id=int(order_id_filter))
+
+        aggregates = queryset.aggregate(
+            total=Count("id"),
+            pending=Count("id", filter=Q(status=DomainEvent.Status.PENDING)),
+            processed=Count("id", filter=Q(status=DomainEvent.Status.PROCESSED)),
+            failed=Count("id", filter=Q(status=DomainEvent.Status.FAILED)),
+        )
+
+        top_event_types = list(
+            queryset.values("event_type")
+            .annotate(count=Count("id"))
+            .order_by("-count", "event_type")[:10]
+        )
+
+        return Response(
+            {
+                "total": aggregates["total"],
+                "status_counts": {
+                    "pending": aggregates["pending"],
+                    "processed": aggregates["processed"],
+                    "failed": aggregates["failed"],
+                },
+                "top_event_types": top_event_types,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class DomainEventRetryView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [DomainEventAdminRetryThrottle]
 
     def post(self, request, id: int):
         _require_admin(request.user)
@@ -524,6 +588,7 @@ class DomainEventRetryView(APIView):
 
 class DomainEventBulkRetryView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [DomainEventAdminRetryThrottle]
 
     def post(self, request):
         _require_admin(request.user)
