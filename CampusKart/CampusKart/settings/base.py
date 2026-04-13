@@ -217,6 +217,29 @@ AUTH_REFRESH_COOKIE_HTTPONLY = True
 AUTH_REFRESH_COOKIE_SAMESITE = os.environ.get("AUTH_REFRESH_COOKIE_SAMESITE", "Lax")
 
 # ---------------------------------------------------------------------------
+# SSLCommerz
+# ---------------------------------------------------------------------------
+SSLCOMMERZ_STORE_ID = os.environ.get("SSLCOMMERZ_STORE_ID", "")
+SSLCOMMERZ_STORE_PASSWORD = os.environ.get("SSLCOMMERZ_STORE_PASSWORD", "")
+SSLCOMMERZ_INIT_URL = os.environ.get(
+    "SSLCOMMERZ_INIT_URL",
+    "https://sandbox.sslcommerz.com/gwprocess/v4/api.php",
+)
+SSLCOMMERZ_SUCCESS_URL = os.environ.get(
+    "SSLCOMMERZ_SUCCESS_URL",
+    "http://localhost:8000/api/v1/payments/webhook/",
+)
+SSLCOMMERZ_FAIL_URL = os.environ.get(
+    "SSLCOMMERZ_FAIL_URL",
+    "http://localhost:8000/api/v1/payments/webhook/",
+)
+SSLCOMMERZ_CANCEL_URL = os.environ.get(
+    "SSLCOMMERZ_CANCEL_URL",
+    "http://localhost:8000/api/v1/payments/webhook/",
+)
+SSLCOMMERZ_VALIDATE_SIGNATURE = env_bool("SSLCOMMERZ_VALIDATE_SIGNATURE", True)
+
+# ---------------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
@@ -274,6 +297,21 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes hard limit
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 200
+
+DOMAIN_EVENT_DISPATCH_INTERVAL_SECONDS = int(
+    os.environ.get("DOMAIN_EVENT_DISPATCH_INTERVAL_SECONDS", "30")
+)
+DOMAIN_EVENT_DISPATCH_BATCH_SIZE = int(
+    os.environ.get("DOMAIN_EVENT_DISPATCH_BATCH_SIZE", "100")
+)
+
+CELERY_BEAT_SCHEDULE = {
+    "dispatch-pending-domain-events": {
+        "task": "apps.orders.tasks.dispatch_pending_domain_events",
+        "schedule": timedelta(seconds=DOMAIN_EVENT_DISPATCH_INTERVAL_SECONDS),
+        "args": (DOMAIN_EVENT_DISPATCH_BATCH_SIZE,),
+    }
+}
 
 # ---------------------------------------------------------------------------
 # Email
