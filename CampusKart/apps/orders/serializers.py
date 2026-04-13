@@ -18,7 +18,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            "id", "order_number", "buyer_email", "status", "total_amount",
+            "id", "order_number", "buyer_email", "status", "payment_method", "total_amount",
             "delivery_address", "notes", "items", "created_at",
         ]
         read_only_fields = ["id", "order_number", "total_amount", "created_at"]
@@ -53,6 +53,7 @@ class CreateOrderSerializer(serializers.Serializer):
     default_error_messages = {
         "delivery_address_required": "Delivery address is required.",
         "delivery_address_invalid": "Delivery address must be a non-empty string or an object.",
+        "payment_method_invalid": "payment_method must be either 'cod' or 'sslcommerz'.",
     }
 
     @staticmethod
@@ -95,6 +96,25 @@ class CreateOrderSerializer(serializers.Serializer):
         raw_address = attrs.get("delivery_address")
         if raw_address is None and "deliveryAddress" in attrs:
             raw_address = attrs.get("deliveryAddress")
+
+        raw_payment_method = (
+            attrs.get("payment_method")
+            or attrs.get("paymentMethod")
+            or raw_payload.get("payment_method")
+            or raw_payload.get("paymentMethod")
+            or Order.PaymentMethod.COD
+        )
+        normalized_method = str(raw_payment_method).strip().lower()
+        if normalized_method in {"ssl", "ssl_commerz"}:
+            normalized_method = Order.PaymentMethod.SSLCOMMERZ
+
+        if normalized_method not in {
+            Order.PaymentMethod.COD,
+            Order.PaymentMethod.SSLCOMMERZ,
+        }:
+            self.fail("payment_method_invalid")
+
+        attrs["payment_method"] = normalized_method
 
         if raw_address is not None:
             attrs["delivery_address"] = self._normalize_delivery_address(raw_address)

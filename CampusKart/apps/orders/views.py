@@ -1,7 +1,8 @@
-from decimal import Decimal
+from collections import defaultdict
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -13,7 +14,8 @@ from apps.notifications.models import Notification
 from apps.products.models import Product
 from apps.vendors.models import VendorProfile
 
-from .models import Order, OrderItem
+from .events import emit_domain_event
+from .models import Order, OrderItem, VendorOrder
 from .serializers import (
     CreateOrderSerializer,
     OrderSerializer,
@@ -21,11 +23,19 @@ from .serializers import (
 )
 
 
+def _money(value: Decimal) -> Decimal:
+    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
 def _base_orders_queryset():
     return Order.objects.select_related("buyer").prefetch_related(
         Prefetch(
+            "vendor_orders",
+            queryset=VendorOrder.objects.select_related("vendor", "vendor__user"),
+        ),
+        Prefetch(
             "items",
-            queryset=OrderItem.objects.select_related("product", "product__vendor"),
+            queryset=OrderItem.objects.select_related("product", "product__vendor", "vendor_order"),
         )
     )
 
@@ -38,7 +48,9 @@ def _vendor_orders_queryset(user, *, scope: str = ""):
     if scope == "buyer":
         return _base_orders_queryset().filter(buyer=user)
 
-    return _base_orders_queryset().filter(items__product__vendor=vendor_profile).distinct()
+    return _base_orders_queryset().filter(
+        Q(vendor_orders__vendor=vendor_profile) | Q(items__product__vendor=vendor_profile)
+    ).distinct()
 
 
 class OrderListCreateView(generics.ListCreateAPIView):
@@ -77,7 +89,7 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 Cart.objects.select_for_update()
                 .filter(user=self.request.user)
                 .prefetch_related(
-                    Prefetch("items", queryset=CartItem.objects.select_related("product"))
+                    Prefetch("items", queryset=CartItem.objects.select_related("product", "product__vendor"))
                 )
                 .first()
             )
@@ -92,17 +104,28 @@ class OrderListCreateView(generics.ListCreateAPIView):
             product_ids = [item.product_id for item in cart_items]
             products_by_id = {
                 product.id: product
-                for product in Product.objects.select_for_update().filter(id__in=product_ids)
+                for product in Product.objects.select_for_update()
+                .select_related("vendor")
+                .filter(id__in=product_ids)
             }
+
+            vendor_ids = {
+                product.vendor_id
+                for product in products_by_id.values()
+                if product.vendor_id is not None
+            }
+            vendor_profiles_by_id = VendorProfile.objects.in_bulk(vendor_ids)
 
             order = Order.objects.create(
                 buyer=self.request.user,
                 delivery_address=serializer.validated_data["delivery_address"],
+                payment_method=serializer.validated_data.get("payment_method", Order.PaymentMethod.COD),
                 notes=serializer.validated_data.get("notes", ""),
             )
 
             total_amount = Decimal("0.00")
-            order_items = []
+            order_items_by_vendor = defaultdict(list)
+            vendor_subtotals = defaultdict(lambda: Decimal("0.00"))
 
             for cart_item in cart_items:
                 product = products_by_id.get(cart_item.product_id)
@@ -121,26 +144,67 @@ class OrderListCreateView(generics.ListCreateAPIView):
                         {"detail": f"Insufficient stock for product '{product.name}'."}
                     )
 
-                unit_price = product.effective_price
-                line_total = unit_price * cart_item.quantity
-                total_amount += line_total
-
-                order_items.append(
-                    OrderItem(
-                        order=order,
-                        product=product,
-                        quantity=cart_item.quantity,
-                        unit_price=unit_price,
+                vendor_profile = vendor_profiles_by_id.get(product.vendor_id)
+                if vendor_profile is None:
+                    raise ValidationError(
+                        {"detail": f"Product '{product.name}' has an invalid vendor mapping."}
                     )
+
+                if vendor_profile.status != VendorProfile.Status.APPROVED:
+                    raise ValidationError(
+                        {"detail": f"Vendor for product '{product.name}' is not approved."}
+                    )
+
+                unit_price = _money(Decimal(str(product.effective_price)))
+                line_total = _money(unit_price * cart_item.quantity)
+                total_amount += line_total
+                vendor_subtotals[vendor_profile.id] += line_total
+
+                order_items_by_vendor[vendor_profile.id].append(
+                    {
+                        "product": product,
+                        "quantity": cart_item.quantity,
+                        "unit_price": unit_price,
+                    }
                 )
 
                 product.stock -= cart_item.quantity
                 product.total_sold += cart_item.quantity
                 product.save(update_fields=["stock", "total_sold", "updated_at"])
 
+            vendor_orders = {}
+            for vendor_id, subtotal in vendor_subtotals.items():
+                vendor_profile = vendor_profiles_by_id[vendor_id]
+                commission_rate = _money(Decimal(str(vendor_profile.commission_rate)))
+                commission_amount = _money(subtotal * commission_rate / Decimal("100"))
+                net_vendor_amount = _money(subtotal - commission_amount)
+
+                vendor_orders[vendor_id] = VendorOrder.objects.create(
+                    order=order,
+                    vendor=vendor_profile,
+                    subtotal_amount=_money(subtotal),
+                    commission_rate=commission_rate,
+                    commission_amount=commission_amount,
+                    net_vendor_amount=net_vendor_amount,
+                )
+
+            order_items = []
+            for vendor_id, grouped_items in order_items_by_vendor.items():
+                vendor_order = vendor_orders[vendor_id]
+                for grouped_item in grouped_items:
+                    order_items.append(
+                        OrderItem(
+                            order=order,
+                            vendor_order=vendor_order,
+                            product=grouped_item["product"],
+                            quantity=grouped_item["quantity"],
+                            unit_price=grouped_item["unit_price"],
+                        )
+                    )
+
             OrderItem.objects.bulk_create(order_items)
 
-            order.total_amount = total_amount
+            order.total_amount = _money(total_amount)
             order.save(update_fields=["total_amount", "updated_at"])
 
             cart.items.all().delete()
@@ -156,8 +220,39 @@ class OrderListCreateView(generics.ListCreateAPIView):
                     "event": "order_placed",
                     "order_id": order.id,
                     "order_number": str(order.order_number),
+                    "vendor_order_count": len(vendor_orders),
+                    "payment_method": order.payment_method,
                 },
             )
+
+            emit_domain_event(
+                event_type="OrderCreatedEvent",
+                order=order,
+                idempotency_key=f"order-created:{order.pk}",
+                payload={
+                    "order_id": order.pk,
+                    "order_number": str(order.order_number),
+                    "buyer_id": order.buyer_id,
+                    "payment_method": order.payment_method,
+                    "total_amount": str(order.total_amount),
+                    "vendor_order_count": len(vendor_orders),
+                },
+            )
+
+            for vendor_order in vendor_orders.values():
+                emit_domain_event(
+                    event_type="VendorOrderCreatedEvent",
+                    order=order,
+                    vendor_order=vendor_order,
+                    idempotency_key=f"vendor-order-created:{vendor_order.pk}",
+                    payload={
+                        "order_id": order.pk,
+                        "vendor_order_id": vendor_order.pk,
+                        "vendor_id": vendor_order.vendor_id,
+                        "subtotal_amount": str(vendor_order.subtotal_amount),
+                        "net_vendor_amount": str(vendor_order.net_vendor_amount),
+                    },
+                )
 
             return order
 
@@ -201,21 +296,24 @@ class OrderStatusUpdateView(APIView):
 
     def patch(self, request, id: int):
         order = get_object_or_404(
-            Order.objects.prefetch_related("items__product__vendor"),
+            Order.objects.prefetch_related("items__product__vendor", "vendor_orders__vendor"),
             pk=id,
         )
 
-        if not self._can_update_status(request.user, order):
+        if request.user.role == "admin":
+            serializer = OrderStatusUpdateSerializer(
+                data=request.data,
+                context={"order": order},
+            )
+            serializer.is_valid(raise_exception=True)
+
+            order.status = serializer.validated_data["status"]
+            order.save(update_fields=["status", "updated_at"])
+        elif request.user.role == "vendor":
+            self._update_vendor_status(order=order, user=request.user, data=request.data)
+            order.refresh_from_db()
+        else:
             raise PermissionDenied("You do not have permission to update this order status.")
-
-        serializer = OrderStatusUpdateSerializer(
-            data=request.data,
-            context={"order": order},
-        )
-        serializer.is_valid(raise_exception=True)
-
-        order.status = serializer.validated_data["status"]
-        order.save(update_fields=["status", "updated_at"])
 
         return Response(
             OrderSerializer(order, context={"request": request}).data,
@@ -223,10 +321,69 @@ class OrderStatusUpdateView(APIView):
         )
 
     @staticmethod
-    def _can_update_status(user, order: Order) -> bool:
-        if user.role == "admin":
-            return True
+    def _update_vendor_status(*, order: Order, user, data):
+        vendor_profile = getattr(user, "vendor_profile", None)
+        if vendor_profile is None or vendor_profile.status != VendorProfile.Status.APPROVED:
+            raise PermissionDenied("You do not have permission to update this order status.")
 
+        vendor_order = order.vendor_orders.filter(vendor=vendor_profile).first()
+        if vendor_order is not None:
+            serializer = OrderStatusUpdateSerializer(
+                data=data,
+                context={"order": vendor_order},
+            )
+            serializer.is_valid(raise_exception=True)
+
+            vendor_order.status = serializer.validated_data["status"]
+            vendor_order.save(update_fields=["status", "updated_at"])
+
+            OrderStatusUpdateView._sync_parent_status(order)
+            return
+
+        if not OrderStatusUpdateView._can_update_legacy_vendor_order_status(user, order):
+            raise PermissionDenied("You do not have permission to update this order status.")
+
+        serializer = OrderStatusUpdateSerializer(
+            data=data,
+            context={"order": order},
+        )
+        serializer.is_valid(raise_exception=True)
+
+        order.status = serializer.validated_data["status"]
+        order.save(update_fields=["status", "updated_at"])
+
+    @staticmethod
+    def _sync_parent_status(order: Order):
+        statuses = list(order.vendor_orders.values_list("status", flat=True))
+        if not statuses:
+            return
+
+        if all(status == Order.Status.DELIVERED for status in statuses):
+            next_status = Order.Status.DELIVERED
+        elif all(status == Order.Status.SHIPPED for status in statuses):
+            next_status = Order.Status.SHIPPED
+        elif all(status == Order.Status.CONFIRMED for status in statuses):
+            next_status = Order.Status.CONFIRMED
+        elif all(status == Order.Status.PENDING for status in statuses):
+            next_status = Order.Status.PENDING
+        elif all(status == Order.Status.CANCELLED for status in statuses):
+            next_status = Order.Status.CANCELLED
+        elif any(status in {Order.Status.SHIPPED, Order.Status.DELIVERED} for status in statuses):
+            next_status = Order.Status.PARTIALLY_SHIPPED
+        else:
+            next_status = Order.Status.PENDING
+
+        if order.status != next_status:
+            order.status = next_status
+            order.save(update_fields=["status", "updated_at"])
+
+        if order.status == Order.Status.DELIVERED:
+            from apps.payments.services import finalize_cod_on_parent_delivery
+
+            finalize_cod_on_parent_delivery(order=order)
+
+    @staticmethod
+    def _can_update_legacy_vendor_order_status(user, order: Order) -> bool:
         if user.role != "vendor":
             return False
 
