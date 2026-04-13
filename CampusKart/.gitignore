@@ -8,6 +8,8 @@ __pycache__/
 dist/
 build/
 *.whl
+*.pyc
+
 
 # Django
 *.log

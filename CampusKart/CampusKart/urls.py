@@ -34,6 +34,7 @@ urlpatterns = [
     path("api/categories/<int:pk>/", CategoryViewSet.as_view({"get": "retrieve"}), name="categories-public-detail"),
     path(API_V1 + "orders/",        include("apps.orders.urls",       namespace="orders")),
     path(API_V1 + "payments/",      include("apps.payments.urls",     namespace="payments")),
+    path(API_V1 + "admin/",         include("apps.admin_api.urls",    namespace="admin_api")),
     path(API_V1 + "chat/",          include("apps.chat.urls",         namespace="chat")),
     path(API_V1 + "notifications/", include("apps.notifications.urls",namespace="notifications")),
     path(API_V1 + "reviews/",       include("apps.reviews.urls",      namespace="reviews")),

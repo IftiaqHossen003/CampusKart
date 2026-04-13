@@ -65,6 +65,7 @@ if importlib.util.find_spec("cloudinary_storage") is not None:
 
 LOCAL_APPS = [
     "apps.auth_app",
+    "apps.admin_api",
     "apps.vendors",
     "apps.products",
     "apps.cart",
