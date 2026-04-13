@@ -21,6 +21,7 @@ from apps.vendors.models import VendorProfile
     },
     SSLCOMMERZ_STORE_ID="test-store-id",
     SSLCOMMERZ_STORE_PASSWORD="test-store-password",
+    FRONTEND_BASE_URL="http://localhost:5173",
     SSLCOMMERZ_VALIDATE_IPN_HASH=True,
 )
 class PaymentFlowTests(APITestCase):
@@ -90,6 +91,8 @@ class PaymentFlowTests(APITestCase):
 
         self.payments_url = "/api/v1/payments/initiate/"
         self.webhook_url = "/api/v1/payments/webhook/"
+        self.return_success_url = "/api/v1/payments/return/success/"
+        self.return_fail_url = "/api/v1/payments/return/fail/"
         self.payouts_url = "/api/v1/payments/payouts/"
 
     def _callback_payload(
@@ -407,6 +410,47 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(payment.failure_reason, "Callback amount mismatch")
         self.assertEqual(order.status, Order.Status.CANCELLED)
         self.assertEqual(payout.status, VendorPayout.Status.CANCELLED)
+
+    def test_sslcommerz_return_success_redirects_to_order_detail(self):
+        order = self._create_order(payment_method=Order.PaymentMethod.SSLCOMMERZ)
+
+        self._auth()
+        init_response = self.client.post(
+            self.payments_url,
+            {
+                "order_id": order.id,
+                "gateway": Payment.Gateway.SSLCOMMERZ,
+                "idempotency_key": "ssl-return-success-1",
+            },
+            format="json",
+        )
+        self.assertEqual(init_response.status_code, status.HTTP_201_CREATED)
+
+        payment = Payment.objects.get(order=order)
+        payload = self._callback_payload(payment, callback_status="VALID")
+
+        response = self.client.post(self.return_success_url, payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertIn(f"/orders/{order.order_number}", response["Location"])
+        self.assertIn("payment=sslcommerz", response["Location"])
+        self.assertIn("payment_result=success", response["Location"])
+
+        payment.refresh_from_db()
+        order.refresh_from_db()
+        self.assertEqual(payment.status, Payment.Status.SUCCESS)
+        self.assertEqual(order.status, Order.Status.CONFIRMED)
+
+    def test_sslcommerz_return_missing_transaction_redirects_to_orders(self):
+        response = self.client.post(
+            self.return_fail_url,
+            {"status": "FAILED"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertIn("http://localhost:5173/orders", response["Location"])
+        self.assertIn("payment=sslcommerz", response["Location"])
+        self.assertIn("payment_result=failed", response["Location"])
 
     def test_cod_delivery_marks_payment_success_and_payout_ready(self):
         order = self._create_order(payment_method=Order.PaymentMethod.COD)

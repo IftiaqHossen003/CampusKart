@@ -2,10 +2,11 @@ import hashlib
 import time
 from decimal import Decimal, InvalidOperation
 from importlib import import_module
+from urllib.parse import quote, urlencode
 
 from django.conf import settings
 from django.db import transaction
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from rest_framework import generics, status, permissions
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -26,13 +27,30 @@ from .serializers import (
 from .services import confirm_vendor_orders_for_parent, sync_vendor_payouts_for_payment
 
 
+SUCCESS_GATEWAY_STATUSES = {"valid", "validated", "success", "succeeded"}
+FAILURE_GATEWAY_STATUSES = {"failed", "fail", "cancelled", "canceled", "invalid"}
+
+
 def _extract_payload(request):
-    data = request.data
-    if hasattr(data, "dict"):
-        return data.dict()
-    if isinstance(data, dict):
-        return data
-    return {}
+    payload = {}
+
+    query_params = getattr(request, "query_params", None)
+    if query_params is not None and hasattr(query_params, "dict"):
+        payload.update(query_params.dict())
+    elif isinstance(query_params, dict):
+        payload.update(query_params)
+
+    data = getattr(request, "data", None)
+    if data is not None and hasattr(data, "dict"):
+        payload.update(data.dict())
+    elif isinstance(data, dict):
+        payload.update(data)
+
+    post_data = getattr(request, "POST", None)
+    if post_data is not None and hasattr(post_data, "dict"):
+        payload.update(post_data.dict())
+
+    return payload
 
 
 def _payment_webhook_fingerprint(payload: dict) -> str:
@@ -110,6 +128,209 @@ def _notify_order_confirmed(order: Order):
             "order_number": str(order.order_number),
         },
     )
+
+
+def _get_transaction_id(payload: dict) -> str:
+    return str(payload.get("tran_id") or payload.get("transaction_id") or "").strip()
+
+
+def _resolve_frontend_redirect_url(payment: Payment | None, payment_result: str) -> str:
+    frontend_base_url = str(getattr(settings, "FRONTEND_BASE_URL", "http://localhost:5173") or "").rstrip("/")
+    order_number = str(getattr(getattr(payment, "order", None), "order_number", "") or "").strip()
+
+    if order_number:
+        path = f"/orders/{quote(order_number)}"
+    else:
+        path = "/orders"
+
+    query = urlencode(
+        {
+            "payment": "sslcommerz",
+            "payment_result": payment_result,
+        }
+    )
+    return f"{frontend_base_url}{path}?{query}"
+
+
+def _resolve_payment_result(
+    payment: Payment | None,
+    gateway_status: str,
+    result_hint: str,
+    processing_status_code: int,
+) -> str:
+    payment_status = str(getattr(payment, "status", "") or "").lower()
+    status_hint = str(result_hint or "").lower()
+    normalized_gateway_status = str(gateway_status or "").lower()
+
+    if payment_status == Payment.Status.SUCCESS:
+        return "success"
+
+    if payment_status == Payment.Status.FAILED:
+        if normalized_gateway_status in {"cancelled", "canceled"}:
+            return "cancelled"
+        return "failed"
+
+    if status_hint in {"success", "failed", "cancelled"}:
+        return status_hint
+
+    if normalized_gateway_status in SUCCESS_GATEWAY_STATUSES:
+        return "success"
+
+    if normalized_gateway_status in {"cancelled", "canceled"}:
+        return "cancelled"
+
+    if normalized_gateway_status in FAILURE_GATEWAY_STATUSES:
+        return "failed"
+
+    if processing_status_code >= status.HTTP_400_BAD_REQUEST:
+        return "failed"
+
+    return "pending"
+
+
+def _process_sslcommerz_callback(payload: dict, *, enforce_hash: bool) -> tuple[Payment | None, str, int]:
+    tran_id = _get_transaction_id(payload)
+    if not tran_id:
+        return None, "Missing transaction id.", status.HTTP_400_BAD_REQUEST
+
+    configured_store_id = str(getattr(settings, "SSLCOMMERZ_STORE_ID", "") or "").strip()
+    incoming_store_id = str(payload.get("store_id") or "").strip()
+    if configured_store_id and incoming_store_id and configured_store_id != incoming_store_id:
+        return None, "Invalid store id.", status.HTTP_400_BAD_REQUEST
+
+    if enforce_hash:
+        try:
+            is_valid_hash = _hash_validate_ipn(payload)
+        except ValidationError:
+            is_valid_hash = False
+        except Exception:
+            is_valid_hash = False
+
+        if not is_valid_hash:
+            return None, "Invalid callback hash.", status.HTTP_400_BAD_REQUEST
+
+    payment = Payment.objects.filter(
+        gateway=Payment.Gateway.SSLCOMMERZ,
+        gateway_order_id=tran_id,
+    ).select_related("order").first()
+
+    if payment is None:
+        return None, "Unknown transaction ignored.", status.HTTP_200_OK
+
+    fingerprint = _payment_webhook_fingerprint(payload)
+    terminal_statuses = {Payment.Status.SUCCESS, Payment.Status.FAILED}
+    if payment.status in terminal_statuses:
+        return payment, "Payment already finalized.", status.HTTP_200_OK
+
+    if payment.webhook_fingerprint == fingerprint:
+        return payment, "Duplicate webhook ignored.", status.HTTP_200_OK
+
+    gateway_status = str(payload.get("status") or payload.get("payment_status") or "").strip().lower()
+
+    with transaction.atomic():
+        payment = Payment.objects.select_for_update().select_related("order").get(pk=payment.pk)
+        if payment.status in terminal_statuses:
+            return payment, "Payment already finalized.", status.HTTP_200_OK
+
+        if payment.webhook_fingerprint == fingerprint:
+            return payment, "Duplicate webhook ignored.", status.HTTP_200_OK
+
+        payment.callback_received_at = timezone.now()
+        payment.webhook_fingerprint = fingerprint
+        payment.raw_response = payload
+
+        if gateway_status in SUCCESS_GATEWAY_STATUSES:
+            callback_amount = _decimal_from_payload(payload.get("amount"))
+            callback_currency = str(payload.get("currency") or "").strip().upper()
+            expected_amount = Decimal(str(payment.amount))
+            expected_currency = str(payment.currency or "").strip().upper()
+
+            if callback_amount is None or callback_amount != expected_amount:
+                payment.status = Payment.Status.FAILED
+                payment.failure_reason = "Callback amount mismatch"
+            elif callback_currency and callback_currency != expected_currency:
+                payment.status = Payment.Status.FAILED
+                payment.failure_reason = "Callback currency mismatch"
+            else:
+                payment.status = Payment.Status.SUCCESS
+                payment.failure_reason = ""
+                payment.gateway_payment_id = str(payload.get("val_id") or payload.get("bank_tran_id") or "")
+
+                if payment.order.status == Order.Status.PENDING:
+                    payment.order.status = Order.Status.CONFIRMED
+                    payment.order.save(update_fields=["status", "updated_at"])
+                    confirm_vendor_orders_for_parent(order=payment.order)
+                    _notify_order_confirmed(payment.order)
+        elif gateway_status in FAILURE_GATEWAY_STATUSES:
+            payment.status = Payment.Status.FAILED
+            payment.failure_reason = str(
+                payload.get("failedreason")
+                or payload.get("error")
+                or payload.get("status")
+                or "Payment failed"
+            )
+        else:
+            payment.status = Payment.Status.PENDING
+
+        if payment.status == Payment.Status.FAILED and payment.order.status == Order.Status.PENDING:
+            payment.order.status = Order.Status.CANCELLED
+            payment.order.save(update_fields=["status", "updated_at"])
+            VendorOrder.objects.filter(
+                order=payment.order,
+                status__in=[Order.Status.PENDING, Order.Status.CONFIRMED],
+            ).update(status=Order.Status.CANCELLED)
+
+        payment.save(
+            update_fields=[
+                "status",
+                "gateway_payment_id",
+                "webhook_fingerprint",
+                "callback_received_at",
+                "failure_reason",
+                "raw_response",
+                "updated_at",
+            ]
+        )
+
+        if payment.status == Payment.Status.SUCCESS:
+            sync_vendor_payouts_for_payment(
+                payment=payment,
+                payout_status=VendorPayout.Status.READY,
+            )
+            emit_domain_event(
+                event_type="PaymentCompletedEvent",
+                order=payment.order,
+                idempotency_key=f"payment-completed:{payment.pk}:{payment.gateway_payment_id or payment.gateway_order_id}",
+                payload={
+                    "payment_id": payment.pk,
+                    "gateway": payment.gateway,
+                    "status": payment.status,
+                    "order_id": payment.order.pk,
+                    "gateway_payment_id": payment.gateway_payment_id,
+                    "gateway_order_id": payment.gateway_order_id,
+                    "amount": str(payment.amount),
+                },
+            )
+        elif payment.status == Payment.Status.FAILED:
+            VendorPayout.objects.filter(payment=payment).exclude(status=VendorPayout.Status.PAID).update(
+                status=VendorPayout.Status.CANCELLED,
+                failure_reason=payment.failure_reason,
+            )
+            emit_domain_event(
+                event_type="PaymentFailedEvent",
+                order=payment.order,
+                idempotency_key=f"payment-failed:{payment.pk}:{payment.failure_reason}",
+                payload={
+                    "payment_id": payment.pk,
+                    "gateway": payment.gateway,
+                    "status": payment.status,
+                    "order_id": payment.order.pk,
+                    "failure_reason": payment.failure_reason,
+                    "amount": str(payment.amount),
+                },
+            )
+
+    return payment, "Webhook processed.", status.HTTP_200_OK
 
 
 class PaymentListView(generics.ListAPIView):
@@ -249,6 +470,7 @@ class InitiatePaymentView(APIView):
         success_url = getattr(settings, "SSLCOMMERZ_SUCCESS_URL", "").strip()
         fail_url = getattr(settings, "SSLCOMMERZ_FAIL_URL", "").strip()
         cancel_url = getattr(settings, "SSLCOMMERZ_CANCEL_URL", "").strip()
+        ipn_url = str(getattr(settings, "SSLCOMMERZ_IPN_URL", "") or "").strip()
 
         if not success_url or not fail_url or not cancel_url:
             raise ValidationError({"detail": "SSLCommerz callback URLs are not configured."})
@@ -276,6 +498,8 @@ class InitiatePaymentView(APIView):
             "product_category": "Marketplace",
             "product_profile": "general",
         }
+        if ipn_url:
+            session_payload["ipn_url"] = ipn_url
 
         payment.gateway = Payment.Gateway.SSLCOMMERZ
         payment.amount = order.total_amount
@@ -366,151 +590,42 @@ class PaymentWebhookView(APIView):
 
     def post(self, request):
         payload = _extract_payload(request)
-        tran_id = str(payload.get("tran_id") or payload.get("transaction_id") or "").strip()
-        if not tran_id:
-            return Response({"detail": "Missing transaction id."}, status=status.HTTP_400_BAD_REQUEST)
-
-        configured_store_id = str(getattr(settings, "SSLCOMMERZ_STORE_ID", "") or "").strip()
-        incoming_store_id = str(payload.get("store_id") or "").strip()
-        if configured_store_id and incoming_store_id and configured_store_id != incoming_store_id:
-            return Response({"detail": "Invalid store id."}, status=status.HTTP_400_BAD_REQUEST)
-
         verify_ipn_hash = bool(getattr(settings, "SSLCOMMERZ_VALIDATE_IPN_HASH", True))
-        if verify_ipn_hash:
-            try:
-                is_valid_hash = _hash_validate_ipn(payload)
-            except ValidationError:
-                raise
-            except Exception:
-                is_valid_hash = False
+        _, detail, response_status = _process_sslcommerz_callback(
+            payload,
+            enforce_hash=verify_ipn_hash,
+        )
+        return Response({"detail": detail}, status=response_status)
 
-            if not is_valid_hash:
-                return Response({"detail": "Invalid callback hash."}, status=status.HTTP_400_BAD_REQUEST)
 
-        payment = Payment.objects.filter(
-            gateway=Payment.Gateway.SSLCOMMERZ,
-            gateway_order_id=tran_id,
-        ).select_related("order").first()
+class PaymentReturnView(APIView):
+    """Browser-return endpoint for SSLCommerz redirects."""
 
-        if payment is None:
-            return Response({"detail": "Unknown transaction ignored."}, status=status.HTTP_200_OK)
+    permission_classes = [permissions.AllowAny]
+    result_hint = "pending"
 
-        fingerprint = _payment_webhook_fingerprint(payload)
-        terminal_statuses = {Payment.Status.SUCCESS, Payment.Status.FAILED}
-        if payment.status in terminal_statuses:
-            return Response({"detail": "Payment already finalized."}, status=status.HTTP_200_OK)
+    def get(self, request):
+        return self._handle(request)
 
-        if payment.webhook_fingerprint == fingerprint:
-            return Response({"detail": "Duplicate webhook ignored."}, status=status.HTTP_200_OK)
+    def post(self, request):
+        return self._handle(request)
+
+    def _handle(self, request):
+        payload = _extract_payload(request)
+        verify_ipn_hash = bool(getattr(settings, "SSLCOMMERZ_VALIDATE_IPN_HASH", True))
+        payment, _, response_status = _process_sslcommerz_callback(
+            payload,
+            enforce_hash=verify_ipn_hash,
+        )
 
         gateway_status = str(payload.get("status") or payload.get("payment_status") or "").strip().lower()
-        success_statuses = {"valid", "validated", "success", "succeeded"}
-        failure_statuses = {"failed", "fail", "cancelled", "canceled", "invalid"}
-
-        with transaction.atomic():
-            payment = Payment.objects.select_for_update().select_related("order").get(pk=payment.pk)
-            if payment.status in terminal_statuses:
-                return Response({"detail": "Payment already finalized."}, status=status.HTTP_200_OK)
-
-            if payment.webhook_fingerprint == fingerprint:
-                return Response({"detail": "Duplicate webhook ignored."}, status=status.HTTP_200_OK)
-
-            payment.callback_received_at = timezone.now()
-            payment.webhook_fingerprint = fingerprint
-            payment.raw_response = payload
-
-            if gateway_status in success_statuses:
-                callback_amount = _decimal_from_payload(payload.get("amount"))
-                callback_currency = str(payload.get("currency") or "").strip().upper()
-                expected_amount = Decimal(str(payment.amount))
-                expected_currency = str(payment.currency or "").strip().upper()
-
-                if callback_amount is None or callback_amount != expected_amount:
-                    payment.status = Payment.Status.FAILED
-                    payment.failure_reason = "Callback amount mismatch"
-                elif callback_currency and callback_currency != expected_currency:
-                    payment.status = Payment.Status.FAILED
-                    payment.failure_reason = "Callback currency mismatch"
-                else:
-                    payment.status = Payment.Status.SUCCESS
-                    payment.failure_reason = ""
-                    payment.gateway_payment_id = str(payload.get("val_id") or payload.get("bank_tran_id") or "")
-
-                    if payment.order.status == Order.Status.PENDING:
-                        payment.order.status = Order.Status.CONFIRMED
-                        payment.order.save(update_fields=["status", "updated_at"])
-                        confirm_vendor_orders_for_parent(order=payment.order)
-                        _notify_order_confirmed(payment.order)
-            elif gateway_status in failure_statuses:
-                payment.status = Payment.Status.FAILED
-                payment.failure_reason = str(
-                    payload.get("failedreason")
-                    or payload.get("error")
-                    or payload.get("status")
-                    or "Payment failed"
-                )
-            else:
-                payment.status = Payment.Status.PENDING
-
-            if payment.status == Payment.Status.FAILED and payment.order.status == Order.Status.PENDING:
-                payment.order.status = Order.Status.CANCELLED
-                payment.order.save(update_fields=["status", "updated_at"])
-                VendorOrder.objects.filter(
-                    order=payment.order,
-                    status__in=[Order.Status.PENDING, Order.Status.CONFIRMED]
-                ).update(status=Order.Status.CANCELLED)
-
-            payment.save(
-                update_fields=[
-                    "status",
-                    "gateway_payment_id",
-                    "webhook_fingerprint",
-                    "callback_received_at",
-                    "failure_reason",
-                    "raw_response",
-                    "updated_at",
-                ]
-            )
-
-            if payment.status == Payment.Status.SUCCESS:
-                sync_vendor_payouts_for_payment(
-                    payment=payment,
-                    payout_status=VendorPayout.Status.READY,
-                )
-                emit_domain_event(
-                    event_type="PaymentCompletedEvent",
-                    order=payment.order,
-                    idempotency_key=f"payment-completed:{payment.pk}:{payment.gateway_payment_id or payment.gateway_order_id}",
-                    payload={
-                        "payment_id": payment.pk,
-                        "gateway": payment.gateway,
-                        "status": payment.status,
-                        "order_id": payment.order.pk,
-                        "gateway_payment_id": payment.gateway_payment_id,
-                        "gateway_order_id": payment.gateway_order_id,
-                        "amount": str(payment.amount),
-                    },
-                )
-            elif payment.status == Payment.Status.FAILED:
-                VendorPayout.objects.filter(payment=payment).exclude(status=VendorPayout.Status.PAID).update(
-                    status=VendorPayout.Status.CANCELLED,
-                    failure_reason=payment.failure_reason,
-                )
-                emit_domain_event(
-                    event_type="PaymentFailedEvent",
-                    order=payment.order,
-                    idempotency_key=f"payment-failed:{payment.pk}:{payment.failure_reason}",
-                    payload={
-                        "payment_id": payment.pk,
-                        "gateway": payment.gateway,
-                        "status": payment.status,
-                        "order_id": payment.order.pk,
-                        "failure_reason": payment.failure_reason,
-                        "amount": str(payment.amount),
-                    },
-                )
-
-        return Response({"detail": "Webhook processed."}, status=status.HTTP_200_OK)
+        payment_result = _resolve_payment_result(
+            payment=payment,
+            gateway_status=gateway_status,
+            result_hint=self.result_hint,
+            processing_status_code=response_status,
+        )
+        return redirect(_resolve_frontend_redirect_url(payment=payment, payment_result=payment_result))
 
 
 class VendorPayoutListView(generics.ListAPIView):

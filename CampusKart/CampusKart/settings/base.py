@@ -221,19 +221,24 @@ AUTH_REFRESH_COOKIE_SAMESITE = os.environ.get("AUTH_REFRESH_COOKIE_SAMESITE", "L
 # ---------------------------------------------------------------------------
 # SSLCommerz
 # ---------------------------------------------------------------------------
+FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:5173")
 SSLCOMMERZ_STORE_ID = os.environ.get("SSLCOMMERZ_STORE_ID", "")
 SSLCOMMERZ_STORE_PASSWORD = os.environ.get("SSLCOMMERZ_STORE_PASSWORD", "")
+SSLCOMMERZ_IPN_URL = os.environ.get(
+    "SSLCOMMERZ_IPN_URL",
+    "http://localhost:8000/api/v1/payments/webhook/",
+)
 SSLCOMMERZ_SUCCESS_URL = os.environ.get(
     "SSLCOMMERZ_SUCCESS_URL",
-    "http://localhost:8000/api/v1/payments/webhook/",
+    "http://localhost:8000/api/v1/payments/return/success/",
 )
 SSLCOMMERZ_FAIL_URL = os.environ.get(
     "SSLCOMMERZ_FAIL_URL",
-    "http://localhost:8000/api/v1/payments/webhook/",
+    "http://localhost:8000/api/v1/payments/return/fail/",
 )
 SSLCOMMERZ_CANCEL_URL = os.environ.get(
     "SSLCOMMERZ_CANCEL_URL",
-    "http://localhost:8000/api/v1/payments/webhook/",
+    "http://localhost:8000/api/v1/payments/return/cancel/",
 )
 SSLCOMMERZ_IS_SANDBOX = env_bool("SSLCOMMERZ_IS_SANDBOX", True)
 SSLCOMMERZ_VALIDATE_IPN_HASH = env_bool("SSLCOMMERZ_VALIDATE_IPN_HASH", True)
