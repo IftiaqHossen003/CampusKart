@@ -7,6 +7,9 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.middleware.csrf import get_token
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_protect
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -15,10 +18,12 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView as BaseTokenRefreshView,
     TokenVerifyView as BaseTokenVerifyView,
 )
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 from .models import OTP
+from .cookies import get_refresh_cookie, set_refresh_cookie, clear_refresh_cookie
 from .serializers import (
     CustomUserSerializer,
     RegisterSerializer,
@@ -35,6 +40,28 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 GENERIC_PASSWORD_RESET_MESSAGE = "If that email exists, a reset code has been sent."
+
+
+def _get_request_payload_value(request, key: str):
+    data = getattr(request, "data", None)
+
+    if isinstance(data, dict):
+        return data.get(key)
+
+    getter = getattr(data, "get", None)
+    if callable(getter):
+        return getter(key)
+
+    return None
+
+
+def _normalize_token_value(value):
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized:
+            return normalized
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -77,25 +104,73 @@ class LoginView(TokenObtainPairView):
     """
     POST /api/v1/auth/login/
 
-    Returns JWT access + refresh tokens with extra claims (role, is_verified…).
+    Returns JWT access token with extra claims (role, is_verified…).
+    Refresh token is issued as HttpOnly session cookie.
     Body: { "email": "...", "password": "..." }
     """
     serializer_class   = LoginSerializer
     permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+
+        if response.status_code != status.HTTP_200_OK:
+            return response
+
+        response_data = response.data if isinstance(response.data, dict) else {}
+        refresh_token = _normalize_token_value(response_data.pop("refresh", None))
+        if refresh_token:
+            set_refresh_cookie(response, refresh_token)
+
+        return response
 
 
 # ---------------------------------------------------------------------------
 # Token refresh
 # ---------------------------------------------------------------------------
 
+@method_decorator(csrf_protect, name="dispatch")
 class TokenRefreshView(BaseTokenRefreshView):
     """
     POST /api/v1/auth/token/refresh/
 
     Standard simplejwt refresh — returns a new access token.
-    Body: { "refresh": "<refresh_token>" }
+    Refresh token is read from HttpOnly cookie by default.
+    Body refresh token is accepted temporarily for backward compatibility.
     """
     permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        refresh_token = _normalize_token_value(
+            _get_request_payload_value(request, "refresh") or get_refresh_cookie(request)
+        )
+
+        if not refresh_token:
+            response = Response(
+                {"detail": "Refresh token not provided."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            clear_refresh_cookie(response)
+            return response
+
+        serializer = TokenRefreshSerializer(data={"refresh": refresh_token})
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception:
+            response = Response(
+                {"detail": "Refresh token is invalid or expired."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            clear_refresh_cookie(response)
+            return response
+
+        validated_data = serializer.validated_data if isinstance(serializer.validated_data, dict) else {}
+        rotated_refresh_token = _normalize_token_value(validated_data.pop("refresh", None))
+
+        response = Response(validated_data, status=status.HTTP_200_OK)
+        set_refresh_cookie(response, rotated_refresh_token or refresh_token)
+        return response
 
 
 class TokenVerifyView(BaseTokenVerifyView):
@@ -107,6 +182,96 @@ class TokenVerifyView(BaseTokenVerifyView):
     """
 
     permission_classes = [permissions.AllowAny]
+
+
+class CsrfCookieView(APIView):
+    """
+    GET /api/v1/auth/csrf/
+
+    Sets a CSRF cookie for clients that use cookie-backed auth endpoints.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        csrf_token = get_token(request)
+        return Response(
+            {
+                "detail": "CSRF cookie set.",
+                "csrf_token": csrf_token,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class BootstrapSessionView(APIView):
+    """
+    POST /api/v1/auth/bootstrap/
+
+    Hydrates SPA auth state using the refresh token from HttpOnly cookie.
+    Returns a fresh access token and user payload.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        refresh_token = _normalize_token_value(get_refresh_cookie(request))
+
+        if not refresh_token:
+            response = Response(
+                {"detail": "No active session."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            clear_refresh_cookie(response)
+            return response
+
+        serializer = TokenRefreshSerializer(data={"refresh": refresh_token})
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception:
+            response = Response(
+                {"detail": "Session is invalid or expired."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            clear_refresh_cookie(response)
+            return response
+
+        validated_data = serializer.validated_data if isinstance(serializer.validated_data, dict) else {}
+        access_token = validated_data.get("access")
+
+        if not access_token:
+            response = Response(
+                {"detail": "Unable to issue access token."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            clear_refresh_cookie(response)
+            return response
+
+        try:
+            token = AccessToken(access_token)
+            user_id = token.get("user_id")
+            user = User.objects.get(pk=user_id)
+        except Exception:
+            response = Response(
+                {"detail": "Unable to resolve session user."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            clear_refresh_cookie(response)
+            return response
+
+        response = Response(
+            {
+                "access": access_token,
+                "user": CustomUserSerializer(user).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+        rotated_refresh_token = _normalize_token_value(validated_data.get("refresh"))
+        set_refresh_cookie(response, rotated_refresh_token or refresh_token)
+        return response
 
 
 class SessionPolicyView(APIView):
@@ -158,14 +323,15 @@ class VerifyEmailView(APIView):
 
         # Issue tokens immediately after verification
         refresh = RefreshToken.for_user(user)
-        return Response(
+        response = Response(
             {
                 "detail": "Email verified successfully.",
                 "access":  str(refresh.access_token),
-                "refresh": str(refresh),
             },
             status=status.HTTP_200_OK,
         )
+        set_refresh_cookie(response, str(refresh))
+        return response
 
 
 # ---------------------------------------------------------------------------
@@ -310,37 +476,41 @@ class ChangePasswordView(generics.UpdateAPIView):
 # Logout (blacklist refresh token)
 # ---------------------------------------------------------------------------
 
+@method_decorator(csrf_protect, name="dispatch")
 class LogoutView(APIView):
     """
     POST /api/v1/auth/logout/
 
-    Body: { "refresh": "<refresh_token>" }
-    Blacklists the supplied refresh token.
+    Uses refresh token from HttpOnly cookie (or body fallback) and blacklists it.
+    Always clears the refresh cookie.
     """
 
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request):
-        refresh_token = request.data.get("refresh")
-        if not refresh_token:
-            return Response(
-                {"detail": "refresh token is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        refresh_token = _normalize_token_value(
+            _get_request_payload_value(request, "refresh") or get_refresh_cookie(request)
+        )
 
-        try:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            detail = "Logged out successfully."
-            already_invalid = False
-        except Exception:
-            # Keep logout idempotent so frontend can always clear session safely.
-            logger.info("Logout received an invalid or already-blacklisted refresh token.")
-            detail = "Session was already invalidated."
-            already_invalid = True
+        detail = "Logged out successfully."
+        already_invalid = False
 
-        return Response(
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)  # type: ignore[arg-type]
+                token.blacklist()
+            except Exception:
+                # Keep logout idempotent so frontend can always clear session safely.
+                logger.info("Logout received an invalid or already-blacklisted refresh token.")
+                detail = "Session was already invalidated."
+                already_invalid = True
+
+        response = Response(
             {
                 "detail": detail,
                 "already_invalid": already_invalid,
             },
             status=status.HTTP_200_OK,
         )
+        clear_refresh_cookie(response)
+        return response

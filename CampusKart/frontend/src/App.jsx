@@ -1,26 +1,69 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import MainLayout from './components/layout/MainLayout'
-import ProtectedRoute from './components/layout/ProtectedRoute'
-import ToastViewport from './components/ui/ToastViewport'
-import ForgotPasswordPage from './pages/ForgotPasswordPage'
-import HomePage from './pages/HomePage'
-import LoginPage from './pages/LoginPage'
-import CheckoutPage from './pages/CheckoutPage'
-import OrderDetailPage from './pages/OrderDetailPage'
-import OrdersPage from './pages/OrdersPage'
-import ProductDetailPage from './pages/ProductDetailPage'
-import ProductListingPage from './pages/ProductListingPage'
-import RegisterPage from './pages/RegisterPage'
-import CartPage from './pages/CartPage'
-import RoutePlaceholderPage from './pages/RoutePlaceholderPage'
-import VerifyEmailPage from './pages/VerifyEmailPage'
-import VendorOrdersPage from './pages/VendorOrdersPage'
-import VendorProductsPage from './pages/VendorProductsPage'
+import { useEffect } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import apiClient from "./api/client";
+import MainLayout from "./components/layout/MainLayout";
+import ProtectedRoute from "./components/layout/ProtectedRoute";
+import ToastViewport from "./components/ui/ToastViewport";
+import { useAuthStore } from "./store/authStore";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderDetailPage from "./pages/OrderDetailPage";
+import OrdersPage from "./pages/OrdersPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
+import ProductListingPage from "./pages/ProductListingPage";
+import RegisterPage from "./pages/RegisterPage";
+import CartPage from "./pages/CartPage";
+import RoutePlaceholderPage from "./pages/RoutePlaceholderPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
+import VendorOrdersPage from "./pages/VendorOrdersPage";
+import VendorProductsPage from "./pages/VendorProductsPage";
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient();
 
 function App() {
+  const startAuthBootstrap = useAuthStore((state) => state.startAuthBootstrap);
+  const completeAuthBootstrap = useAuthStore(
+    (state) => state.completeAuthBootstrap,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrapAuth = async () => {
+      startAuthBootstrap();
+
+      try {
+        await apiClient.get("/auth/csrf/");
+        const response = await apiClient.post("/auth/bootstrap/", {});
+
+        if (cancelled) {
+          return;
+        }
+
+        const { access, user } = response.data || {};
+        if (access && user) {
+          completeAuthBootstrap({ token: access, user });
+          return;
+        }
+      } catch {
+        // No active cookie session; continue as unauthenticated.
+      }
+
+      if (!cancelled) {
+        completeAuthBootstrap();
+      }
+    };
+
+    bootstrapAuth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [startAuthBootstrap, completeAuthBootstrap]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -29,7 +72,10 @@ function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/shop" element={<ProductListingPage />} />
-            <Route path="/shop/products/:slug" element={<ProductDetailPage />} />
+            <Route
+              path="/shop/products/:slug"
+              element={<ProductDetailPage />}
+            />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -38,7 +84,7 @@ function App() {
             <Route
               path="/admin"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={["admin"]}>
                   <RoutePlaceholderPage title="Admin Dashboard" />
                 </ProtectedRoute>
               }
@@ -49,7 +95,7 @@ function App() {
             <Route
               path="/checkout"
               element={
-                <ProtectedRoute allowedRoles={['student']}>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <CheckoutPage />
                 </ProtectedRoute>
               }
@@ -58,7 +104,7 @@ function App() {
             <Route
               path="/orders"
               element={
-                <ProtectedRoute allowedRoles={['student']}>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <OrdersPage />
                 </ProtectedRoute>
               }
@@ -67,7 +113,7 @@ function App() {
             <Route
               path="/orders/:orderNumber"
               element={
-                <ProtectedRoute allowedRoles={['student']}>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <OrderDetailPage />
                 </ProtectedRoute>
               }
@@ -76,7 +122,7 @@ function App() {
             <Route
               path="/wishlist"
               element={
-                <ProtectedRoute allowedRoles={['student']}>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <RoutePlaceholderPage title="Wishlist" />
                 </ProtectedRoute>
               }
@@ -130,7 +176,7 @@ function App() {
             <Route
               path="/vendor/dashboard"
               element={
-                <ProtectedRoute allowedRoles={['vendor']}>
+                <ProtectedRoute allowedRoles={["vendor"]}>
                   <RoutePlaceholderPage title="Vendor Dashboard" />
                 </ProtectedRoute>
               }
@@ -139,7 +185,7 @@ function App() {
             <Route
               path="/vendor/products"
               element={
-                <ProtectedRoute allowedRoles={['vendor']}>
+                <ProtectedRoute allowedRoles={["vendor"]}>
                   <VendorProductsPage />
                 </ProtectedRoute>
               }
@@ -148,7 +194,7 @@ function App() {
             <Route
               path="/vendor/orders"
               element={
-                <ProtectedRoute allowedRoles={['vendor']}>
+                <ProtectedRoute allowedRoles={["vendor"]}>
                   <VendorOrdersPage />
                 </ProtectedRoute>
               }
@@ -157,7 +203,7 @@ function App() {
             <Route
               path="/vendor/analytics"
               element={
-                <ProtectedRoute allowedRoles={['vendor']}>
+                <ProtectedRoute allowedRoles={["vendor"]}>
                   <RoutePlaceholderPage title="Vendor Analytics" />
                 </ProtectedRoute>
               }
@@ -166,7 +212,7 @@ function App() {
             <Route
               path="/vendor/payouts"
               element={
-                <ProtectedRoute allowedRoles={['vendor']}>
+                <ProtectedRoute allowedRoles={["vendor"]}>
                   <RoutePlaceholderPage title="Vendor Payouts" />
                 </ProtectedRoute>
               }
@@ -175,7 +221,7 @@ function App() {
             <Route
               path="/vendor/settings"
               element={
-                <ProtectedRoute allowedRoles={['vendor']}>
+                <ProtectedRoute allowedRoles={["vendor"]}>
                   <RoutePlaceholderPage title="Vendor Settings" />
                 </ProtectedRoute>
               }
@@ -184,7 +230,7 @@ function App() {
             <Route
               path="/admin/dashboard"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={["admin"]}>
                   <RoutePlaceholderPage title="Admin Dashboard" />
                 </ProtectedRoute>
               }
@@ -193,7 +239,7 @@ function App() {
             <Route
               path="/admin/vendors"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={["admin"]}>
                   <RoutePlaceholderPage title="Admin Vendors" />
                 </ProtectedRoute>
               }
@@ -202,7 +248,7 @@ function App() {
             <Route
               path="/admin/products"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={["admin"]}>
                   <RoutePlaceholderPage title="Admin Products" />
                 </ProtectedRoute>
               }
@@ -211,7 +257,7 @@ function App() {
             <Route
               path="/admin/banners"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={["admin"]}>
                   <RoutePlaceholderPage title="Admin Banners" />
                 </ProtectedRoute>
               }
@@ -220,7 +266,7 @@ function App() {
             <Route
               path="/admin/orders"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={["admin"]}>
                   <RoutePlaceholderPage title="Admin Orders" />
                 </ProtectedRoute>
               }
@@ -229,7 +275,7 @@ function App() {
             <Route
               path="/admin/payouts"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={["admin"]}>
                   <RoutePlaceholderPage title="Admin Payouts" />
                 </ProtectedRoute>
               }
@@ -238,7 +284,7 @@ function App() {
             <Route
               path="/admin/settings"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={["admin"]}>
                   <RoutePlaceholderPage title="Admin Settings" />
                 </ProtectedRoute>
               }
@@ -249,7 +295,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
-  )
+  );
 }
 
-export default App
+export default App;

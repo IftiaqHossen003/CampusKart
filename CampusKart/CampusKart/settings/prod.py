@@ -19,6 +19,8 @@ SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 X_FRAME_OPTIONS = "DENY"
+AUTH_REFRESH_COOKIE_SECURE = True
+AUTH_REFRESH_COOKIE_SAMESITE = os.environ.get("AUTH_REFRESH_COOKIE_SAMESITE", AUTH_REFRESH_COOKIE_SAMESITE)  # noqa: F405
 
 # ---------------------------------------------------------------------------
 # Static files — whitenoise for zero-dependency static serving
