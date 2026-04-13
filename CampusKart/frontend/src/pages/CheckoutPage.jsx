@@ -1,68 +1,84 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
-import { z } from 'zod'
-import { createOrder, getOrderApiErrorMessage } from '../api/orders'
-import { getPaymentApiErrorMessage, initiatePayment } from '../api/payments'
-import { useToast } from '../hooks/useToast'
-import { useCartStore } from '../store/cartStore'
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { Link, useNavigate } from "react-router-dom";
+import { z } from "zod";
+import { createOrder, getOrderApiErrorMessage } from "../api/orders";
+import { getPaymentApiErrorMessage, initiatePayment } from "../api/payments";
+import { useToast } from "../hooks/useToast";
+import { useCartStore } from "../store/cartStore";
 
 const checkoutSchema = z.object({
-  fullName: z.string().trim().min(2, 'Full name must be at least 2 characters.'),
+  fullName: z
+    .string()
+    .trim()
+    .min(2, "Full name must be at least 2 characters."),
   phone: z
     .string()
     .trim()
-    .min(7, 'Phone number is required.')
-    .max(20, 'Phone number is too long.')
-    .regex(/^[0-9+()\-\s]+$/, 'Phone can include digits, +, spaces, parentheses, and dashes only.'),
-  addressLine: z.string().trim().min(5, 'Address line must be at least 5 characters.'),
-  areaCity: z.string().trim().min(2, 'Area/City is required.'),
-  notes: z.string().max(300, 'Notes cannot exceed 300 characters.').optional().or(z.literal('')),
-  paymentMethod: z.enum(['cod', 'sslcommerz']),
-})
+    .min(7, "Phone number is required.")
+    .max(20, "Phone number is too long.")
+    .regex(
+      /^[0-9+()\-\s]+$/,
+      "Phone can include digits, +, spaces, parentheses, and dashes only.",
+    ),
+  addressLine: z
+    .string()
+    .trim()
+    .min(5, "Address line must be at least 5 characters."),
+  areaCity: z.string().trim().min(2, "Area/City is required."),
+  notes: z
+    .string()
+    .max(300, "Notes cannot exceed 300 characters.")
+    .optional()
+    .or(z.literal("")),
+  paymentMethod: z.enum(["cod", "sslcommerz"]),
+});
 
 function toNumber(value) {
-  const number = Number(value)
-  return Number.isNaN(number) ? 0 : number
+  const number = Number(value);
+  return Number.isNaN(number) ? 0 : number;
 }
 
 function formatPrice(value) {
-  return new Intl.NumberFormat('en-BD', {
-    style: 'currency',
-    currency: 'BDT',
+  return new Intl.NumberFormat("en-BD", {
+    style: "currency",
+    currency: "BDT",
     maximumFractionDigits: 0,
-  }).format(toNumber(value))
+  }).format(toNumber(value));
 }
 
 function buildDeliveryAddressString(values) {
   return [values.fullName, values.phone, values.addressLine, values.areaCity]
-    .map((value) => String(value || '').trim())
+    .map((value) => String(value || "").trim())
     .filter(Boolean)
-    .join(', ')
+    .join(", ");
 }
 
 function makeClientRequestId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `ck-${crypto.randomUUID()}`
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return `ck-${crypto.randomUUID()}`;
   }
 
-  const randomPart = Math.random().toString(36).slice(2, 10)
-  return `ck-${Date.now()}-${randomPart}`
+  const randomPart = Math.random().toString(36).slice(2, 10);
+  return `ck-${Date.now()}-${randomPart}`;
 }
 
 function buildPaymentIdempotencyKey(orderId, paymentMethod, requestId) {
-  return `pay-init:${orderId}:${paymentMethod}:${requestId}`
+  return `pay-init:${orderId}:${paymentMethod}:${requestId}`;
 }
 
 function CheckoutPage() {
-  const navigate = useNavigate()
-  const { showError, showSuccess } = useToast()
+  const navigate = useNavigate();
+  const { showError, showSuccess } = useToast();
 
-  const items = useCartStore((state) => state.items)
-  const totalItems = useCartStore((state) => state.totalItems)
-  const totalPrice = useCartStore((state) => state.totalPrice)
-  const clearCart = useCartStore((state) => state.clearCart)
+  const items = useCartStore((state) => state.items);
+  const totalItems = useCartStore((state) => state.totalItems);
+  const totalPrice = useCartStore((state) => state.totalPrice);
+  const clearCart = useCartStore((state) => state.clearCart);
 
   const {
     register,
@@ -71,114 +87,145 @@ function CheckoutPage() {
   } = useForm({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      fullName: '',
-      phone: '',
-      addressLine: '',
-      areaCity: '',
-      notes: '',
-      paymentMethod: 'cod',
+      fullName: "",
+      phone: "",
+      addressLine: "",
+      areaCity: "",
+      notes: "",
+      paymentMethod: "cod",
     },
-  })
+  });
 
   const placeOrderMutation = useMutation({
     mutationFn: async (values) => {
-      const requestId = makeClientRequestId()
-      const deliveryAddress = buildDeliveryAddressString(values)
+      const requestId = makeClientRequestId();
+      const deliveryAddress = buildDeliveryAddressString(values);
 
       const order = await createOrder({
         delivery_address: deliveryAddress,
         payment_method: values.paymentMethod,
         request_id: requestId,
         requestId,
-        notes: values.notes?.trim() || '',
+        notes: values.notes?.trim() || "",
         deliveryAddress: {
           fullName: values.fullName,
           phone: values.phone,
           addressLine: values.addressLine,
           areaCity: values.areaCity,
-          notes: values.notes?.trim() || '',
+          notes: values.notes?.trim() || "",
         },
-      })
+      });
 
-      const orderId = Number(order?.statusUpdateId ?? order?.id)
+      const orderId = Number(order?.statusUpdateId ?? order?.id);
       if (!Number.isInteger(orderId) || orderId <= 0) {
-        const invalidOrderError = new Error('Order was created but could not be resolved for payment initiation.')
-        invalidOrderError.order = order
-        throw invalidOrderError
+        const invalidOrderError = new Error(
+          "Order was created but could not be resolved for payment initiation.",
+        );
+        invalidOrderError.order = order;
+        throw invalidOrderError;
       }
 
       try {
         const paymentResult = await initiatePayment({
           orderId,
           gateway: values.paymentMethod,
-          idempotencyKey: buildPaymentIdempotencyKey(orderId, values.paymentMethod, requestId),
-        })
+          idempotencyKey: buildPaymentIdempotencyKey(
+            orderId,
+            values.paymentMethod,
+            requestId,
+          ),
+        });
 
         return {
           order,
           paymentResult,
           paymentMethod: values.paymentMethod,
-        }
+        };
       } catch (error) {
-        error.order = order
-        throw error
+        error.order = order;
+        throw error;
       }
     },
     onSuccess: async ({ order, paymentResult, paymentMethod }) => {
-      showSuccess('Order placed successfully.')
+      showSuccess("Order placed successfully.");
 
       await clearCart().catch(() => {
         useCartStore.setState({
           items: [],
           totalItems: 0,
           totalPrice: 0,
-        })
-      })
+        });
+      });
 
-      const orderReference = order?.orderNumber ? encodeURIComponent(order.orderNumber) : null
+      const orderReference = order?.orderNumber
+        ? encodeURIComponent(order.orderNumber)
+        : null;
 
-      if (paymentMethod === 'sslcommerz') {
+      if (paymentMethod === "sslcommerz") {
         if (paymentResult?.gatewayUrl) {
-          window.open(paymentResult.gatewayUrl, '_blank', 'noopener,noreferrer')
-          showSuccess('SSLCommerz session started. Complete payment in the opened tab.')
+          window.open(
+            paymentResult.gatewayUrl,
+            "_blank",
+            "noopener,noreferrer",
+          );
+          showSuccess(
+            "SSLCommerz session started. Complete payment in the opened tab.",
+          );
         } else {
-          showError('SSLCommerz session could not be opened automatically. Please retry payment from your order.')
+          showError(
+            "SSLCommerz session could not be opened automatically. Please retry payment from your order.",
+          );
         }
 
         if (orderReference) {
-          navigate(`/orders/${orderReference}?payment=sslcommerz`, { replace: true })
-          return
+          navigate(`/orders/${orderReference}?payment=sslcommerz`, {
+            replace: true,
+          });
+          return;
         }
 
-        navigate('/orders', { replace: true })
-        return
+        navigate("/orders", { replace: true });
+        return;
       }
 
       if (orderReference) {
-        navigate(`/orders/${orderReference}`, { replace: true })
-        return
+        navigate(`/orders/${orderReference}`, { replace: true });
+        return;
       }
 
-      navigate('/orders', { replace: true })
+      navigate("/orders", { replace: true });
     },
     onError: (error) => {
-      const order = error?.order
+      const order = error?.order;
       if (order?.orderNumber) {
-        const paymentError = getPaymentApiErrorMessage(error, 'Order placed but payment initiation failed.')
-        showError(paymentError)
-        navigate(`/orders/${encodeURIComponent(order.orderNumber)}?payment_retry=1`, { replace: true })
-        return
+        const paymentError = getPaymentApiErrorMessage(
+          error,
+          "Order placed but payment initiation failed.",
+        );
+        showError(paymentError);
+        navigate(
+          `/orders/${encodeURIComponent(order.orderNumber)}?payment_retry=1`,
+          { replace: true },
+        );
+        return;
       }
 
-      showError(getOrderApiErrorMessage(error, 'Could not place order. Please review your details and try again.'))
+      showError(
+        getOrderApiErrorMessage(
+          error,
+          "Could not place order. Please review your details and try again.",
+        ),
+      );
     },
-  })
+  });
 
   if (items.length === 0) {
     return (
       <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
         <h1 className="text-2xl font-bold text-primary">Your cart is empty</h1>
-        <p className="mt-2 text-sm text-muted">Add products before proceeding to checkout.</p>
+        <p className="mt-2 text-sm text-muted">
+          Add products before proceeding to checkout.
+        </p>
         <Link
           to="/shop"
           className="mt-5 inline-flex rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
@@ -186,14 +233,16 @@ function CheckoutPage() {
           Continue Shopping
         </Link>
       </section>
-    )
+    );
   }
 
   return (
     <section className="space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
         <h1 className="text-2xl font-bold text-primary">Checkout</h1>
-        <p className="mt-1 text-sm text-muted">Confirm your delivery details and place your order.</p>
+        <p className="mt-1 text-sm text-muted">
+          Confirm your delivery details and place your order.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
@@ -203,72 +252,106 @@ function CheckoutPage() {
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">Full Name</span>
+              <span className="mb-1 block text-sm font-medium text-slate-700">
+                Full Name
+              </span>
               <input
                 type="text"
-                {...register('fullName')}
+                {...register("fullName")}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
                 placeholder="Your full name"
               />
-              {errors.fullName ? <span className="mt-1 block text-xs text-error">{errors.fullName.message}</span> : null}
+              {errors.fullName ? (
+                <span className="mt-1 block text-xs text-error">
+                  {errors.fullName.message}
+                </span>
+              ) : null}
             </label>
 
             <label className="block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">Phone</span>
+              <span className="mb-1 block text-sm font-medium text-slate-700">
+                Phone
+              </span>
               <input
                 type="tel"
-                {...register('phone')}
+                {...register("phone")}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
                 placeholder="01XXXXXXXXX"
               />
-              {errors.phone ? <span className="mt-1 block text-xs text-error">{errors.phone.message}</span> : null}
+              {errors.phone ? (
+                <span className="mt-1 block text-xs text-error">
+                  {errors.phone.message}
+                </span>
+              ) : null}
             </label>
           </div>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">Address Line</span>
+            <span className="mb-1 block text-sm font-medium text-slate-700">
+              Address Line
+            </span>
             <input
               type="text"
-              {...register('addressLine')}
+              {...register("addressLine")}
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
               placeholder="Hall, building, street, or landmark"
             />
-            {errors.addressLine ? <span className="mt-1 block text-xs text-error">{errors.addressLine.message}</span> : null}
+            {errors.addressLine ? (
+              <span className="mt-1 block text-xs text-error">
+                {errors.addressLine.message}
+              </span>
+            ) : null}
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">Area / City</span>
+            <span className="mb-1 block text-sm font-medium text-slate-700">
+              Area / City
+            </span>
             <input
               type="text"
-              {...register('areaCity')}
+              {...register("areaCity")}
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
               placeholder="Area, city"
             />
-            {errors.areaCity ? <span className="mt-1 block text-xs text-error">{errors.areaCity.message}</span> : null}
+            {errors.areaCity ? (
+              <span className="mt-1 block text-xs text-error">
+                {errors.areaCity.message}
+              </span>
+            ) : null}
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">Delivery Notes (Optional)</span>
+            <span className="mb-1 block text-sm font-medium text-slate-700">
+              Delivery Notes (Optional)
+            </span>
             <textarea
-              {...register('notes')}
+              {...register("notes")}
               rows={3}
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
               placeholder="Preferred delivery time, directions, etc."
             />
-            {errors.notes ? <span className="mt-1 block text-xs text-error">{errors.notes.message}</span> : null}
+            {errors.notes ? (
+              <span className="mt-1 block text-xs text-error">
+                {errors.notes.message}
+              </span>
+            ) : null}
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">Payment Method</span>
+            <span className="mb-1 block text-sm font-medium text-slate-700">
+              Payment Method
+            </span>
             <select
-              {...register('paymentMethod')}
+              {...register("paymentMethod")}
               className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
             >
               <option value="cod">Cash on Delivery (COD)</option>
               <option value="sslcommerz">SSLCommerz</option>
             </select>
             {errors.paymentMethod ? (
-              <span className="mt-1 block text-xs text-error">{errors.paymentMethod.message}</span>
+              <span className="mt-1 block text-xs text-error">
+                {errors.paymentMethod.message}
+              </span>
             ) : null}
           </label>
 
@@ -277,7 +360,7 @@ function CheckoutPage() {
             disabled={placeOrderMutation.isPending}
             className="inline-flex w-full items-center justify-center rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-slate-400"
           >
-            {placeOrderMutation.isPending ? 'Placing Order...' : 'Place Order'}
+            {placeOrderMutation.isPending ? "Placing Order..." : "Place Order"}
           </button>
         </form>
 
@@ -287,14 +370,21 @@ function CheckoutPage() {
 
           <div className="mt-4 space-y-3">
             {items.map((item) => (
-              <div key={item.id} className="flex items-start justify-between gap-3 text-sm">
+              <div
+                key={item.id}
+                className="flex items-start justify-between gap-3 text-sm"
+              >
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-slate-800">{item.name}</p>
+                  <p className="truncate font-medium text-slate-800">
+                    {item.name}
+                  </p>
                   <p className="text-xs text-muted">
                     {item.quantity} × {formatPrice(item.unitPrice)}
                   </p>
                 </div>
-                <p className="whitespace-nowrap font-semibold text-slate-800">{formatPrice(item.subtotal)}</p>
+                <p className="whitespace-nowrap font-semibold text-slate-800">
+                  {formatPrice(item.subtotal)}
+                </p>
               </div>
             ))}
           </div>
@@ -314,7 +404,7 @@ function CheckoutPage() {
         </aside>
       </div>
     </section>
-  )
+  );
 }
 
-export default CheckoutPage
+export default CheckoutPage;
