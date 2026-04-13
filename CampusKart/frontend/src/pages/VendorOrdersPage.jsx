@@ -11,6 +11,7 @@ const STATUS_FILTER_OPTIONS = [
   { label: 'Pending', value: 'pending' },
   { label: 'Confirmed', value: 'confirmed' },
   { label: 'Shipped', value: 'shipped' },
+  { label: 'Partially Shipped', value: 'partially_shipped' },
   { label: 'Delivered', value: 'delivered' },
   { label: 'Cancelled', value: 'cancelled' },
 ]
@@ -67,6 +68,10 @@ function getAllowedTransitions(status) {
 
   if (normalized === 'shipped') {
     return ['shipped', 'delivered']
+  }
+
+  if (normalized === 'partially_shipped') {
+    return ['partially_shipped', 'shipped', 'delivered']
   }
 
   if (normalized === 'delivered') {

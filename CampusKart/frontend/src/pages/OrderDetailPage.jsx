@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { fetchOrderDetail, getOrderApiErrorMessage } from '../api/orders'
+import { fetchMyPayments } from '../api/payments'
 import OrderStatusBadge from '../components/ui/OrderStatusBadge'
 import { useToast } from '../hooks/useToast'
 import { useCartStore } from '../store/cartStore'
@@ -62,14 +63,26 @@ function getStatusRank(status) {
 function OrderDetailPage() {
   const { orderNumber } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { showError, showSuccess } = useToast()
   const addItem = useCartStore((state) => state.addItem)
+
+  const isSslcommerzFlow = searchParams.get('payment') === 'sslcommerz'
+  const hasPaymentRetry = searchParams.get('payment_retry') === '1'
 
   const orderQuery = useQuery({
     queryKey: ['order-detail', orderNumber],
     queryFn: () => fetchOrderDetail(orderNumber),
     enabled: Boolean(orderNumber),
     staleTime: 30 * 1000,
+  })
+
+  const paymentQuery = useQuery({
+    queryKey: ['order-payments', orderQuery.data?.orderNumber],
+    queryFn: () => fetchMyPayments(),
+    enabled: Boolean(orderQuery.data?.orderNumber),
+    refetchInterval: isSslcommerzFlow ? 8000 : false,
+    staleTime: 5 * 1000,
   })
 
   const reorderMutation = useMutation({
@@ -178,6 +191,7 @@ function OrderDetailPage() {
 
   const order = orderQuery.data
   const statusRank = getStatusRank(order.status)
+  const orderPayment = (paymentQuery.data || []).find((payment) => payment.orderNumber === order.orderNumber)
 
   return (
     <section className="space-y-6">
@@ -199,6 +213,18 @@ function OrderDetailPage() {
           {reorderMutation.isPending ? 'Adding Items...' : 'Re-order'}
         </button>
       </div>
+
+      {isSslcommerzFlow ? (
+        <div className="rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+          SSLCommerz payment was initiated. Status updates can take a few seconds; this page refreshes payment state automatically.
+        </div>
+      ) : null}
+
+      {hasPaymentRetry ? (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Your order was created, but payment initiation failed. Retry from checkout flow or contact support if this persists.
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-5">
@@ -269,6 +295,14 @@ function OrderDetailPage() {
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted">Payment</span>
                 <span className="font-medium">{formatLabel(order.paymentMethod || 'cod')}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted">Payment Status</span>
+                {orderPayment ? (
+                  <OrderStatusBadge status={orderPayment.status} />
+                ) : (
+                  <span className="font-medium text-slate-700">N/A</span>
+                )}
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted">Items</span>

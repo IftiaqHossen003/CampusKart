@@ -13,11 +13,16 @@ function toStatusLabel(status) {
 
 const statusClasses = {
   pending: 'bg-warning/15 text-warning',
+  initiated: 'bg-warning/15 text-warning',
   confirmed: 'bg-sky-100 text-sky-700',
   processing: 'bg-sky-100 text-sky-700',
   shipped: 'bg-indigo-100 text-indigo-700',
+  partially_shipped: 'bg-indigo-100 text-indigo-700',
   delivered: 'bg-success/15 text-success',
+  success: 'bg-success/15 text-success',
   completed: 'bg-success/15 text-success',
+  ready: 'bg-sky-100 text-sky-700',
+  paid: 'bg-success/15 text-success',
   cancelled: 'bg-error/15 text-error',
   canceled: 'bg-error/15 text-error',
   failed: 'bg-error/15 text-error',

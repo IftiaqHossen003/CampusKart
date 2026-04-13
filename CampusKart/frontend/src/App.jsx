@@ -9,6 +9,7 @@ import { useAuthStore } from "./store/authStore";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
+import AdminPayoutsPage from "./pages/AdminPayoutsPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import OrdersPage from "./pages/OrdersPage";
@@ -19,6 +20,7 @@ import CartPage from "./pages/CartPage";
 import RoutePlaceholderPage from "./pages/RoutePlaceholderPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import VendorOrdersPage from "./pages/VendorOrdersPage";
+import VendorPayoutsPage from "./pages/VendorPayoutsPage";
 import VendorProductsPage from "./pages/VendorProductsPage";
 
 const queryClient = new QueryClient();
@@ -213,7 +215,7 @@ function App() {
               path="/vendor/payouts"
               element={
                 <ProtectedRoute allowedRoles={["vendor"]}>
-                  <RoutePlaceholderPage title="Vendor Payouts" />
+                  <VendorPayoutsPage />
                 </ProtectedRoute>
               }
             />
@@ -276,7 +278,7 @@ function App() {
               path="/admin/payouts"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
-                  <RoutePlaceholderPage title="Admin Payouts" />
+                  <AdminPayoutsPage />
                 </ProtectedRoute>
               }
             />

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { createOrder, getOrderApiErrorMessage } from '../api/orders'
+import { getPaymentApiErrorMessage, initiatePayment } from '../api/payments'
 import { useToast } from '../hooks/useToast'
 import { useCartStore } from '../store/cartStore'
 
@@ -18,7 +19,7 @@ const checkoutSchema = z.object({
   addressLine: z.string().trim().min(5, 'Address line must be at least 5 characters.'),
   areaCity: z.string().trim().min(2, 'Area/City is required.'),
   notes: z.string().max(300, 'Notes cannot exceed 300 characters.').optional().or(z.literal('')),
-  paymentMethod: z.literal('cod'),
+  paymentMethod: z.enum(['cod', 'sslcommerz']),
 })
 
 function toNumber(value) {
@@ -39,6 +40,19 @@ function buildDeliveryAddressString(values) {
     .map((value) => String(value || '').trim())
     .filter(Boolean)
     .join(', ')
+}
+
+function makeClientRequestId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `ck-${crypto.randomUUID()}`
+  }
+
+  const randomPart = Math.random().toString(36).slice(2, 10)
+  return `ck-${Date.now()}-${randomPart}`
+}
+
+function buildPaymentIdempotencyKey(orderId, paymentMethod, requestId) {
+  return `pay-init:${orderId}:${paymentMethod}:${requestId}`
 }
 
 function CheckoutPage() {
@@ -67,12 +81,15 @@ function CheckoutPage() {
   })
 
   const placeOrderMutation = useMutation({
-    mutationFn: (values) => {
+    mutationFn: async (values) => {
+      const requestId = makeClientRequestId()
       const deliveryAddress = buildDeliveryAddressString(values)
 
-      return createOrder({
+      const order = await createOrder({
         delivery_address: deliveryAddress,
         payment_method: values.paymentMethod,
+        request_id: requestId,
+        requestId,
         notes: values.notes?.trim() || '',
         deliveryAddress: {
           fullName: values.fullName,
@@ -82,8 +99,32 @@ function CheckoutPage() {
           notes: values.notes?.trim() || '',
         },
       })
+
+      const orderId = Number(order?.statusUpdateId ?? order?.id)
+      if (!Number.isInteger(orderId) || orderId <= 0) {
+        const invalidOrderError = new Error('Order was created but could not be resolved for payment initiation.')
+        invalidOrderError.order = order
+        throw invalidOrderError
+      }
+
+      try {
+        const paymentResult = await initiatePayment({
+          orderId,
+          gateway: values.paymentMethod,
+          idempotencyKey: buildPaymentIdempotencyKey(orderId, values.paymentMethod, requestId),
+        })
+
+        return {
+          order,
+          paymentResult,
+          paymentMethod: values.paymentMethod,
+        }
+      } catch (error) {
+        error.order = order
+        throw error
+      }
     },
-    onSuccess: async (order) => {
+    onSuccess: async ({ order, paymentResult, paymentMethod }) => {
       showSuccess('Order placed successfully.')
 
       await clearCart().catch(() => {
@@ -94,14 +135,41 @@ function CheckoutPage() {
         })
       })
 
-      if (order?.orderNumber) {
-        navigate(`/orders/${encodeURIComponent(order.orderNumber)}`, { replace: true })
+      const orderReference = order?.orderNumber ? encodeURIComponent(order.orderNumber) : null
+
+      if (paymentMethod === 'sslcommerz') {
+        if (paymentResult?.gatewayUrl) {
+          window.open(paymentResult.gatewayUrl, '_blank', 'noopener,noreferrer')
+          showSuccess('SSLCommerz session started. Complete payment in the opened tab.')
+        } else {
+          showError('SSLCommerz session could not be opened automatically. Please retry payment from your order.')
+        }
+
+        if (orderReference) {
+          navigate(`/orders/${orderReference}?payment=sslcommerz`, { replace: true })
+          return
+        }
+
+        navigate('/orders', { replace: true })
+        return
+      }
+
+      if (orderReference) {
+        navigate(`/orders/${orderReference}`, { replace: true })
         return
       }
 
       navigate('/orders', { replace: true })
     },
     onError: (error) => {
+      const order = error?.order
+      if (order?.orderNumber) {
+        const paymentError = getPaymentApiErrorMessage(error, 'Order placed but payment initiation failed.')
+        showError(paymentError)
+        navigate(`/orders/${encodeURIComponent(order.orderNumber)}?payment_retry=1`, { replace: true })
+        return
+      }
+
       showError(getOrderApiErrorMessage(error, 'Could not place order. Please review your details and try again.'))
     },
   })
@@ -197,12 +265,7 @@ function CheckoutPage() {
               className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
             >
               <option value="cod">Cash on Delivery (COD)</option>
-              <option value="card" disabled>
-                Card Payment (Coming Soon)
-              </option>
-              <option value="mobile" disabled>
-                Mobile Banking (Coming Soon)
-              </option>
+              <option value="sslcommerz">SSLCommerz</option>
             </select>
             {errors.paymentMethod ? (
               <span className="mt-1 block text-xs text-error">{errors.paymentMethod.message}</span>

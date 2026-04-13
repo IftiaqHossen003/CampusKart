@@ -367,6 +367,7 @@ function buildCreateOrderPayloadCandidates(payload = {}) {
   const source = payload || {}
   const deliveryAddressSource =
     source.deliveryAddress || source.delivery_address || source.shippingAddress || source.shipping_address || {}
+  const requestId = pickFirst(source?.request_id, source?.requestId)
 
   const fullName = pickFirst(
     deliveryAddressSource?.full_name,
@@ -427,24 +428,32 @@ function buildCreateOrderPayloadCandidates(payload = {}) {
       delivery_address: deliveryAddressText,
       notes,
       payment_method: paymentMethod,
+      request_id: requestId,
+      requestId,
       ...(items ? { items } : {}),
     }),
     compactObject({
       payment_method: paymentMethod,
       notes,
       delivery_address: deliveryAddressText,
+      request_id: requestId,
+      requestId,
       ...(items ? { items } : {}),
     }),
     compactObject({
       payment_method: paymentMethod,
       notes,
       delivery_address: deliveryAddressText,
+      request_id: requestId,
+      requestId,
       ...snakeAddress,
       ...(items ? { items } : {}),
     }),
     compactObject({
       paymentMethod,
       notes,
+      request_id: requestId,
+      requestId,
       ...(Object.keys(camelAddress).length > 0 ? { deliveryAddress: camelAddress } : {}),
       ...(items ? { items } : {}),
     }),
