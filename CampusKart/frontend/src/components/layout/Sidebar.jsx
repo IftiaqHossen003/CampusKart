@@ -1,7 +1,17 @@
 import { NavLink } from 'react-router-dom'
 import { useUIStore } from '../../store/uiStore'
 
-const navItems = [
+const adminNavItems = [
+  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'vendors', label: 'Vendors' },
+  { key: 'products', label: 'Products' },
+  { key: 'banners', label: 'Banners' },
+  { key: 'orders', label: 'Orders' },
+  { key: 'payouts', label: 'Payouts' },
+  { key: 'settings', label: 'Settings' },
+]
+
+const vendorNavItems = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'products', label: 'Products' },
   { key: 'orders', label: 'Orders' },
@@ -13,6 +23,7 @@ function Sidebar({ role }) {
   const isSidebarOpen = useUIStore((state) => state.isSidebarOpen)
   const closeSidebar = useUIStore((state) => state.closeSidebar)
   const base = role === 'admin' ? '/admin' : '/vendor'
+  const navItems = role === 'admin' ? adminNavItems : vendorNavItems
 
   return (
     <>

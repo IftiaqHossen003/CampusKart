@@ -9,7 +9,13 @@ import { useAuthStore } from "./store/authStore";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminBannersPage from "./pages/AdminBannersPage";
+import AdminOrdersPage from "./pages/AdminOrdersPage";
+import AdminProductsPage from "./pages/AdminProductsPage";
 import AdminPayoutsPage from "./pages/AdminPayoutsPage";
+import AdminSettingsPage from "./pages/AdminSettingsPage";
+import AdminVendorsPage from "./pages/AdminVendorsPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import OrdersPage from "./pages/OrdersPage";
@@ -87,7 +93,7 @@ function App() {
               path="/admin"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
-                  <RoutePlaceholderPage title="Admin Dashboard" />
+                  <Navigate to="/admin/dashboard" replace />
                 </ProtectedRoute>
               }
             />
@@ -233,7 +239,7 @@ function App() {
               path="/admin/dashboard"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
-                  <RoutePlaceholderPage title="Admin Dashboard" />
+                  <AdminDashboardPage />
                 </ProtectedRoute>
               }
             />
@@ -242,7 +248,7 @@ function App() {
               path="/admin/vendors"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
-                  <RoutePlaceholderPage title="Admin Vendors" />
+                  <AdminVendorsPage />
                 </ProtectedRoute>
               }
             />
@@ -251,7 +257,7 @@ function App() {
               path="/admin/products"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
-                  <RoutePlaceholderPage title="Admin Products" />
+                  <AdminProductsPage />
                 </ProtectedRoute>
               }
             />
@@ -260,7 +266,7 @@ function App() {
               path="/admin/banners"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
-                  <RoutePlaceholderPage title="Admin Banners" />
+                  <AdminBannersPage />
                 </ProtectedRoute>
               }
             />
@@ -269,7 +275,7 @@ function App() {
               path="/admin/orders"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
-                  <RoutePlaceholderPage title="Admin Orders" />
+                  <AdminOrdersPage />
                 </ProtectedRoute>
               }
             />
@@ -287,7 +293,7 @@ function App() {
               path="/admin/settings"
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
-                  <RoutePlaceholderPage title="Admin Settings" />
+                  <AdminSettingsPage />
                 </ProtectedRoute>
               }
             />
