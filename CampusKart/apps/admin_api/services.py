@@ -47,9 +47,9 @@ def build_admin_stats(*, from_date: date | None = None, to_date: date | None = N
 
     user_qs = _apply_date_range(user_model.objects.all(), from_date=from_date, to_date=to_date)
     order_qs = _apply_date_range(Order.objects.all(), from_date=from_date, to_date=to_date)
-        user_stats = user_qs.aggregate(
-            total_users=Count("id"),
-        )
+    user_stats = user_qs.aggregate(
+        total_users=Count("id"),
+    )
 
     payment_qs = _apply_date_range(Payment.objects.all(), from_date=from_date, to_date=to_date)
     vendor_qs = _apply_date_range(VendorProfile.objects.all(), from_date=from_date, to_date=to_date)

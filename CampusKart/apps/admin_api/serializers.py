@@ -1,7 +1,8 @@
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from apps.products.models import Category, Product
+from apps.orders.models import Order
+from apps.products.models import Category, Product, ProductImage
 from apps.vendors.models import VendorProfile
 
 from .models import AdminAuditLog, Banner
@@ -74,6 +75,27 @@ class AdminRevenuePointSerializer(serializers.Serializer):
     collected_revenue = serializers.DecimalField(max_digits=14, decimal_places=2)
 
 
+class AdminRecentOrdersQuerySerializer(serializers.Serializer):
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=100, default=10)
+
+
+class AdminRecentOrderSerializer(serializers.ModelSerializer):
+    buyer_email = serializers.EmailField(source="buyer.email", read_only=True)
+
+    class Meta:
+        model = Order
+        fields = [
+            "id",
+            "order_number",
+            "buyer_email",
+            "status",
+            "payment_method",
+            "total_amount",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
 class AdminVendorQueueSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source="user.email", read_only=True)
     user_full_name = serializers.CharField(source="user.full_name", read_only=True)
@@ -99,6 +121,44 @@ class AdminVendorQueueSerializer(serializers.ModelSerializer):
             "approved_by",
             "approved_by_email",
             "approved_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class AdminProductQueueImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ["id", "image_url", "is_primary", "sort_order"]
+        read_only_fields = fields
+
+
+class AdminProductQueueSerializer(serializers.ModelSerializer):
+    vendor_name = serializers.CharField(source="vendor.shop_name", read_only=True)
+    category_name = serializers.CharField(source="category.name", read_only=True)
+    images = AdminProductQueueImageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            "id",
+            "slug",
+            "name",
+            "description",
+            "vendor",
+            "vendor_name",
+            "category",
+            "category_name",
+            "price",
+            "discount_price",
+            "stock",
+            "status",
+            "approved_by",
+            "approved_at",
+            "total_sold",
+            "avg_rating",
+            "images",
             "created_at",
             "updated_at",
         ]
