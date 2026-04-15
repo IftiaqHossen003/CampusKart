@@ -59,10 +59,15 @@ function extractArray(payload) {
 
 function normalizePaginated(payload, fallbackPage = 1) {
   const results = extractArray(payload);
-  const countCandidate = toNumber(payload?.count ?? payload?.total ?? results.length);
+  const countCandidate = toNumber(
+    payload?.count ?? payload?.total ?? results.length,
+  );
   const count = countCandidate > 0 ? countCandidate : results.length;
   const page = Math.max(1, toNumber(payload?.page ?? fallbackPage) || 1);
-  const pageSize = Math.max(1, results.length || toNumber(payload?.page_size) || 10);
+  const pageSize = Math.max(
+    1,
+    results.length || toNumber(payload?.page_size) || 10,
+  );
 
   return {
     results,
@@ -112,7 +117,9 @@ export async function fetchAdminStats(params = {}) {
 
 export async function fetchAdminRevenueTimeseries({ days = 30 } = {}) {
   try {
-    const response = await apiClient.get(`/admin/stats/revenue-timeseries/?days=${days}`);
+    const response = await apiClient.get(
+      `/admin/stats/revenue-timeseries/?days=${days}`,
+    );
     const points = extractArray(response.data);
 
     return points.map((point) => ({
@@ -130,10 +137,12 @@ export async function fetchAdminRevenueTimeseries({ days = 30 } = {}) {
       date.setDate(today.getDate() - (days - index - 1));
       const isoDate = date.toISOString().slice(0, 10);
 
-      return fetchAdminStats({ from_date: isoDate, to_date: isoDate }).then((stats) => ({
-        date: isoDate,
-        revenue: toNumber(stats?.collected_revenue),
-      }));
+      return fetchAdminStats({ from_date: isoDate, to_date: isoDate }).then(
+        (stats) => ({
+          date: isoDate,
+          revenue: toNumber(stats?.collected_revenue),
+        }),
+      );
     });
 
     return Promise.all(requests);
@@ -142,11 +151,17 @@ export async function fetchAdminRevenueTimeseries({ days = 30 } = {}) {
 
 export async function fetchAdminRecentOrders({ limit = 10 } = {}) {
   const normalizedLimit = Math.max(1, toNumber(limit) || 10);
-  const response = await apiClient.get(`/admin/orders/recent/?limit=${normalizedLimit}`);
+  const response = await apiClient.get(
+    `/admin/orders/recent/?limit=${normalizedLimit}`,
+  );
   return extractArray(response.data);
 }
 
-export async function fetchAdminVendors({ page = 1, search = "", status = "" } = {}) {
+export async function fetchAdminVendors({
+  page = 1,
+  search = "",
+  status = "",
+} = {}) {
   const queryString = buildQueryString({ page, search, status });
   const response = await apiClient.get(`/admin/vendors/${queryString}`);
   return normalizePaginated(response.data, page);
@@ -165,12 +180,18 @@ export async function exportAdminVendorsCsv({ search = "", status = "" } = {}) {
 }
 
 export async function approveAdminVendor(vendorId, payload = {}) {
-  const response = await apiClient.post(`/admin/vendors/${vendorId}/approve/`, payload);
+  const response = await apiClient.post(
+    `/admin/vendors/${vendorId}/approve/`,
+    payload,
+  );
   return response.data;
 }
 
 export async function suspendAdminVendor(vendorId, payload = {}) {
-  const response = await apiClient.post(`/admin/vendors/${vendorId}/suspend/`, payload);
+  const response = await apiClient.post(
+    `/admin/vendors/${vendorId}/suspend/`,
+    payload,
+  );
   return response.data;
 }
 
@@ -191,9 +212,12 @@ export async function exportAdminProductsCsv({
   ordering = "-created_at",
 } = {}) {
   const queryString = buildQueryString({ search, status, ordering });
-  const response = await apiClient.get(`/admin/products/export/${queryString}`, {
-    responseType: "blob",
-  });
+  const response = await apiClient.get(
+    `/admin/products/export/${queryString}`,
+    {
+      responseType: "blob",
+    },
+  );
   const filename = parseFilename(
     response.headers?.["content-disposition"],
     "admin-products.csv",
@@ -202,12 +226,18 @@ export async function exportAdminProductsCsv({
 }
 
 export async function approveAdminProduct(slug, payload = {}) {
-  const response = await apiClient.post(`/admin/products/${slug}/approve/`, payload);
+  const response = await apiClient.post(
+    `/admin/products/${slug}/approve/`,
+    payload,
+  );
   return response.data;
 }
 
 export async function rejectAdminProduct(slug, payload = {}) {
-  const response = await apiClient.post(`/admin/products/${slug}/reject/`, payload);
+  const response = await apiClient.post(
+    `/admin/products/${slug}/reject/`,
+    payload,
+  );
   return response.data;
 }
 
@@ -223,7 +253,10 @@ export async function createAdminBanner(payload) {
 }
 
 export async function updateAdminBanner(bannerId, payload) {
-  const response = await apiClient.patch(`/admin/banners/${bannerId}/`, payload);
+  const response = await apiClient.patch(
+    `/admin/banners/${bannerId}/`,
+    payload,
+  );
   return response.data;
 }
 
@@ -243,7 +276,10 @@ export async function createAdminCategory(payload) {
 }
 
 export async function updateAdminCategory(categoryId, payload) {
-  const response = await apiClient.patch(`/admin/categories/${categoryId}/`, payload);
+  const response = await apiClient.patch(
+    `/admin/categories/${categoryId}/`,
+    payload,
+  );
   return response.data;
 }
 
@@ -263,17 +299,25 @@ export async function fetchAdminAuditLogs({
 
 function escapeCsvCell(value) {
   const raw = value === null || value === undefined ? "" : String(value);
-  if (raw.includes("\"") || raw.includes(",") || raw.includes("\n")) {
+  if (raw.includes('"') || raw.includes(",") || raw.includes("\n")) {
     return `"${raw.replace(/"/g, '""')}"`;
   }
   return raw;
 }
 
 export function downloadCsv(filename, headers, rows) {
-  const headerRow = headers.map((header) => escapeCsvCell(header.label)).join(",");
+  const headerRow = headers
+    .map((header) => escapeCsvCell(header.label))
+    .join(",");
   const bodyRows = rows.map((row) =>
     headers
-      .map((header) => escapeCsvCell(typeof header.value === "function" ? header.value(row) : row[header.value]))
+      .map((header) =>
+        escapeCsvCell(
+          typeof header.value === "function"
+            ? header.value(row)
+            : row[header.value],
+        ),
+      )
       .join(","),
   );
 
@@ -303,7 +347,10 @@ export function getAdminApiErrorMessage(error, fallbackMessage) {
     return data.message;
   }
 
-  if (Array.isArray(data?.non_field_errors) && data.non_field_errors.length > 0) {
+  if (
+    Array.isArray(data?.non_field_errors) &&
+    data.non_field_errors.length > 0
+  ) {
     return String(data.non_field_errors[0]);
   }
 

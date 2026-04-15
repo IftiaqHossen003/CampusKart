@@ -69,7 +69,10 @@ function AdminBannersPage() {
     },
   });
 
-  const banners = useMemo(() => bannersQuery.data?.results || [], [bannersQuery.data]);
+  const banners = useMemo(
+    () => bannersQuery.data?.results || [],
+    [bannersQuery.data],
+  );
 
   const isBusy = saveMutation.isPending || deleteMutation.isPending;
 
@@ -115,25 +118,35 @@ function AdminBannersPage() {
     <section className="space-y-5">
       <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
         <h1 className="text-2xl font-bold text-primary">Admin Banners</h1>
-        <p className="mt-1 text-sm text-muted">Create and reorder homepage promotional banners.</p>
+        <p className="mt-1 text-sm text-muted">
+          Create and reorder homepage promotional banners.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_1fr]">
         <article className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-primary">Existing Banners</h2>
+            <h2 className="text-lg font-semibold text-primary">
+              Existing Banners
+            </h2>
             <span className="text-xs text-muted">{banners.length} total</span>
           </div>
 
           {bannersQuery.isLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 4 }).map((_, index) => (
-                <div key={`banner-skeleton-${index}`} className="h-16 animate-pulse rounded bg-slate-100" />
+                <div
+                  key={`banner-skeleton-${index}`}
+                  className="h-16 animate-pulse rounded bg-slate-100"
+                />
               ))}
             </div>
           ) : bannersQuery.isError ? (
             <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
-              {getAdminApiErrorMessage(bannersQuery.error, "Could not load banners.")}
+              {getAdminApiErrorMessage(
+                bannersQuery.error,
+                "Could not load banners.",
+              )}
             </p>
           ) : banners.length === 0 ? (
             <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-muted">
@@ -142,12 +155,21 @@ function AdminBannersPage() {
           ) : (
             <div className="space-y-3">
               {banners.map((banner) => (
-                <article key={banner.id} className="rounded-lg border border-slate-200 p-3">
+                <article
+                  key={banner.id}
+                  className="rounded-lg border border-slate-200 p-3"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{banner.title}</p>
-                      <p className="mt-1 text-xs text-muted">Position: {banner.position}</p>
-                      <p className="text-xs text-muted">Updated: {formatDate(banner.updated_at)}</p>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {banner.title}
+                      </p>
+                      <p className="mt-1 text-xs text-muted">
+                        Position: {banner.position}
+                      </p>
+                      <p className="text-xs text-muted">
+                        Updated: {formatDate(banner.updated_at)}
+                      </p>
                     </div>
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -199,44 +221,72 @@ function AdminBannersPage() {
 
           <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
             <label className="block text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Title</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Title
+              </span>
               <input
                 type="text"
                 required
                 value={formState.title}
-                onChange={(event) => setFormState((current) => ({ ...current, title: event.target.value }))}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    title: event.target.value,
+                  }))
+                }
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
               />
             </label>
 
             <label className="block text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Image URL</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Image URL
+              </span>
               <input
                 type="url"
                 required
                 value={formState.image_url}
-                onChange={(event) => setFormState((current) => ({ ...current, image_url: event.target.value }))}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    image_url: event.target.value,
+                  }))
+                }
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
               />
             </label>
 
             <label className="block text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Link (optional)</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Link (optional)
+              </span>
               <input
                 type="url"
                 value={formState.link}
-                onChange={(event) => setFormState((current) => ({ ...current, link: event.target.value }))}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    link: event.target.value,
+                  }))
+                }
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
               />
             </label>
 
             <label className="block text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Position</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Position
+              </span>
               <input
                 type="number"
                 min={0}
                 value={formState.position}
-                onChange={(event) => setFormState((current) => ({ ...current, position: event.target.value }))}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    position: event.target.value,
+                  }))
+                }
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
               />
             </label>
@@ -245,12 +295,17 @@ function AdminBannersPage() {
               <input
                 type="checkbox"
                 checked={formState.is_active}
-                onChange={(event) => setFormState((current) => ({ ...current, is_active: event.target.checked }))}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    is_active: event.target.checked,
+                  }))
+                }
               />
               Active banner
             </label>
 
-            {(saveMutation.isError || deleteMutation.isError) ? (
+            {saveMutation.isError || deleteMutation.isError ? (
               <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
                 {getAdminApiErrorMessage(
                   saveMutation.error || deleteMutation.error,

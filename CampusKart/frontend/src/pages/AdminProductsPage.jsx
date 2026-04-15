@@ -49,7 +49,9 @@ function statusChipClass(status) {
 }
 
 function resolveProductImage(product) {
-  const primary = (product.images || []).find((image) => image.is_primary)?.image_url;
+  const primary = (product.images || []).find(
+    (image) => image.is_primary,
+  )?.image_url;
   return (
     primary ||
     product.images?.[0]?.image_url ||
@@ -106,7 +108,8 @@ function AdminProductsPage() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: ({ slug }) => approveAdminProduct(slug, { reason: "Approved by admin" }),
+    mutationFn: ({ slug }) =>
+      approveAdminProduct(slug, { reason: "Approved by admin" }),
     onSuccess: () => {
       showSuccess("Product approved.");
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
@@ -233,8 +236,12 @@ function AdminProductsPage() {
   return (
     <section className="space-y-5">
       <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">Product Approval Queue</h1>
-        <p className="mt-1 text-sm text-muted">Moderate pending products and maintain catalog quality.</p>
+        <h1 className="text-2xl font-bold text-primary">
+          Product Approval Queue
+        </h1>
+        <p className="mt-1 text-sm text-muted">
+          Moderate pending products and maintain catalog quality.
+        </p>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -268,7 +275,9 @@ function AdminProductsPage() {
           </button>
         </div>
 
-        <p className="mt-3 text-sm text-muted">{totalCount} product{totalCount === 1 ? "" : "s"} found.</p>
+        <p className="mt-3 text-sm text-muted">
+          {totalCount} product{totalCount === 1 ? "" : "s"} found.
+        </p>
       </div>
 
       {productsQuery.isLoading ? (
@@ -284,9 +293,14 @@ function AdminProductsPage() {
         </div>
       ) : productsQuery.isError ? (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-          <h2 className="text-xl font-semibold text-primary">Could not load products</h2>
+          <h2 className="text-xl font-semibold text-primary">
+            Could not load products
+          </h2>
           <p className="mt-2 text-sm text-muted">
-            {getAdminApiErrorMessage(productsQuery.error, "Please try again in a moment.")}
+            {getAdminApiErrorMessage(
+              productsQuery.error,
+              "Please try again in a moment.",
+            )}
           </p>
           <button
             type="button"
@@ -298,8 +312,12 @@ function AdminProductsPage() {
         </div>
       ) : products.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <h2 className="text-lg font-semibold text-primary">No products in this view</h2>
-          <p className="mt-2 text-sm text-muted">Adjust filters or search to find products.</p>
+          <h2 className="text-lg font-semibold text-primary">
+            No products in this view
+          </h2>
+          <p className="mt-2 text-sm text-muted">
+            Adjust filters or search to find products.
+          </p>
         </div>
       ) : (
         <div className="rounded-xl border border-slate-200 bg-white">
@@ -345,12 +363,18 @@ function AdminProductsPage() {
                         <span className="font-medium">{product.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{product.vendor_name || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{product.category_name || "-"}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {product.vendor_name || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {product.category_name || "-"}
+                    </td>
                     <td className="px-4 py-3 text-sm text-slate-700">
                       {formatPrice(product.discount_price || product.price)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{formatDate(product.created_at)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {formatDate(product.created_at)}
+                    </td>
                     <td className="px-4 py-3 text-sm">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusChipClass(product.status)}`}
@@ -380,8 +404,12 @@ function AdminProductsPage() {
                       loading="lazy"
                     />
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{product.name}</p>
-                      <p className="text-xs text-muted">{product.vendor_name || "-"}</p>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {product.name}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {product.vendor_name || "-"}
+                      </p>
                     </div>
                   </div>
                   <span
@@ -390,8 +418,12 @@ function AdminProductsPage() {
                     {product.status}
                   </span>
                 </div>
-                <p className="text-xs text-muted">Category: {product.category_name || "-"}</p>
-                <p className="text-xs text-muted">Submitted: {formatDate(product.created_at)}</p>
+                <p className="text-xs text-muted">
+                  Category: {product.category_name || "-"}
+                </p>
+                <p className="text-xs text-muted">
+                  Submitted: {formatDate(product.created_at)}
+                </p>
               </article>
             ))}
           </div>
@@ -420,7 +452,9 @@ function AdminProductsPage() {
             aria-label="Product moderation details"
           >
             <div className="flex items-start justify-between gap-3">
-              <h2 className="text-xl font-semibold text-primary">{selectedProduct.name}</h2>
+              <h2 className="text-xl font-semibold text-primary">
+                {selectedProduct.name}
+              </h2>
               <button
                 type="button"
                 onClick={closeModal}
@@ -439,26 +473,37 @@ function AdminProductsPage() {
 
               <div className="space-y-2 text-sm text-slate-700">
                 <p>
-                  <span className="font-semibold text-slate-800">Vendor:</span> {selectedProduct.vendor_name || "-"}
+                  <span className="font-semibold text-slate-800">Vendor:</span>{" "}
+                  {selectedProduct.vendor_name || "-"}
                 </p>
                 <p>
-                  <span className="font-semibold text-slate-800">Category:</span> {selectedProduct.category_name || "-"}
+                  <span className="font-semibold text-slate-800">
+                    Category:
+                  </span>{" "}
+                  {selectedProduct.category_name || "-"}
                 </p>
                 <p>
                   <span className="font-semibold text-slate-800">Price:</span>{" "}
-                  {formatPrice(selectedProduct.discount_price || selectedProduct.price)}
+                  {formatPrice(
+                    selectedProduct.discount_price || selectedProduct.price,
+                  )}
                 </p>
                 <p>
-                  <span className="font-semibold text-slate-800">Status:</span> {selectedProduct.status}
+                  <span className="font-semibold text-slate-800">Status:</span>{" "}
+                  {selectedProduct.status}
                 </p>
               </div>
             </div>
 
             <p className="mt-4 text-sm text-slate-700">
-              {selectedProduct.description || "No product description provided."}
+              {selectedProduct.description ||
+                "No product description provided."}
             </p>
 
-            <label className="mt-4 block text-sm font-semibold text-slate-800" htmlFor="product-reject-reason">
+            <label
+              className="mt-4 block text-sm font-semibold text-slate-800"
+              htmlFor="product-reject-reason"
+            >
               Rejection Reason
             </label>
             <textarea

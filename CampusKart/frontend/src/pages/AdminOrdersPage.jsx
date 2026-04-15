@@ -101,21 +101,28 @@ function AdminOrdersPage() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ orderId, nextStatus }) => updateOrderStatus(orderId, nextStatus),
+    mutationFn: ({ orderId, nextStatus }) =>
+      updateOrderStatus(orderId, nextStatus),
     onMutate: ({ orderId }) => {
       setUpdatingOrderId(String(orderId));
     },
     onSuccess: (_data, variables) => {
-      showSuccess(`Order status updated to ${formatStatusLabel(variables.nextStatus)}.`);
+      showSuccess(
+        `Order status updated to ${formatStatusLabel(variables.nextStatus)}.`,
+      );
     },
     onError: (error) => {
-      showError(getOrderApiErrorMessage(error, "Could not update order status."));
+      showError(
+        getOrderApiErrorMessage(error, "Could not update order status."),
+      );
     },
     onSettled: () => {
       setUpdatingOrderId(null);
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
       queryClient.invalidateQueries({ queryKey: ["admin-dashboard", "stats"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard", "recent-orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["admin-dashboard", "recent-orders"],
+      });
     },
   });
 
@@ -127,7 +134,8 @@ function AdminOrdersPage() {
 
     return allOrders.filter((order) => {
       const matchesStatus =
-        status === "all" || normalizeText(order.status) === normalizeText(status);
+        status === "all" ||
+        normalizeText(order.status) === normalizeText(status);
 
       if (!matchesStatus) {
         return false;
@@ -205,9 +213,14 @@ function AdminOrdersPage() {
   if (ordersQuery.isError) {
     return (
       <section className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-        <h1 className="text-xl font-semibold text-primary">Could not load orders</h1>
+        <h1 className="text-xl font-semibold text-primary">
+          Could not load orders
+        </h1>
         <p className="mt-2 text-sm text-muted">
-          {getOrderApiErrorMessage(ordersQuery.error, "Please try again in a moment.")}
+          {getOrderApiErrorMessage(
+            ordersQuery.error,
+            "Please try again in a moment.",
+          )}
         </p>
         <button
           type="button"
@@ -224,7 +237,9 @@ function AdminOrdersPage() {
     <section className="space-y-5">
       <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
         <h1 className="text-2xl font-bold text-primary">Admin Orders</h1>
-        <p className="mt-1 text-sm text-muted">Monitor and progress orders across all buyers and vendors.</p>
+        <p className="mt-1 text-sm text-muted">
+          Monitor and progress orders across all buyers and vendors.
+        </p>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -249,14 +264,19 @@ function AdminOrdersPage() {
           </select>
         </div>
         <p className="mt-3 text-sm text-muted">
-          Showing {filteredOrders.length} order{filteredOrders.length === 1 ? "" : "s"} on this page.
+          Showing {filteredOrders.length} order
+          {filteredOrders.length === 1 ? "" : "s"} on this page.
         </p>
       </div>
 
       {filteredOrders.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <h2 className="text-lg font-semibold text-primary">No orders found</h2>
-          <p className="mt-2 text-sm text-muted">Try a different filter or search query.</p>
+          <h2 className="text-lg font-semibold text-primary">
+            No orders found
+          </h2>
+          <p className="mt-2 text-sm text-muted">
+            Try a different filter or search query.
+          </p>
         </div>
       ) : (
         <div className="rounded-xl border border-slate-200 bg-white">
@@ -264,33 +284,61 @@ function AdminOrdersPage() {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Order</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Customer</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Items</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Total</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Next Step</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    Order
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    Customer
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    Date
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    Items
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    Total
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    Next Step
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {filteredOrders.map((order) => {
                   const targetOrderId = order.statusUpdateId || order.id;
                   const transitions = getAllowedTransitions(order.status);
-                  const currentStatus = normalizeText(order.status || "pending");
-                  const isUpdating = String(updatingOrderId) === String(targetOrderId);
-                  const canChange = transitions.length > 1 && Boolean(targetOrderId);
+                  const currentStatus = normalizeText(
+                    order.status || "pending",
+                  );
+                  const isUpdating =
+                    String(updatingOrderId) === String(targetOrderId);
+                  const canChange =
+                    transitions.length > 1 && Boolean(targetOrderId);
 
                   return (
                     <tr key={order.id || order.orderNumber}>
-                      <td className="px-4 py-3 text-sm font-medium text-slate-800">#{order.orderNumber || order.id}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-slate-800">
+                        #{order.orderNumber || order.id}
+                      </td>
                       <td className="px-4 py-3 text-sm text-slate-700">
                         <p>{order.customerName || "Customer"}</p>
-                        <p className="text-xs text-muted">{order.customerEmail || "-"}</p>
+                        <p className="text-xs text-muted">
+                          {order.customerEmail || "-"}
+                        </p>
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{formatDate(order.placedAt)}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{order.itemCount || 0}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{formatPrice(order.total)}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">
+                        {formatDate(order.placedAt)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-700">
+                        {order.itemCount || 0}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-700">
+                        {formatPrice(order.total)}
+                      </td>
                       <td className="px-4 py-3 text-sm">
                         <OrderStatusBadge status={order.status} />
                       </td>
@@ -312,7 +360,10 @@ function AdminOrdersPage() {
                           className="w-full max-w-[180px] rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
                         >
                           {transitions.map((option) => (
-                            <option key={`${targetOrderId}-${option}`} value={option}>
+                            <option
+                              key={`${targetOrderId}-${option}`}
+                              value={option}
+                            >
                               {formatStatusLabel(option)}
                             </option>
                           ))}
@@ -330,16 +381,27 @@ function AdminOrdersPage() {
               const targetOrderId = order.statusUpdateId || order.id;
               const transitions = getAllowedTransitions(order.status);
               const currentStatus = normalizeText(order.status || "pending");
-              const isUpdating = String(updatingOrderId) === String(targetOrderId);
-              const canChange = transitions.length > 1 && Boolean(targetOrderId);
+              const isUpdating =
+                String(updatingOrderId) === String(targetOrderId);
+              const canChange =
+                transitions.length > 1 && Boolean(targetOrderId);
 
               return (
-                <article key={order.id || order.orderNumber} className="space-y-3 p-4">
+                <article
+                  key={order.id || order.orderNumber}
+                  className="space-y-3 p-4"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">Order #{order.orderNumber || order.id}</p>
-                      <p className="text-xs text-muted">{order.customerName || "Customer"}</p>
-                      <p className="text-xs text-muted">{order.customerEmail || "-"}</p>
+                      <p className="text-sm font-semibold text-slate-800">
+                        Order #{order.orderNumber || order.id}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {order.customerName || "Customer"}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {order.customerEmail || "-"}
+                      </p>
                     </div>
                     <OrderStatusBadge status={order.status} />
                   </div>
@@ -347,7 +409,9 @@ function AdminOrdersPage() {
                   <div className="grid grid-cols-2 gap-2 text-xs text-muted">
                     <p>Date: {formatDate(order.placedAt)}</p>
                     <p>Items: {order.itemCount || 0}</p>
-                    <p className="col-span-2">Total: {formatPrice(order.total)}</p>
+                    <p className="col-span-2">
+                      Total: {formatPrice(order.total)}
+                    </p>
                   </div>
 
                   <select
@@ -367,7 +431,10 @@ function AdminOrdersPage() {
                     className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
                   >
                     {transitions.map((option) => (
-                      <option key={`${targetOrderId}-mobile-${option}`} value={option}>
+                      <option
+                        key={`${targetOrderId}-mobile-${option}`}
+                        value={option}
+                      >
                         {formatStatusLabel(option)}
                       </option>
                     ))}
@@ -378,7 +445,11 @@ function AdminOrdersPage() {
           </div>
 
           <div className="p-4">
-            <Pagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
           </div>
         </div>
       )}

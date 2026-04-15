@@ -65,8 +65,12 @@ function AdminSettingsPage() {
       return createAdminCategory(payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-settings", "categories"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-settings", "audit-logs"] });
+      queryClient.invalidateQueries({
+        queryKey: ["admin-settings", "categories"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["admin-settings", "audit-logs"],
+      });
       resetCategoryForm();
     },
   });
@@ -74,8 +78,12 @@ function AdminSettingsPage() {
   const deleteCategoryMutation = useMutation({
     mutationFn: (categoryId) => deleteAdminCategory(categoryId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-settings", "categories"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-settings", "audit-logs"] });
+      queryClient.invalidateQueries({
+        queryKey: ["admin-settings", "categories"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["admin-settings", "audit-logs"],
+      });
       if (editingCategory) {
         resetCategoryForm();
       }
@@ -137,31 +145,42 @@ function AdminSettingsPage() {
     });
   };
 
-  const isCategoryBusy = saveCategoryMutation.isPending || deleteCategoryMutation.isPending;
+  const isCategoryBusy =
+    saveCategoryMutation.isPending || deleteCategoryMutation.isPending;
 
   return (
     <section className="space-y-5">
       <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
         <h1 className="text-2xl font-bold text-primary">Admin Settings</h1>
-        <p className="mt-1 text-sm text-muted">Manage catalog taxonomy and audit operations from one place.</p>
+        <p className="mt-1 text-sm text-muted">
+          Manage catalog taxonomy and audit operations from one place.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_1fr]">
         <article className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-primary">Categories</h2>
-            <span className="text-xs text-muted">{categories.length} total</span>
+            <span className="text-xs text-muted">
+              {categories.length} total
+            </span>
           </div>
 
           {categoriesQuery.isLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 4 }).map((_, index) => (
-                <div key={`category-skeleton-${index}`} className="h-12 animate-pulse rounded bg-slate-100" />
+                <div
+                  key={`category-skeleton-${index}`}
+                  className="h-12 animate-pulse rounded bg-slate-100"
+                />
               ))}
             </div>
           ) : categoriesQuery.isError ? (
             <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
-              {getAdminApiErrorMessage(categoriesQuery.error, "Could not load categories.")}
+              {getAdminApiErrorMessage(
+                categoriesQuery.error,
+                "Could not load categories.",
+              )}
             </p>
           ) : categories.length === 0 ? (
             <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-muted">
@@ -175,7 +194,9 @@ function AdminSettingsPage() {
                   className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">{category.name}</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {category.name}
+                    </p>
                     <p className="text-xs text-muted">/{category.slug}</p>
                   </div>
 
@@ -220,32 +241,53 @@ function AdminSettingsPage() {
 
           <form className="mt-4 space-y-3" onSubmit={handleCategorySubmit}>
             <label className="block text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Name</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Name
+              </span>
               <input
                 type="text"
                 required
                 value={categoryForm.name}
-                onChange={(event) => setCategoryForm((current) => ({ ...current, name: event.target.value }))}
+                onChange={(event) =>
+                  setCategoryForm((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
               />
             </label>
 
             <label className="block text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Slug (optional)</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Slug (optional)
+              </span>
               <input
                 type="text"
                 value={categoryForm.slug}
-                onChange={(event) => setCategoryForm((current) => ({ ...current, slug: event.target.value }))}
+                onChange={(event) =>
+                  setCategoryForm((current) => ({
+                    ...current,
+                    slug: event.target.value,
+                  }))
+                }
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
               />
             </label>
 
             <label className="block text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Icon URL (optional)</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Icon URL (optional)
+              </span>
               <input
                 type="url"
                 value={categoryForm.icon_url}
-                onChange={(event) => setCategoryForm((current) => ({ ...current, icon_url: event.target.value }))}
+                onChange={(event) =>
+                  setCategoryForm((current) => ({
+                    ...current,
+                    icon_url: event.target.value,
+                  }))
+                }
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
               />
             </label>
@@ -254,12 +296,17 @@ function AdminSettingsPage() {
               <input
                 type="checkbox"
                 checked={categoryForm.is_active}
-                onChange={(event) => setCategoryForm((current) => ({ ...current, is_active: event.target.checked }))}
+                onChange={(event) =>
+                  setCategoryForm((current) => ({
+                    ...current,
+                    is_active: event.target.checked,
+                  }))
+                }
               />
               Active category
             </label>
 
-            {(saveCategoryMutation.isError || deleteCategoryMutation.isError) ? (
+            {saveCategoryMutation.isError || deleteCategoryMutation.isError ? (
               <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
                 {getAdminApiErrorMessage(
                   saveCategoryMutation.error || deleteCategoryMutation.error,
@@ -298,7 +345,9 @@ function AdminSettingsPage() {
 
       <article className="rounded-xl border border-slate-200 bg-white p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-primary">Recent Admin Audit Logs</h2>
+          <h2 className="text-lg font-semibold text-primary">
+            Recent Admin Audit Logs
+          </h2>
 
           <select
             value={auditResourceFilter}
@@ -316,12 +365,18 @@ function AdminSettingsPage() {
         {auditLogsQuery.isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={`audit-skeleton-${index}`} className="h-11 animate-pulse rounded bg-slate-100" />
+              <div
+                key={`audit-skeleton-${index}`}
+                className="h-11 animate-pulse rounded bg-slate-100"
+              />
             ))}
           </div>
         ) : auditLogsQuery.isError ? (
           <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
-            {getAdminApiErrorMessage(auditLogsQuery.error, "Could not load audit logs.")}
+            {getAdminApiErrorMessage(
+              auditLogsQuery.error,
+              "Could not load audit logs.",
+            )}
           </p>
         ) : auditLogs.length === 0 ? (
           <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-muted">
@@ -332,22 +387,36 @@ function AdminSettingsPage() {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">Action</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">Resource</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">Actor</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">When</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    Action
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    Resource
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    Actor
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    When
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {auditLogs.slice(0, 10).map((log) => (
                   <tr key={log.id}>
-                    <td className="px-3 py-2 text-sm text-slate-800">{log.action}</td>
+                    <td className="px-3 py-2 text-sm text-slate-800">
+                      {log.action}
+                    </td>
                     <td className="px-3 py-2 text-sm text-slate-700">
                       {log.resource_type}
                       {log.resource_id ? ` #${log.resource_id}` : ""}
                     </td>
-                    <td className="px-3 py-2 text-sm text-slate-700">{log.actor_email || "System"}</td>
-                    <td className="px-3 py-2 text-sm text-muted">{formatDate(log.created_at)}</td>
+                    <td className="px-3 py-2 text-sm text-slate-700">
+                      {log.actor_email || "System"}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-muted">
+                      {formatDate(log.created_at)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

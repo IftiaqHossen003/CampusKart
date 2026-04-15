@@ -121,7 +121,8 @@ function AdminDashboardPage() {
 
   const yesterdayStatsQuery = useQuery({
     queryKey: ["admin-dashboard", "stats", "yesterday", yesterday],
-    queryFn: () => fetchAdminStats({ from_date: yesterday, to_date: yesterday }),
+    queryFn: () =>
+      fetchAdminStats({ from_date: yesterday, to_date: yesterday }),
     staleTime: 60 * 1000,
   });
 
@@ -144,7 +145,10 @@ function AdminDashboardPage() {
   });
 
   const summaryStats = useMemo(() => statsQuery.data || {}, [statsQuery.data]);
-  const todayStats = useMemo(() => todayStatsQuery.data || {}, [todayStatsQuery.data]);
+  const todayStats = useMemo(
+    () => todayStatsQuery.data || {},
+    [todayStatsQuery.data],
+  );
   const yesterdayStats = useMemo(
     () => yesterdayStatsQuery.data || {},
     [yesterdayStatsQuery.data],
@@ -156,37 +160,54 @@ function AdminDashboardPage() {
         id: "total-users",
         title: "Total Users",
         value:
-          summaryStats.total_users === undefined || summaryStats.total_users === null
+          summaryStats.total_users === undefined ||
+          summaryStats.total_users === null
             ? "N/A"
             : formatCount(summaryStats.total_users),
         delta:
-          summaryStats.total_users === undefined || summaryStats.total_users === null
+          summaryStats.total_users === undefined ||
+          summaryStats.total_users === null
             ? null
-            : calculateDelta(summaryStats.total_users, yesterdayStats.total_users),
+            : calculateDelta(
+                summaryStats.total_users,
+                yesterdayStats.total_users,
+              ),
       },
       {
         id: "active-vendors",
         title: "Active Vendors",
         value: formatCount(summaryStats.approved_vendors),
-        delta: calculateDelta(summaryStats.approved_vendors, yesterdayStats.approved_vendors),
+        delta: calculateDelta(
+          summaryStats.approved_vendors,
+          yesterdayStats.approved_vendors,
+        ),
       },
       {
         id: "total-products",
         title: "Total Products",
         value: formatCount(summaryStats.total_products),
-        delta: calculateDelta(summaryStats.total_products, yesterdayStats.total_products),
+        delta: calculateDelta(
+          summaryStats.total_products,
+          yesterdayStats.total_products,
+        ),
       },
       {
         id: "orders-today",
         title: "Orders Today",
         value: formatCount(todayStats.total_orders),
-        delta: calculateDelta(todayStats.total_orders, yesterdayStats.total_orders),
+        delta: calculateDelta(
+          todayStats.total_orders,
+          yesterdayStats.total_orders,
+        ),
       },
       {
         id: "total-revenue",
         title: "Total Revenue",
         value: formatMoney(summaryStats.collected_revenue),
-        delta: calculateDelta(summaryStats.collected_revenue, yesterdayStats.collected_revenue),
+        delta: calculateDelta(
+          summaryStats.collected_revenue,
+          yesterdayStats.collected_revenue,
+        ),
       },
     ],
     [summaryStats, todayStats, yesterdayStats],
@@ -207,7 +228,9 @@ function AdminDashboardPage() {
       <section className="space-y-5">
         <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
           <h1 className="text-2xl font-bold text-primary">Admin Dashboard</h1>
-          <p className="mt-1 text-sm text-muted">Loading dashboard metrics...</p>
+          <p className="mt-1 text-sm text-muted">
+            Loading dashboard metrics...
+          </p>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {Array.from({ length: 5 }).map((_, index) => (
@@ -224,9 +247,14 @@ function AdminDashboardPage() {
   if (statsQuery.isError) {
     return (
       <section className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-        <h1 className="text-xl font-semibold text-primary">Could not load dashboard</h1>
+        <h1 className="text-xl font-semibold text-primary">
+          Could not load dashboard
+        </h1>
         <p className="mt-2 text-sm text-muted">
-          {getAdminApiErrorMessage(statsQuery.error, "Please try again shortly.")}
+          {getAdminApiErrorMessage(
+            statsQuery.error,
+            "Please try again shortly.",
+          )}
         </p>
         <button
           type="button"
@@ -244,7 +272,8 @@ function AdminDashboardPage() {
       <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
         <h1 className="text-2xl font-bold text-primary">Admin Dashboard</h1>
         <p className="mt-1 text-sm text-muted">
-          Live overview of platform health, moderation queue, and recent activity.
+          Live overview of platform health, moderation queue, and recent
+          activity.
         </p>
       </div>
 
@@ -254,9 +283,13 @@ function AdminDashboardPage() {
             key={card.id}
             className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm"
           >
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted">{card.title}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+              {card.title}
+            </p>
             <p className="mt-2 text-2xl font-bold text-primary">{card.value}</p>
-            <p className={`mt-2 text-xs font-semibold ${deltaTone(card.delta)}`}>
+            <p
+              className={`mt-2 text-xs font-semibold ${deltaTone(card.delta)}`}
+            >
               {formatDelta(card.delta)} vs yesterday
             </p>
           </article>
@@ -266,7 +299,9 @@ function AdminDashboardPage() {
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <article className="rounded-xl border border-slate-200 bg-white p-5 xl:col-span-2">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-primary">Revenue (Last 30 Days)</h2>
+            <h2 className="text-lg font-semibold text-primary">
+              Revenue (Last 30 Days)
+            </h2>
             <p className="text-xs text-muted">Successful payments only</p>
           </div>
 
@@ -274,7 +309,10 @@ function AdminDashboardPage() {
             <div className="h-72 animate-pulse rounded-lg bg-slate-100" />
           ) : chartQuery.isError ? (
             <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
-              {getAdminApiErrorMessage(chartQuery.error, "Could not load chart data.")}
+              {getAdminApiErrorMessage(
+                chartQuery.error,
+                "Could not load chart data.",
+              )}
             </p>
           ) : chartData.length === 0 ? (
             <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-muted">
@@ -306,16 +344,22 @@ function AdminDashboardPage() {
         </article>
 
         <article className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-primary">Pending Approvals</h2>
+          <h2 className="text-lg font-semibold text-primary">
+            Pending Approvals
+          </h2>
           <div className="mt-4 space-y-3">
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs uppercase tracking-wider text-muted">Vendors</p>
+              <p className="text-xs uppercase tracking-wider text-muted">
+                Vendors
+              </p>
               <p className="mt-1 text-2xl font-bold text-primary">
                 {formatCount(summaryStats.pending_vendors)}
               </p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs uppercase tracking-wider text-muted">Products</p>
+              <p className="text-xs uppercase tracking-wider text-muted">
+                Products
+              </p>
               <p className="mt-1 text-2xl font-bold text-primary">
                 {formatCount(summaryStats.pending_products)}
               </p>

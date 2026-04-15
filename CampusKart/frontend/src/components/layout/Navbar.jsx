@@ -1,49 +1,52 @@
-import { useMemo, useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
-import { useCartStore } from '../../store/cartStore'
+import { useMemo, useState } from "react";
+import { Link, NavLink } from "react-router-dom";
+import { useCartStore } from "../../store/cartStore";
 
 function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const totalItems = useCartStore((state) => state.totalItems)
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const totalItems = useCartStore((state) => state.totalItems);
+  const showCart = !user || user.role === "student";
 
   const links = useMemo(() => {
     if (!user) {
       return [
-        { label: 'Shop', to: '/shop' },
-        { label: 'Login', to: '/login' },
-        { label: 'Register', to: '/register' },
-      ]
+        { label: "Shop", to: "/shop" },
+        { label: "Login", to: "/login" },
+        { label: "Register", to: "/register" },
+      ];
     }
 
-    if (user.role === 'student') {
+    if (user.role === "student") {
       return [
-        { label: 'Shop', to: '/shop' },
-        { label: 'Orders', to: '/orders' },
-        { label: 'Wishlist', to: '/wishlist' },
-      ]
+        { label: "Shop", to: "/shop" },
+        { label: "Orders", to: "/orders" },
+        { label: "Wishlist", to: "/wishlist" },
+      ];
     }
 
-    if (user.role === 'vendor') {
+    if (user.role === "vendor") {
       return [
-        { label: 'Dashboard', to: '/vendor/dashboard' },
-        { label: 'Products', to: '/vendor/products' },
-        { label: 'Orders', to: '/vendor/orders' },
-      ]
+        { label: "Dashboard", to: "/vendor/dashboard" },
+        { label: "Products", to: "/vendor/products" },
+        { label: "Orders", to: "/vendor/orders" },
+      ];
     }
 
     return [
-      { label: 'Dashboard', to: '/admin/dashboard' },
-      { label: 'Vendors', to: '/admin/vendors' },
-      { label: 'Products', to: '/admin/products' },
-    ]
-  }, [user])
+      { label: "Dashboard", to: "/admin/dashboard" },
+      { label: "Vendors", to: "/admin/vendors" },
+      { label: "Products", to: "/admin/products" },
+    ];
+  }, [user]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-primary text-white">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <button
           type="button"
-          onClick={showSidebarToggle ? onToggleSidebar : () => setMobileOpen((v) => !v)}
+          onClick={
+            showSidebarToggle ? onToggleSidebar : () => setMobileOpen((v) => !v)
+          }
           className="rounded-md border border-white/30 px-2 py-1 text-sm md:hidden"
           aria-label="Toggle navigation"
         >
@@ -70,7 +73,7 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `rounded px-2 py-1 ${isActive ? 'bg-white/20' : 'hover:bg-white/10'}`
+                `rounded px-2 py-1 ${isActive ? "bg-white/20" : "hover:bg-white/10"}`
               }
             >
               {item.label}
@@ -79,19 +82,27 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <Link to="/cart" className="relative rounded-md border border-white/30 px-2 py-1 text-xs">
-            Cart
-            {totalItems > 0 ? (
-              <span className="absolute -right-1.5 -top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-semibold">
-                {totalItems > 99 ? '99+' : totalItems}
-              </span>
-            ) : null}
-          </Link>
-          <Link to="/notifications" className="rounded-md border border-white/30 px-2 py-1 text-xs">
+          {showCart ? (
+            <Link
+              to="/cart"
+              className="relative rounded-md border border-white/30 px-2 py-1 text-xs"
+            >
+              Cart
+              {totalItems > 0 ? (
+                <span className="absolute -right-1.5 -top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-semibold">
+                  {totalItems > 99 ? "99+" : totalItems}
+                </span>
+              ) : null}
+            </Link>
+          ) : null}
+          <Link
+            to="/notifications"
+            className="rounded-md border border-white/30 px-2 py-1 text-xs"
+          >
             Alerts
           </Link>
           <div className="rounded-full border border-white/40 bg-white/10 px-2 py-1 text-xs font-semibold">
-            {user?.full_name?.charAt(0)?.toUpperCase() || 'G'}
+            {user?.full_name?.charAt(0)?.toUpperCase() || "G"}
           </div>
           {user ? (
             <button
@@ -121,7 +132,7 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
                 to={item.to}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
-                  `rounded px-2 py-2 ${isActive ? 'bg-white/20' : 'hover:bg-white/10'}`
+                  `rounded px-2 py-2 ${isActive ? "bg-white/20" : "hover:bg-white/10"}`
                 }
               >
                 {item.label}
@@ -131,7 +142,7 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
         </div>
       ) : null}
     </header>
-  )
+  );
 }
 
-export default Navbar
+export default Navbar;

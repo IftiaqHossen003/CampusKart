@@ -240,8 +240,12 @@ function AdminVendorsPage() {
   return (
     <section className="space-y-5">
       <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">Vendor Approval Queue</h1>
-        <p className="mt-1 text-sm text-muted">Review vendor registrations and moderation status.</p>
+        <h1 className="text-2xl font-bold text-primary">
+          Vendor Approval Queue
+        </h1>
+        <p className="mt-1 text-sm text-muted">
+          Review vendor registrations and moderation status.
+        </p>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -285,7 +289,9 @@ function AdminVendorsPage() {
           })}
         </div>
 
-        <p className="mt-3 text-sm text-muted">{totalCount} vendor{totalCount === 1 ? "" : "s"} found.</p>
+        <p className="mt-3 text-sm text-muted">
+          {totalCount} vendor{totalCount === 1 ? "" : "s"} found.
+        </p>
       </div>
 
       {vendorsQuery.isLoading ? (
@@ -301,9 +307,14 @@ function AdminVendorsPage() {
         </div>
       ) : vendorsQuery.isError ? (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-          <h2 className="text-xl font-semibold text-primary">Could not load vendors</h2>
+          <h2 className="text-xl font-semibold text-primary">
+            Could not load vendors
+          </h2>
           <p className="mt-2 text-sm text-muted">
-            {getAdminApiErrorMessage(vendorsQuery.error, "Please try again in a moment.")}
+            {getAdminApiErrorMessage(
+              vendorsQuery.error,
+              "Please try again in a moment.",
+            )}
           </p>
           <button
             type="button"
@@ -315,8 +326,12 @@ function AdminVendorsPage() {
         </div>
       ) : vendors.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <h2 className="text-lg font-semibold text-primary">No vendors in this view</h2>
-          <p className="mt-2 text-sm text-muted">Adjust filters or search to find vendors.</p>
+          <h2 className="text-lg font-semibold text-primary">
+            No vendors in this view
+          </h2>
+          <p className="mt-2 text-sm text-muted">
+            Adjust filters or search to find vendors.
+          </p>
         </div>
       ) : (
         <div className="rounded-xl border border-slate-200 bg-white">
@@ -351,11 +366,15 @@ function AdminVendorsPage() {
                     <td className="px-4 py-3 text-sm font-medium text-slate-800">
                       {vendor.shop_name}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{deriveOwnerName(vendor)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {deriveOwnerName(vendor)}
+                    </td>
                     <td className="px-4 py-3 text-sm text-slate-700">
                       {vendor.user_email || vendor.contact_email || "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{formatDate(vendor.created_at)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {formatDate(vendor.created_at)}
+                    </td>
                     <td className="px-4 py-3 text-sm">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusChipClass(vendor.status)}`}
@@ -377,16 +396,24 @@ function AdminVendorsPage() {
                 onClick={() => setSelectedVendor(vendor)}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-800">{vendor.shop_name}</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {vendor.shop_name}
+                  </p>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusChipClass(vendor.status)}`}
                   >
                     {vendor.status}
                   </span>
                 </div>
-                <p className="text-sm text-slate-700">Owner: {deriveOwnerName(vendor)}</p>
-                <p className="text-xs text-muted">{vendor.user_email || vendor.contact_email || "-"}</p>
-                <p className="text-xs text-muted">Registered: {formatDate(vendor.created_at)}</p>
+                <p className="text-sm text-slate-700">
+                  Owner: {deriveOwnerName(vendor)}
+                </p>
+                <p className="text-xs text-muted">
+                  {vendor.user_email || vendor.contact_email || "-"}
+                </p>
+                <p className="text-xs text-muted">
+                  Registered: {formatDate(vendor.created_at)}
+                </p>
               </article>
             ))}
           </div>
@@ -416,8 +443,12 @@ function AdminVendorsPage() {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold text-primary">{selectedVendor.shop_name}</h2>
-                <p className="mt-1 text-sm text-muted">{selectedVendor.user_email || "No owner email"}</p>
+                <h2 className="text-xl font-semibold text-primary">
+                  {selectedVendor.shop_name}
+                </h2>
+                <p className="mt-1 text-sm text-muted">
+                  {selectedVendor.user_email || "No owner email"}
+                </p>
               </div>
               <button
                 type="button"
@@ -431,7 +462,9 @@ function AdminVendorsPage() {
             <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <p>
                 <span className="font-semibold text-slate-800">Owner:</span>{" "}
-                <span className="text-slate-700">{deriveOwnerName(selectedVendor)}</span>
+                <span className="text-slate-700">
+                  {deriveOwnerName(selectedVendor)}
+                </span>
               </p>
               <p>
                 <span className="font-semibold text-slate-800">Status:</span>{" "}
@@ -439,17 +472,28 @@ function AdminVendorsPage() {
               </p>
               <p>
                 <span className="font-semibold text-slate-800">Phone:</span>{" "}
-                <span className="text-slate-700">{selectedVendor.contact_phone || "-"}</span>
+                <span className="text-slate-700">
+                  {selectedVendor.contact_phone || "-"}
+                </span>
               </p>
               <p>
-                <span className="font-semibold text-slate-800">Registered:</span>{" "}
-                <span className="text-slate-700">{formatDate(selectedVendor.created_at)}</span>
+                <span className="font-semibold text-slate-800">
+                  Registered:
+                </span>{" "}
+                <span className="text-slate-700">
+                  {formatDate(selectedVendor.created_at)}
+                </span>
               </p>
             </div>
 
-            <p className="mt-4 text-sm text-slate-700">{selectedVendor.description || "No description provided."}</p>
+            <p className="mt-4 text-sm text-slate-700">
+              {selectedVendor.description || "No description provided."}
+            </p>
 
-            <label className="mt-4 block text-sm font-semibold text-slate-800" htmlFor="vendor-moderation-reason">
+            <label
+              className="mt-4 block text-sm font-semibold text-slate-800"
+              htmlFor="vendor-moderation-reason"
+            >
               Moderation Note
             </label>
             <textarea
@@ -466,7 +510,9 @@ function AdminVendorsPage() {
               <button
                 type="button"
                 onClick={handleSuspend}
-                disabled={approveMutation.isPending || suspendMutation.isPending}
+                disabled={
+                  approveMutation.isPending || suspendMutation.isPending
+                }
                 className="rounded-md border border-error px-4 py-2 text-sm font-semibold text-error hover:bg-error/10 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Suspend
@@ -474,7 +520,9 @@ function AdminVendorsPage() {
               <button
                 type="button"
                 onClick={handleApprove}
-                disabled={approveMutation.isPending || suspendMutation.isPending}
+                disabled={
+                  approveMutation.isPending || suspendMutation.isPending
+                }
                 className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Approve
