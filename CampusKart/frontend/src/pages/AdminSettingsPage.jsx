@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createAdminCategory,
@@ -39,6 +39,8 @@ function AdminSettingsPage() {
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryForm, setCategoryForm] = useState(defaultCategoryForm);
   const [auditResourceFilter, setAuditResourceFilter] = useState("");
+  const categoryFormCardRef = useRef(null);
+  const categoryNameInputRef = useRef(null);
 
   const categoriesQuery = useQuery({
     queryKey: ["admin-settings", "categories"],
@@ -145,6 +147,27 @@ function AdminSettingsPage() {
     });
   };
 
+  useEffect(() => {
+    if (!editingCategory) {
+      return;
+    }
+
+    const card = categoryFormCardRef.current;
+    if (card) {
+      const top =
+        card.getBoundingClientRect().top + window.scrollY - 96;
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: "smooth",
+      });
+    }
+
+    window.setTimeout(() => {
+      categoryNameInputRef.current?.focus();
+      categoryNameInputRef.current?.select();
+    }, 250);
+  }, [editingCategory]);
+
   const isCategoryBusy =
     saveCategoryMutation.isPending || deleteCategoryMutation.isPending;
 
@@ -234,7 +257,10 @@ function AdminSettingsPage() {
           )}
         </article>
 
-        <article className="rounded-xl border border-slate-200 bg-white p-5">
+        <article
+          ref={categoryFormCardRef}
+          className="rounded-xl border border-slate-200 bg-white p-5"
+        >
           <h2 className="text-lg font-semibold text-primary">
             {editingCategory ? "Edit Category" : "Create Category"}
           </h2>
@@ -245,6 +271,7 @@ function AdminSettingsPage() {
                 Name
               </span>
               <input
+                ref={categoryNameInputRef}
                 type="text"
                 required
                 value={categoryForm.name}
