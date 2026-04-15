@@ -23,8 +23,12 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import ProductListingPage from "./pages/ProductListingPage";
 import RegisterPage from "./pages/RegisterPage";
 import CartPage from "./pages/CartPage";
+import AdminProfilePage from "./pages/AdminProfilePage";
+import ProfileRedirectPage from "./pages/ProfileRedirectPage";
 import RoutePlaceholderPage from "./pages/RoutePlaceholderPage";
+import StudentProfilePage from "./pages/StudentProfilePage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
+import VendorProfilePage from "./pages/VendorProfilePage";
 import VendorOrdersPage from "./pages/VendorOrdersPage";
 import VendorPayoutsPage from "./pages/VendorPayoutsPage";
 import VendorProductsPage from "./pages/VendorProductsPage";
@@ -158,7 +162,34 @@ function App() {
               path="/profile"
               element={
                 <ProtectedRoute>
-                  <RoutePlaceholderPage title="Profile" />
+                  <ProfileRedirectPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/student/profile"
+              element={
+                <ProtectedRoute allowedRoles={["student"]}>
+                  <StudentProfilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/vendor/profile"
+              element={
+                <ProtectedRoute allowedRoles={["vendor"]}>
+                  <VendorProfilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/profile"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminProfilePage />
                 </ProtectedRoute>
               }
             />

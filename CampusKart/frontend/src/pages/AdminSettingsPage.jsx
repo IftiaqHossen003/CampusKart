@@ -154,8 +154,7 @@ function AdminSettingsPage() {
 
     const card = categoryFormCardRef.current;
     if (card) {
-      const top =
-        card.getBoundingClientRect().top + window.scrollY - 96;
+      const top = card.getBoundingClientRect().top + window.scrollY - 96;
       window.scrollTo({
         top: Math.max(0, top),
         behavior: "smooth",
@@ -385,6 +384,7 @@ function AdminSettingsPage() {
             <option value="banner">Banner</option>
             <option value="category">Category</option>
             <option value="vendor_profile">Vendor Profile</option>
+            <option value="user_profile">User Profile</option>
             <option value="product">Product</option>
           </select>
         </div>

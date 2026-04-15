@@ -6,6 +6,7 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const totalItems = useCartStore((state) => state.totalItems);
   const showCart = !user || user.role === "student";
+  const profilePath = user ? "/profile" : "/login";
 
   const links = useMemo(() => {
     if (!user) {
@@ -101,9 +102,13 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
           >
             Alerts
           </Link>
-          <div className="rounded-full border border-white/40 bg-white/10 px-2 py-1 text-xs font-semibold">
+          <Link
+            to={profilePath}
+            aria-label="Open profile"
+            className="rounded-full border border-white/40 bg-white/10 px-2 py-1 text-xs font-semibold transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/70"
+          >
             {user?.full_name?.charAt(0)?.toUpperCase() || "G"}
-          </div>
+          </Link>
           {user ? (
             <button
               type="button"
