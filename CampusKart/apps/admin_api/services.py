@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db.models import Count, DecimalField, IntegerField, Q, Sum, Value
 from django.db.models.functions import Coalesce
@@ -42,8 +43,14 @@ def _apply_date_range(queryset, *, from_date: date | None, to_date: date | None)
 def build_admin_stats(*, from_date: date | None = None, to_date: date | None = None) -> dict:
     decimal_zero = Value(Decimal("0.00"), output_field=DecimalField(max_digits=14, decimal_places=2))
     int_zero = Value(0, output_field=IntegerField())
+    user_model = get_user_model()
 
+    user_qs = _apply_date_range(user_model.objects.all(), from_date=from_date, to_date=to_date)
     order_qs = _apply_date_range(Order.objects.all(), from_date=from_date, to_date=to_date)
+        user_stats = user_qs.aggregate(
+            total_users=Count("id"),
+        )
+
     payment_qs = _apply_date_range(Payment.objects.all(), from_date=from_date, to_date=to_date)
     vendor_qs = _apply_date_range(VendorProfile.objects.all(), from_date=from_date, to_date=to_date)
     product_qs = _apply_date_range(Product.objects.all(), from_date=from_date, to_date=to_date)
@@ -102,6 +109,7 @@ def build_admin_stats(*, from_date: date | None = None, to_date: date | None = N
     )
 
     return {
+        **user_stats,
         **order_stats,
         **payment_stats,
         **vendor_stats,

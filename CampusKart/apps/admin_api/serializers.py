@@ -2,6 +2,7 @@ from django.utils.text import slugify
 from rest_framework import serializers
 
 from apps.products.models import Category, Product
+from apps.vendors.models import VendorProfile
 
 from .models import AdminAuditLog, Banner
 
@@ -21,6 +22,7 @@ class AdminStatsQuerySerializer(serializers.Serializer):
 
 
 class AdminStatsSerializer(serializers.Serializer):
+    total_users = serializers.IntegerField()
     total_orders = serializers.IntegerField()
     pending_orders = serializers.IntegerField()
     confirmed_orders = serializers.IntegerField()
@@ -61,6 +63,46 @@ class AdminStatsSerializer(serializers.Serializer):
     total_paid_out = serializers.DecimalField(max_digits=14, decimal_places=2)
 
     generated_at = serializers.DateTimeField()
+
+
+class AdminRevenueTimeseriesQuerySerializer(serializers.Serializer):
+    days = serializers.IntegerField(required=False, min_value=1, max_value=90, default=30)
+
+
+class AdminRevenuePointSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    collected_revenue = serializers.DecimalField(max_digits=14, decimal_places=2)
+
+
+class AdminVendorQueueSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source="user.email", read_only=True)
+    user_full_name = serializers.CharField(source="user.full_name", read_only=True)
+    approved_by_email = serializers.EmailField(source="approved_by.email", read_only=True)
+
+    class Meta:
+        model = VendorProfile
+        fields = [
+            "id",
+            "shop_name",
+            "shop_slug",
+            "description",
+            "logo_url",
+            "banner_url",
+            "contact_email",
+            "contact_phone",
+            "address",
+            "status",
+            "commission_rate",
+            "total_earnings",
+            "user_email",
+            "user_full_name",
+            "approved_by",
+            "approved_by_email",
+            "approved_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
 
 
 class AdminVendorModerationSerializer(serializers.Serializer):

@@ -8,7 +8,9 @@ from .views import (
     AdminCategoryListCreateView,
     AdminProductApproveView,
     AdminProductRejectView,
+    AdminRevenueTimeseriesView,
     AdminStatsView,
+    AdminVendorQueueListView,
     AdminVendorApproveView,
     AdminVendorSuspendView,
 )
@@ -17,6 +19,8 @@ app_name = "admin_api"
 
 urlpatterns = [
     path("stats/", AdminStatsView.as_view(), name="stats"),
+    path("stats/revenue-timeseries/", AdminRevenueTimeseriesView.as_view(), name="stats-revenue-timeseries"),
+    path("vendors/", AdminVendorQueueListView.as_view(), name="vendor-list"),
     path("vendors/<int:id>/approve/", AdminVendorApproveView.as_view(), name="vendor-approve"),
     path("vendors/<int:id>/suspend/", AdminVendorSuspendView.as_view(), name="vendor-suspend"),
     path("products/<slug:slug>/approve/", AdminProductApproveView.as_view(), name="product-approve"),

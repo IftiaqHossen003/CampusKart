@@ -1,3 +1,8 @@
+from datetime import timedelta
+from decimal import Decimal
+
+from django.db.models import DecimalField, Q, Sum, Value
+from django.db.models.functions import Coalesce, TruncDate
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
@@ -5,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auth_app.permissions import IsAdmin
+from apps.payments.models import Payment
 from apps.products.models import Category, Product
 from apps.vendors.models import VendorProfile
 
@@ -14,8 +20,11 @@ from .serializers import (
     AdminBannerSerializer,
     AdminCategorySerializer,
     AdminProductModerationSerializer,
+    AdminRevenuePointSerializer,
+    AdminRevenueTimeseriesQuerySerializer,
     AdminStatsQuerySerializer,
     AdminStatsSerializer,
+    AdminVendorQueueSerializer,
     AdminVendorModerationSerializer,
 )
 from .services import get_cached_admin_stats, write_admin_audit_log
@@ -33,6 +42,77 @@ class AdminStatsView(APIView):
 
         stats = get_cached_admin_stats(from_date=from_date, to_date=to_date)
         return Response(AdminStatsSerializer(instance=stats).data, status=status.HTTP_200_OK)
+
+
+class AdminRevenueTimeseriesView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        query_serializer = AdminRevenueTimeseriesQuerySerializer(data=request.query_params)
+        query_serializer.is_valid(raise_exception=True)
+
+        days = query_serializer.validated_data.get("days", 30)
+        today = timezone.now().date()
+        start_date = today - timedelta(days=days - 1)
+
+        revenue_by_day = (
+            Payment.objects.filter(
+                status=Payment.Status.SUCCESS,
+                created_at__date__gte=start_date,
+                created_at__date__lte=today,
+            )
+            .annotate(day=TruncDate("created_at"))
+            .values("day")
+            .annotate(
+                collected_revenue=Coalesce(
+                    Sum("amount"),
+                    Value(Decimal("0.00"), output_field=DecimalField(max_digits=14, decimal_places=2)),
+                )
+            )
+            .order_by("day")
+        )
+
+        revenue_map = {row["day"]: row["collected_revenue"] for row in revenue_by_day}
+        points = []
+
+        for offset in range(days):
+            day = start_date + timedelta(days=offset)
+            points.append(
+                {
+                    "date": day,
+                    "collected_revenue": revenue_map.get(day, Decimal("0.00")),
+                }
+            )
+
+        return Response(AdminRevenuePointSerializer(points, many=True).data, status=status.HTTP_200_OK)
+
+
+class AdminVendorQueueListView(generics.ListAPIView):
+    serializer_class = AdminVendorQueueSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        queryset = VendorProfile.objects.select_related("user", "approved_by").all()
+
+        status_param = (self.request.query_params.get("status") or "").strip().lower()
+        valid_statuses = {
+            VendorProfile.Status.PENDING,
+            VendorProfile.Status.APPROVED,
+            VendorProfile.Status.SUSPENDED,
+        }
+        if status_param in valid_statuses:
+            queryset = queryset.filter(status=status_param)
+
+        search = (self.request.query_params.get("search") or "").strip()
+        if search:
+            queryset = queryset.filter(
+                Q(shop_name__icontains=search)
+                | Q(user__full_name__icontains=search)
+                | Q(user__email__icontains=search)
+                | Q(contact_email__icontains=search)
+            )
+
+        return queryset.order_by("-created_at")
 
 
 class AdminVendorApproveView(APIView):
