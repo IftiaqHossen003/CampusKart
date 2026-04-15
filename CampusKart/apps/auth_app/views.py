@@ -35,6 +35,7 @@ from .serializers import (
 )
 from .tasks import send_verification_email, send_password_reset_email
 from .throttles import ForgotPasswordThrottle, ResetPasswordThrottle
+from apps.admin_api.services import write_admin_audit_log
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -444,9 +445,36 @@ class MeView(generics.RetrieveUpdateAPIView):
     PATCH /api/v1/auth/me/  — update full_name, phone, avatar
     """
     serializer_class = CustomUserSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         return self.request.user
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        before_snapshot = CustomUserSerializer(
+            instance=instance,
+            context={"request": self.request},
+        ).data
+        updated_instance = serializer.save()
+        after_snapshot = CustomUserSerializer(
+            instance=updated_instance,
+            context={"request": self.request},
+        ).data
+
+        write_admin_audit_log(
+            actor=self.request.user,
+            action="user_profile_updated",
+            resource_type="user_profile",
+            resource_id=str(updated_instance.pk),
+            request_method=self.request.method or "",
+            request_path=self.request.path,
+            before=dict(before_snapshot),
+            after=dict(after_snapshot),
+            metadata={
+                "updated_fields": sorted(list(serializer.validated_data.keys())),
+            },
+        )
 
 
 # ---------------------------------------------------------------------------
