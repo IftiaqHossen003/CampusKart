@@ -96,7 +96,10 @@ function AdminProfilePage() {
           </div>
         ) : profileQuery.isError ? (
           <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
-            {getApiErrorMessage(profileQuery.error, "Could not load your profile.")}
+            {getApiErrorMessage(
+              profileQuery.error,
+              "Could not load your profile.",
+            )}
           </p>
         ) : (
           <form className="space-y-4" onSubmit={onSubmit}>

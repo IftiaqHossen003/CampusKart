@@ -167,7 +167,9 @@ function VendorProfilePage() {
       ) : (
         <>
           <article className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="text-lg font-semibold text-primary">Account Details</h2>
+            <h2 className="text-lg font-semibold text-primary">
+              Account Details
+            </h2>
             <form className="mt-4 space-y-4" onSubmit={onSubmitUser}>
               <label className="block text-sm">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted">
@@ -229,7 +231,9 @@ function VendorProfilePage() {
           </article>
 
           <article className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="text-lg font-semibold text-primary">Storefront Profile</h2>
+            <h2 className="text-lg font-semibold text-primary">
+              Storefront Profile
+            </h2>
             <form className="mt-4 space-y-4" onSubmit={onSubmitVendor}>
               <label className="block text-sm">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted">
@@ -357,7 +361,9 @@ function VendorProfilePage() {
                   disabled={updateVendorMutation.isPending}
                   className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {updateVendorMutation.isPending ? "Saving..." : "Save Storefront"}
+                  {updateVendorMutation.isPending
+                    ? "Saving..."
+                    : "Save Storefront"}
                 </button>
               </div>
             </form>

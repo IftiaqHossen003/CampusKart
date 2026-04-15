@@ -98,7 +98,10 @@ function StudentProfilePage() {
           </div>
         ) : profileQuery.isError ? (
           <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
-            {getApiErrorMessage(profileQuery.error, "Could not load your profile.")}
+            {getApiErrorMessage(
+              profileQuery.error,
+              "Could not load your profile.",
+            )}
           </p>
         ) : (
           <form className="space-y-4" onSubmit={onSubmit}>
@@ -154,19 +157,25 @@ function StudentProfilePage() {
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Student ID
                 </p>
-                <p className="mt-1 text-slate-700">{studentProfile?.student_id || "-"}</p>
+                <p className="mt-1 text-slate-700">
+                  {studentProfile?.student_id || "-"}
+                </p>
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
                   University
                 </p>
-                <p className="mt-1 text-slate-700">{studentProfile?.university || "-"}</p>
+                <p className="mt-1 text-slate-700">
+                  {studentProfile?.university || "-"}
+                </p>
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Department
                 </p>
-                <p className="mt-1 text-slate-700">{studentProfile?.department || "-"}</p>
+                <p className="mt-1 text-slate-700">
+                  {studentProfile?.department || "-"}
+                </p>
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
