@@ -82,6 +82,7 @@ class AdminStatsApiTests(APITestCase):
         )
 
         self.stats_url = "/api/v1/admin/stats/"
+        self.revenue_timeseries_url = "/api/v1/admin/stats/revenue-timeseries/"
 
     def _auth_admin(self):
         self.client.force_authenticate(user=self.admin_user)
@@ -192,6 +193,7 @@ class AdminStatsApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         data = response.data
+        self.assertEqual(data["total_users"], 3)
         self.assertEqual(data["total_orders"], 2)
         self.assertEqual(data["delivered_orders"], 1)
         self.assertEqual(data["pending_orders"], 1)
@@ -212,6 +214,26 @@ class AdminStatsApiTests(APITestCase):
         self.assertEqual(data["total_payouts"], 1)
         self.assertEqual(data["paid_payouts"], 1)
         self.assertEqual(Decimal(str(data["total_paid_out"])), Decimal("90.00"))
+
+    def test_revenue_timeseries_requires_admin(self):
+        response = self.client.get(self.revenue_timeseries_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        self._auth_vendor()
+        response = self.client.get(self.revenue_timeseries_url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_revenue_timeseries_returns_requested_day_count(self):
+        self._seed_orders_payments()
+        self._auth_admin()
+
+        response = self.client.get(f"{self.revenue_timeseries_url}?days=7")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        points = response.data
+        self.assertEqual(len(points), 7)
+        self.assertTrue(all("date" in point for point in points))
+        self.assertTrue(all("collected_revenue" in point for point in points))
 
     def test_stats_cache_invalidation_on_order_change(self):
         self._auth_admin()
