@@ -13,6 +13,38 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 const SECTION_STALE_TIME = 5 * 60 * 1000;
+const TOP_PRODUCTS_PAGE_SIZE = 10;
+const NEW_ARRIVALS_PAGE_SIZE = 8;
+
+function supportsCloudinaryTransforms(url) {
+  return (
+    typeof url === "string" &&
+    url.includes("res.cloudinary.com") &&
+    url.includes("/upload/")
+  );
+}
+
+function cloudinaryImage(url, width, height) {
+  if (!supportsCloudinaryTransforms(url)) {
+    return url;
+  }
+
+  const [prefix, suffix] = url.split("/upload/");
+  return `${prefix}/upload/f_auto,q_auto,c_fill,w_${width},h_${height}/${suffix}`;
+}
+
+function cloudinarySrcSet(url, widths, aspectRatio) {
+  if (!supportsCloudinaryTransforms(url)) {
+    return undefined;
+  }
+
+  return widths
+    .map((width) => {
+      const height = Math.round(width / aspectRatio);
+      return `${cloudinaryImage(url, width, height)} ${width}w`;
+    })
+    .join(", ");
+}
 
 function HeroSkeleton() {
   return (
@@ -89,13 +121,23 @@ function HomePage() {
 
   const topProductsQuery = useQuery({
     queryKey: ["homepage-top-products"],
-    queryFn: () => fetchProducts({ page: 1, ordering: "-total_sold" }),
+    queryFn: () =>
+      fetchProducts({
+        page: 1,
+        pageSize: TOP_PRODUCTS_PAGE_SIZE,
+        ordering: "-total_sold",
+      }),
     staleTime: SECTION_STALE_TIME,
   });
 
   const newArrivalsQuery = useQuery({
     queryKey: ["homepage-new-arrivals"],
-    queryFn: () => fetchProducts({ page: 1, ordering: "-created_at" }),
+    queryFn: () =>
+      fetchProducts({
+        page: 1,
+        pageSize: NEW_ARRIVALS_PAGE_SIZE,
+        ordering: "-created_at",
+      }),
     staleTime: SECTION_STALE_TIME,
   });
 
@@ -112,8 +154,8 @@ function HomePage() {
     : Array.isArray(categoriesData?.results)
       ? categoriesData.results
       : [];
-  const topProducts = (topProductsQuery.data?.results || []).slice(0, 10);
-  const newArrivals = (newArrivalsQuery.data?.results || []).slice(0, 8);
+  const topProducts = topProductsQuery.data?.results || [];
+  const newArrivals = newArrivalsQuery.data?.results || [];
   const vendorSpotlight = vendorSpotlightQuery.data || [];
 
   const featuredCategories = useMemo(() => {
@@ -151,31 +193,48 @@ function HomePage() {
             loop={banners.length > 1}
             className="rounded-xl"
           >
-            {banners.map((banner) => (
-              <SwiperSlide key={banner.id}>
-                {banner.link ? (
-                  <a
-                    href={banner.link}
-                    className="block"
-                    aria-label={banner.title || "Homepage banner"}
-                  >
+            {banners.map((banner, index) => {
+              const srcSet = cloudinarySrcSet(
+                banner.image_url,
+                [640, 960, 1280, 1600],
+                2.5,
+              );
+              const src = cloudinaryImage(banner.image_url, 1280, 512);
+
+              return (
+                <SwiperSlide key={banner.id}>
+                  {banner.link ? (
+                    <a
+                      href={banner.link}
+                      className="block"
+                      aria-label={banner.title || "Homepage banner"}
+                    >
+                      <img
+                        src={src}
+                        srcSet={srcSet}
+                        sizes="(min-width: 1024px) 1200px, 100vw"
+                        alt={banner.title || "CampusKart banner"}
+                        loading={index === 0 ? "eager" : "lazy"}
+                        fetchPriority={index === 0 ? "high" : "auto"}
+                        decoding="async"
+                        className="h-56 w-full rounded-xl object-cover sm:h-72 lg:h-80"
+                      />
+                    </a>
+                  ) : (
                     <img
-                      src={banner.image_url}
+                      src={src}
+                      srcSet={srcSet}
+                      sizes="(min-width: 1024px) 1200px, 100vw"
                       alt={banner.title || "CampusKart banner"}
-                      loading="lazy"
+                      loading={index === 0 ? "eager" : "lazy"}
+                      fetchPriority={index === 0 ? "high" : "auto"}
+                      decoding="async"
                       className="h-56 w-full rounded-xl object-cover sm:h-72 lg:h-80"
                     />
-                  </a>
-                ) : (
-                  <img
-                    src={banner.image_url}
-                    alt={banner.title || "CampusKart banner"}
-                    loading="lazy"
-                    className="h-56 w-full rounded-xl object-cover sm:h-72 lg:h-80"
-                  />
-                )}
-              </SwiperSlide>
-            ))}
+                  )}
+                </SwiperSlide>
+              );
+            })}
           </Swiper>
         ) : null}
 
@@ -222,9 +281,10 @@ function HomePage() {
               >
                 {category.icon_url ? (
                   <img
-                    src={category.icon_url}
+                    src={cloudinaryImage(category.icon_url, 80, 80)}
                     alt={category.name}
                     loading="lazy"
+                    decoding="async"
                     className="mb-2 h-10 w-10 rounded-md object-cover"
                   />
                 ) : (
@@ -332,12 +392,13 @@ function HomePage() {
               >
                 <img
                   src={
-                    vendor.banner_url ||
-                    vendor.logo_url ||
+                    cloudinaryImage(vendor.banner_url, 800, 320) ||
+                    cloudinaryImage(vendor.logo_url, 800, 320) ||
                     "https://placehold.co/800x320/e2e8f0/334155?text=Campus+Vendor"
                   }
                   alt={vendor.shop_name}
                   loading="lazy"
+                  decoding="async"
                   className="h-32 w-full object-cover"
                 />
                 <div className="space-y-1 p-4">
