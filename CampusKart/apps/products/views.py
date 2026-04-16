@@ -14,6 +14,7 @@ relevant detail key and all list keys via delete_pattern.
 """
 
 import hashlib
+import logging
 import uuid
 from pathlib import Path
 
@@ -52,6 +53,23 @@ _TTL_DETAIL   = 10 * 60      # 10 minutes
 _TTL_CATEGORY = 60 * 60      # 1 hour
 _TTL_TAGS     = 5 * 60       # 5 minutes
 _PREFIX       = "products"
+
+logger = logging.getLogger(__name__)
+
+
+def _cache_get_safe(key: str):
+    try:
+        return cache.get(key)
+    except Exception:
+        logger.warning("Cache get failed for key '%s'; serving uncached response.", key, exc_info=True)
+        return None
+
+
+def _cache_set_safe(key: str, value, timeout: int) -> None:
+    try:
+        cache.set(key, value, timeout)
+    except Exception:
+        logger.warning("Cache set failed for key '%s'; continuing without cache.", key, exc_info=True)
 
 
 def _list_cache_key(request) -> str:
@@ -97,21 +115,21 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
     def list(self, request, *args, **kwargs):
         cache_key = f"{_PREFIX}:categories:v2"
-        cached = cache.get(cache_key)
+        cached = _cache_get_safe(cache_key)
         if cached is not None:
             return Response(cached)
         response = super().list(request, *args, **kwargs)
-        cache.set(cache_key, response.data, _TTL_CATEGORY)
+        _cache_set_safe(cache_key, response.data, _TTL_CATEGORY)
         return response
 
     def retrieve(self, request, *args, **kwargs):
         pk = kwargs.get("pk")
         cache_key = f"{_PREFIX}:category:{pk}"
-        cached = cache.get(cache_key)
+        cached = _cache_get_safe(cache_key)
         if cached is not None:
             return Response(cached)
         response = super().retrieve(request, *args, **kwargs)
-        cache.set(cache_key, response.data, _TTL_CATEGORY)
+        _cache_set_safe(cache_key, response.data, _TTL_CATEGORY)
         return response
 
 
@@ -201,11 +219,11 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         cache_key = _list_cache_key(request)
-        cached = cache.get(cache_key)
+        cached = _cache_get_safe(cache_key)
         if cached is not None:
             return Response(cached)
         response = super().list(request, *args, **kwargs)
-        cache.set(cache_key, response.data, _TTL_LIST)
+        _cache_set_safe(cache_key, response.data, _TTL_LIST)
         return response
 
     # ── retrieve — cached 10 minutes ─────────────────────────────────────────
@@ -213,11 +231,11 @@ class ProductViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         slug = kwargs.get(self.lookup_field)
         cache_key = f"{_PREFIX}:detail:{slug}"
-        cached = cache.get(cache_key)
+        cached = _cache_get_safe(cache_key)
         if cached is not None:
             return Response(cached)
         response = super().retrieve(request, *args, **kwargs)
-        cache.set(cache_key, response.data, _TTL_DETAIL)
+        _cache_set_safe(cache_key, response.data, _TTL_DETAIL)
         return response
 
     # ── create — auto-attach vendor ───────────────────────────────────────────
@@ -264,7 +282,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         Returns globally available approved product tags with usage counts.
         """
         cache_key = f"{_PREFIX}:tags"
-        cached = cache.get(cache_key)
+        cached = _cache_get_safe(cache_key)
         if cached is not None:
             return Response(cached)
 
@@ -276,7 +294,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             .order_by("tag")
         )
 
-        cache.set(cache_key, data, _TTL_TAGS)
+        _cache_set_safe(cache_key, data, _TTL_TAGS)
         return Response(data)
 
 
