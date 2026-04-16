@@ -13,6 +13,7 @@ from rest_framework_simplejwt.serializers import (
 )
 
 from .models import StudentProfile, OTP
+from apps.common.validators import validate_uploaded_image
 
 User = get_user_model()
 
@@ -39,6 +40,17 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "student_profile",
         ]
         read_only_fields = ["id", "email", "is_verified", "is_active", "created_at"]
+
+    def validate_avatar(self, value):
+        if value in (None, ""):
+            return value
+
+        try:
+            validate_uploaded_image(value, field_name="avatar")
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict.get("avatar") or exc.messages)
+
+        return value
 
 
 # ---------------------------------------------------------------------------

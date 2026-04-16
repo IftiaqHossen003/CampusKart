@@ -21,6 +21,7 @@ from rest_framework_simplejwt.views import (
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+from django_ratelimit.core import is_ratelimited
 
 from .models import OTP
 from .cookies import get_refresh_cookie, set_refresh_cookie, clear_refresh_cookie
@@ -65,6 +66,35 @@ def _normalize_token_value(value):
     return None
 
 
+def _auth_rate_limited_response():
+    return Response(
+        {
+            "detail": "Too many requests. Please try again later.",
+            "code": "auth_rate_limited",
+        },
+        status=status.HTTP_429_TOO_MANY_REQUESTS,
+    )
+
+
+def _is_auth_endpoint_rate_limited(request, *, group: str, rate: str, key: str) -> bool:
+    return bool(
+        is_ratelimited(
+            request=request,
+            group=group,
+            fn=None,
+            key=key,
+            rate=rate,
+            method=["POST"],
+            increment=True,
+        )
+    )
+
+
+def _blacklist_user_refresh_tokens(user):
+    for token in OutstandingToken.objects.filter(user=user):
+        BlacklistedToken.objects.get_or_create(token=token)
+
+
 # ---------------------------------------------------------------------------
 # Register
 # ---------------------------------------------------------------------------
@@ -81,6 +111,15 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
     def create(self, request, *args, **kwargs):
+        register_rate = getattr(settings, "AUTH_REGISTER_RATELIMIT", "10/m")
+        if _is_auth_endpoint_rate_limited(
+            request,
+            group="auth.register.ip",
+            rate=register_rate,
+            key="ip",
+        ):
+            return _auth_rate_limited_response()
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -113,6 +152,23 @@ class LoginView(TokenObtainPairView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
+        login_rate = getattr(settings, "AUTH_LOGIN_RATELIMIT", "10/m")
+
+        ip_rate_limited = _is_auth_endpoint_rate_limited(
+            request,
+            group="auth.login.ip",
+            rate=login_rate,
+            key="ip",
+        )
+        email_rate_limited = _is_auth_endpoint_rate_limited(
+            request,
+            group="auth.login.email",
+            rate=login_rate,
+            key="post:email",
+        )
+        if ip_rate_limited or email_rate_limited:
+            return _auth_rate_limited_response()
+
         response = super().post(request, *args, **kwargs)
 
         if response.status_code != status.HTTP_200_OK:
@@ -421,19 +477,13 @@ class ResetPasswordView(APIView):
         user.set_password(serializer.validated_data["new_password"])
         user.save(update_fields=["password"])
 
-        self._blacklist_user_refresh_tokens(user)
+        _blacklist_user_refresh_tokens(user)
         logger.info("Password reset completed user_id=%s email=%s", user.pk, user.email)
 
         return Response(
             {"detail": "Password has been reset successfully."},
             status=status.HTTP_200_OK,
         )
-
-    @staticmethod
-    def _blacklist_user_refresh_tokens(user):
-        for token in OutstandingToken.objects.filter(user=user):
-            BlacklistedToken.objects.get_or_create(token=token)
-
 
 # ---------------------------------------------------------------------------
 # Current user profile
@@ -496,7 +546,8 @@ class ChangePasswordView(generics.UpdateAPIView):
     def update(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        user = serializer.save()
+        _blacklist_user_refresh_tokens(user)
         return Response({"detail": "Password updated successfully."}, status=status.HTTP_200_OK)
 
 

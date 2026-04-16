@@ -28,6 +28,7 @@ urlpatterns = [
     path(API_V1 + "auth/",          include("apps.auth_app.urls",     namespace="auth")),
     path(API_V1 + "vendors/",       include("apps.vendors.urls",      namespace="vendors")),
     path(API_V1 + "products/",      include("apps.products.urls",     namespace="products")),
+    path(API_V1 + "wishlist/",      include("apps.wishlist.urls",     namespace="wishlist")),
     path(API_V1 + "cart/",          include("apps.cart.urls",         namespace="cart")),
     path("api/products/",            include(("apps.products.urls", "products_public"), namespace="products_public")),
     path("api/categories/",          CategoryViewSet.as_view({"get": "list"}), name="categories-public-list"),

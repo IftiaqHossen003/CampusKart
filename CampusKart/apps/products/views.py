@@ -21,7 +21,8 @@ import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
 from django.conf import settings
 from django.core.cache import cache
-from django.db.models import Count
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Count, QuerySet
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -33,6 +34,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auth_app.permissions import IsAdmin, IsVendor
+from apps.common.validators import validate_uploaded_image
 
 from .filters import ProductFilter
 from .models import Category, Product, ProductImage, ProductTag
@@ -50,9 +52,6 @@ _TTL_DETAIL   = 10 * 60      # 10 minutes
 _TTL_CATEGORY = 60 * 60      # 1 hour
 _TTL_TAGS     = 5 * 60       # 5 minutes
 _PREFIX       = "products"
-_MAX_IMAGE_SIZE = 5 * 1024 * 1024
-_ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
-_ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 def _list_cache_key(request) -> str:
@@ -73,19 +72,6 @@ def _ensure_vendor_owns_product(user, product: Product) -> None:
         raise PermissionDenied("You can only manage your own product images.")
 
 
-def _validate_image_file(image_file) -> str:
-    suffix = Path(image_file.name).suffix.lower()
-    content_type = getattr(image_file, "content_type", "")
-
-    if suffix not in _ALLOWED_EXTENSIONS or content_type not in _ALLOWED_MIME_TYPES:
-        raise PermissionDenied("Only jpg, png, and webp images are allowed.")
-
-    if image_file.size > _MAX_IMAGE_SIZE:
-        raise PermissionDenied("Image file must be smaller than 5MB.")
-
-    return suffix
-
-
 # ---------------------------------------------------------------------------
 # CategoryViewSet
 # ---------------------------------------------------------------------------
@@ -99,7 +85,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class   = CategorySerializer
     permission_classes = [permissions.AllowAny]
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Category]:
         if self.action == "list":
             # Prefer root categories with nested children.
             # If no root exists, fall back to all active categories so UI still renders options.
@@ -173,7 +159,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     # ── queryset ──────────────────────────────────────────────────────────────
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Product]:
         qs = (
             Product.objects
             .select_related("vendor", "category", "approved_by")
@@ -314,9 +300,11 @@ class ProductImageUploadView(APIView):
             return Response({"detail": "image file is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            suffix = _validate_image_file(image_file)
-        except PermissionDenied as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            validate_uploaded_image(image_file, field_name="image")
+            suffix = Path(image_file.name).suffix.lower()
+        except DjangoValidationError as exc:
+            message = exc.message_dict.get("image", ["Invalid image upload."])[0]
+            return Response({"detail": message}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create predictable Cloudinary public ID so we can return display URL immediately.
         public_id = f"product-{product.id}-{uuid.uuid4().hex}"

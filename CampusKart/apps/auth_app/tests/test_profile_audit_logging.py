@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -45,3 +46,30 @@ class ProfileAuditLoggingTests(APITestCase):
         self.assertEqual(audit_log.after.get("full_name"), "Student Audit Updated")
         self.assertIn("full_name", audit_log.metadata.get("updated_fields", []))
         self.assertIn("phone", audit_log.metadata.get("updated_fields", []))
+
+    def test_patch_me_rejects_invalid_avatar_upload(self):
+        self.client.force_authenticate(user=self.student_user)
+        invalid_avatar = SimpleUploadedFile(
+            "avatar.txt",
+            b"not-an-image",
+            content_type="text/plain",
+        )
+
+        response = self.client.patch(
+            "/api/v1/auth/me/",
+            {
+                "avatar": invalid_avatar,
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("avatar", response.data)
+        self.assertEqual(
+            AdminAuditLog.objects.filter(
+                action="user_profile_updated",
+                resource_type="user_profile",
+                actor=self.student_user,
+            ).count(),
+            0,
+        )

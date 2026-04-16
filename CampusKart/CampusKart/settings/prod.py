@@ -16,11 +16,22 @@ SECURE_HSTS_SECONDS = 31_536_000          # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_SSL_REDIRECT = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
 AUTH_REFRESH_COOKIE_SECURE = True
 AUTH_REFRESH_COOKIE_SAMESITE = os.environ.get("AUTH_REFRESH_COOKIE_SAMESITE", AUTH_REFRESH_COOKIE_SAMESITE)  # noqa: F405
+
+_secure_proxy_ssl_header = os.environ.get("SECURE_PROXY_SSL_HEADER", "").strip()
+if _secure_proxy_ssl_header:
+    header_name, _, header_value = _secure_proxy_ssl_header.partition(",")
+    if header_name and header_value:
+        SECURE_PROXY_SSL_HEADER = (header_name.strip(), header_value.strip())
 
 # ---------------------------------------------------------------------------
 # Static files — whitenoise for zero-dependency static serving

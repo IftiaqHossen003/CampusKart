@@ -3,11 +3,14 @@ Custom user model for CampusKart.
 Extends AbstractBaseUser for full control over every field.
 """
 
+from __future__ import annotations
+
 import secrets
 from datetime import timedelta
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.db.models import QuerySet
 from django.utils import timezone
 
 
@@ -16,7 +19,7 @@ from django.utils import timezone
 # ---------------------------------------------------------------------------
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email: str, password: str | None = None, **extra_fields):
+    def create_user(self, email: str, password: str | None = None, **extra_fields) -> "CustomUser":
         if not email:
             raise ValueError("An email address is required.")
         email = self.normalize_email(email)
@@ -26,7 +29,7 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email: str, password: str | None = None, **extra_fields):
+    def create_superuser(self, email: str, password: str | None = None, **extra_fields) -> "CustomUser":
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
@@ -41,13 +44,13 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
     # Convenience queryset helpers
-    def active(self):
+    def active(self) -> QuerySet["CustomUser"]:
         return self.filter(is_active=True)
 
-    def students(self):
+    def students(self) -> QuerySet["CustomUser"]:
         return self.filter(role=CustomUser.Role.STUDENT)
 
-    def vendors(self):
+    def vendors(self) -> QuerySet["CustomUser"]:
         return self.filter(role=CustomUser.Role.VENDOR)
 
 

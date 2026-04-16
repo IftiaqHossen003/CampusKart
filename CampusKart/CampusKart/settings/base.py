@@ -89,6 +89,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.auth_app.middleware.ApiRateLimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -134,11 +135,27 @@ DATABASES = {
 # ---------------------------------------------------------------------------
 # Password validation
 # ---------------------------------------------------------------------------
+PASSWORD_MIN_LENGTH = int(os.environ.get("PASSWORD_MIN_LENGTH", "10"))
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": PASSWORD_MIN_LENGTH},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        "NAME": "apps.auth_app.validators.StrongPasswordValidator",
+        "OPTIONS": {"min_length": PASSWORD_MIN_LENGTH},
+    },
+]
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
 ]
 
 # ---------------------------------------------------------------------------
@@ -171,6 +188,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ---------------------------------------------------------------------------
 # Django REST Framework
 # ---------------------------------------------------------------------------
+GLOBAL_API_RATELIMIT_PER_MINUTE = int(os.environ.get("GLOBAL_API_RATELIMIT_PER_MINUTE", "300"))
+GLOBAL_API_RATELIMIT_WINDOW_SECONDS = int(os.environ.get("GLOBAL_API_RATELIMIT_WINDOW_SECONDS", "60"))
+AUTH_LOGIN_RATELIMIT_PER_MINUTE = int(os.environ.get("AUTH_LOGIN_RATELIMIT_PER_MINUTE", "10"))
+AUTH_REGISTER_RATELIMIT_PER_MINUTE = int(os.environ.get("AUTH_REGISTER_RATELIMIT_PER_MINUTE", "10"))
+AUTH_LOGIN_RATELIMIT = f"{AUTH_LOGIN_RATELIMIT_PER_MINUTE}/m"
+AUTH_REGISTER_RATELIMIT = f"{AUTH_REGISTER_RATELIMIT_PER_MINUTE}/m"
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -198,7 +222,7 @@ REST_FRAMEWORK = {
 # Simple JWT
 # ---------------------------------------------------------------------------
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", 60))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", 15))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("JWT_REFRESH_TOKEN_LIFETIME_DAYS", 7))),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -281,6 +305,9 @@ CACHES = {
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
+SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", False)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
 SESSION_COOKIE_AGE = int(
     os.environ.get(
         "SESSION_COOKIE_AGE_SECONDS",
