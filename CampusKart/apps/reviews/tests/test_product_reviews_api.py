@@ -60,6 +60,7 @@ class ProductReviewsApiTests(APITestCase):
             status=Product.Status.APPROVED,
         )
         self.reviews_url = f"/api/v1/products/{self.product.id}/reviews/"
+        self.eligibility_url = f"/api/v1/products/{self.product.id}/review-eligibility/"
 
     def _create_order(self, *, buyer, status_value):
         order = Order.objects.create(
@@ -158,3 +159,60 @@ class ProductReviewsApiTests(APITestCase):
         self.assertEqual(response.data["stats"]["total_reviews"], 2)
         self.assertEqual(response.data["stats"]["rating_counts"]["5"], 1)
         self.assertEqual(response.data["stats"]["rating_counts"]["3"], 1)
+
+    def test_get_reviews_is_paginated_in_batches_of_five(self):
+        for idx in range(6):
+            reviewer = get_user_model().objects.create_user(
+                email=f"reviewer-{idx}@example.com",
+                password="StrongPass123!",
+                full_name=f"Reviewer {idx}",
+                role="student",
+                is_verified=True,
+            )
+            delivered_order = self._create_order(buyer=reviewer, status_value=Order.Status.DELIVERED)
+            Review.objects.create(
+                user=reviewer,
+                product=self.product,
+                order=delivered_order,
+                rating=5,
+                comment=f"Review {idx}",
+            )
+
+        response = self.client.get(self.reviews_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+        self.assertEqual(len(response.data["results"]), 5)
+        self.assertIsNotNone(response.data.get("next"))
+
+    def test_review_eligibility_returns_only_unreviewed_delivered_orders_for_user(self):
+        delivered = self._create_order(buyer=self.buyer, status_value=Order.Status.DELIVERED)
+        pending = self._create_order(buyer=self.buyer, status_value=Order.Status.PENDING)
+        other_users_delivered = self._create_order(buyer=self.other_buyer, status_value=Order.Status.DELIVERED)
+
+        Review.objects.create(
+            user=self.buyer,
+            product=self.product,
+            order=delivered,
+            rating=4,
+            comment="Already reviewed",
+        )
+
+        # Keep variables referenced to make intent explicit for future maintainers.
+        self.assertIsNotNone(pending)
+        self.assertIsNotNone(other_users_delivered)
+
+        self.client.force_authenticate(user=self.buyer)
+        response = self.client.get(self.eligibility_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["can_review"])
+        self.assertEqual(response.data["eligible_orders"], [])
+
+    def test_review_eligibility_includes_delivered_order_when_not_reviewed(self):
+        delivered = self._create_order(buyer=self.buyer, status_value=Order.Status.DELIVERED)
+        self.client.force_authenticate(user=self.buyer)
+
+        response = self.client.get(self.eligibility_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["can_review"])
+        self.assertEqual(len(response.data["eligible_orders"]), 1)
+        self.assertEqual(response.data["eligible_orders"][0]["id"], delivered.id)

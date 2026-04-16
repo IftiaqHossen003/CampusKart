@@ -120,3 +120,68 @@ class NotificationsApiTests(APITestCase):
         self.assertTrue(first.is_read)
         self.assertTrue(second.is_read)
         self.assertFalse(other.is_read)
+
+    def test_list_supports_is_read_filter(self):
+        unread = Notification.objects.create(
+            user=self.user,
+            type=Notification.Type.ORDER,
+            title="Unread",
+            message="Unread",
+            is_read=False,
+        )
+        read = Notification.objects.create(
+            user=self.user,
+            type=Notification.Type.SYSTEM,
+            title="Read",
+            message="Read",
+            is_read=True,
+        )
+
+        self.client.force_authenticate(user=self.user)
+
+        unread_response = self.client.get(f"{self.list_url}?is_read=false")
+        self.assertEqual(unread_response.status_code, status.HTTP_200_OK)
+        unread_results = unread_response.data.get("results", unread_response.data)
+        self.assertEqual(len(unread_results), 1)
+        self.assertEqual(unread_results[0]["id"], unread.id)
+
+        read_response = self.client.get(f"{self.list_url}?is_read=true")
+        self.assertEqual(read_response.status_code, status.HTTP_200_OK)
+        read_results = read_response.data.get("results", read_response.data)
+        self.assertEqual(len(read_results), 1)
+        self.assertEqual(read_results[0]["id"], read.id)
+
+    def test_unread_count_returns_exact_total_for_user(self):
+        Notification.objects.create(
+            user=self.user,
+            type=Notification.Type.ORDER,
+            title="Unread 1",
+            message="Unread 1",
+            is_read=False,
+        )
+        Notification.objects.create(
+            user=self.user,
+            type=Notification.Type.PAYMENT,
+            title="Unread 2",
+            message="Unread 2",
+            is_read=False,
+        )
+        Notification.objects.create(
+            user=self.user,
+            type=Notification.Type.SYSTEM,
+            title="Read",
+            message="Read",
+            is_read=True,
+        )
+        Notification.objects.create(
+            user=self.other_user,
+            type=Notification.Type.SYSTEM,
+            title="Other unread",
+            message="Other unread",
+            is_read=False,
+        )
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get("/api/v1/notifications/unread-count/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["unread_count"], 2)

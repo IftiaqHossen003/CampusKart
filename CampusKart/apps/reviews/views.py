@@ -1,7 +1,10 @@
 from django.db.models import Avg, Count
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from apps.orders.models import Order
 from apps.products.models import Product
 from .models import Review
 from .serializers import ProductReviewSerializer
@@ -31,7 +34,11 @@ def _review_stats_for_product(product_id: int) -> dict:
 
 
 class ProductReviewListCreateView(generics.ListCreateAPIView):
+    class ProductReviewPagination(PageNumberPagination):
+        page_size = 5
+
     serializer_class = ProductReviewSerializer
+    pagination_class = ProductReviewPagination
 
     def get_permissions(self):
         if self.request.method == "GET":
@@ -82,3 +89,37 @@ class LegacyProductReviewListView(generics.ListAPIView):
         if product_id:
             queryset = queryset.filter(product_id=product_id)
         return queryset
+
+
+class ProductReviewEligibilityView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, id: int):
+        product = get_object_or_404(Product, pk=id)
+
+        delivered_orders = (
+            Order.objects.filter(
+                buyer=request.user,
+                status=Order.Status.DELIVERED,
+                items__product=product,
+            )
+            .exclude(reviews__user=request.user, reviews__product=product)
+            .distinct()
+            .order_by("-created_at")
+        )
+
+        eligible_orders = [
+            {
+                "id": order.id,
+                "order_number": str(order.order_number),
+                "created_at": order.created_at,
+            }
+            for order in delivered_orders
+        ]
+
+        return Response(
+            {
+                "can_review": bool(eligible_orders),
+                "eligible_orders": eligible_orders,
+            }
+        )
