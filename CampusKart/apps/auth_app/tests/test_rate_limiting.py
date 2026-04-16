@@ -4,6 +4,7 @@ from django.test import override_settings
 from unittest.mock import patch
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 @override_settings(
@@ -26,6 +27,13 @@ class AuthRateLimitingTests(APITestCase):
             email="rate-limit-user@example.com",
             password="StrongPass123!",
             full_name="Rate Limit User",
+            role="student",
+            is_verified=True,
+        )
+        self.other_user = user_model.objects.create_user(
+            email="rate-limit-other@example.com",
+            password="StrongPass123!",
+            full_name="Rate Limit Other",
             role="student",
             is_verified=True,
         )
@@ -115,3 +123,29 @@ class AuthRateLimitingTests(APITestCase):
         self.assertEqual(third_response.headers.get("X-RateLimit-Limit"), "2")
         self.assertEqual(third_response.headers.get("X-RateLimit-Remaining"), "0")
         self.assertTrue(int(third_response.headers.get("Retry-After", "0")) >= 1)
+
+    @override_settings(
+        GLOBAL_API_RATELIMIT_PER_MINUTE=1,
+        AUTH_LOGIN_RATELIMIT="100/m",
+    )
+    def test_global_rate_limit_uses_per_user_bucket_for_bearer_tokens(self):
+        access_one = str(RefreshToken.for_user(self.user).access_token)
+        access_two = str(RefreshToken.for_user(self.other_user).access_token)
+
+        first_user_response = self.client.get(
+            "/api/v1/auth/me/",
+            HTTP_AUTHORIZATION=f"Bearer {access_one}",
+        )
+        second_user_response = self.client.get(
+            "/api/v1/auth/me/",
+            HTTP_AUTHORIZATION=f"Bearer {access_two}",
+        )
+
+        self.assertEqual(first_user_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_user_response.status_code, status.HTTP_200_OK)
+
+        repeat_first_user_response = self.client.get(
+            "/api/v1/auth/me/",
+            HTTP_AUTHORIZATION=f"Bearer {access_one}",
+        )
+        self.assertEqual(repeat_first_user_response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)

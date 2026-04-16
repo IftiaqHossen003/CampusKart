@@ -5,6 +5,8 @@ import time
 from django.conf import settings
 from django.core.cache import cache
 from django.http import JsonResponse
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import AccessToken
 
 
 class ApiRateLimitMiddleware:
@@ -29,18 +31,51 @@ class ApiRateLimitMiddleware:
             cache.set(bucket_key, 1, timeout=timeout)
             return 1
 
+    @staticmethod
+    def _extract_user_id_from_bearer_token(request):
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+        if not auth_header:
+            return None
+
+        parts = auth_header.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            return None
+
+        token = parts[1].strip()
+        if not token:
+            return None
+
+        try:
+            access_token = AccessToken(token)
+        except TokenError:
+            return None
+        except Exception:
+            return None
+
+        user_id = access_token.get("user_id")
+        if user_id is None:
+            return None
+
+        return str(user_id)
+
+    def _resolve_principal(self, request) -> str:
+        user = getattr(request, "user", None)
+        if user is not None and getattr(user, "is_authenticated", False):
+            return f"user:{user.pk}"
+
+        token_user_id = self._extract_user_id_from_bearer_token(request)
+        if token_user_id is not None:
+            return f"user:{token_user_id}"
+
+        return f"ip:{self._get_client_ip(request)}"
+
     def __call__(self, request):
         limit = int(getattr(settings, "GLOBAL_API_RATELIMIT_PER_MINUTE", 300) or 300)
         window_seconds = int(getattr(settings, "GLOBAL_API_RATELIMIT_WINDOW_SECONDS", 60) or 60)
 
         path = request.path or ""
         if limit > 0 and path.startswith("/api/v1/"):
-            principal = None
-            user = getattr(request, "user", None)
-            if user is not None and getattr(user, "is_authenticated", False):
-                principal = f"user:{user.pk}"
-            else:
-                principal = f"ip:{self._get_client_ip(request)}"
+            principal = self._resolve_principal(request)
 
             now = time.time()
             bucket = int(now // window_seconds)
