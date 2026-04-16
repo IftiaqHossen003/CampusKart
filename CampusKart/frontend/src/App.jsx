@@ -23,6 +23,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import ProductListingPage from "./pages/ProductListingPage";
 import RegisterPage from "./pages/RegisterPage";
 import CartPage from "./pages/CartPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import AdminProfilePage from "./pages/AdminProfilePage";
 import ProfileRedirectPage from "./pages/ProfileRedirectPage";
 import RoutePlaceholderPage from "./pages/RoutePlaceholderPage";
@@ -32,6 +33,7 @@ import VendorProfilePage from "./pages/VendorProfilePage";
 import VendorOrdersPage from "./pages/VendorOrdersPage";
 import VendorPayoutsPage from "./pages/VendorPayoutsPage";
 import VendorProductsPage from "./pages/VendorProductsPage";
+import WishlistPage from "./pages/WishlistPage";
 
 const queryClient = new QueryClient();
 
@@ -135,7 +137,7 @@ function App() {
               path="/wishlist"
               element={
                 <ProtectedRoute allowedRoles={["student"]}>
-                  <RoutePlaceholderPage title="Wishlist" />
+                  <WishlistPage />
                 </ProtectedRoute>
               }
             />
@@ -153,7 +155,7 @@ function App() {
               path="/notifications"
               element={
                 <ProtectedRoute>
-                  <RoutePlaceholderPage title="Notifications" />
+                  <NotificationsPage />
                 </ProtectedRoute>
               }
             />
