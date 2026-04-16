@@ -216,10 +216,10 @@ class OrderFlowTests(APITestCase):
         cart.refresh_from_db()
         self.assertEqual(cart.items.count(), 0)
 
-        notification = Notification.objects.get(recipient=self.buyer)
-        self.assertEqual(notification.notification_type, Notification.Type.ORDER)
-        self.assertEqual(notification.data.get("event"), "order_placed")
-        self.assertEqual(notification.data.get("order_id"), order.id)
+        notification = Notification.objects.get(user=self.buyer)
+        self.assertEqual(notification.type, Notification.Type.ORDER)
+        self.assertIn(str(order.order_number), notification.message)
+        self.assertEqual(notification.link, f"/orders/{order.order_number}")
 
         order_created_event = DomainEvent.objects.filter(
             event_type="OrderCreatedEvent",
@@ -268,7 +268,7 @@ class OrderFlowTests(APITestCase):
         self.assertEqual(second_response.data["order_number"], first_order_number)
 
         self.assertEqual(Order.objects.filter(buyer=self.buyer).count(), 1)
-        self.assertEqual(Notification.objects.filter(recipient=self.buyer).count(), 1)
+        self.assertEqual(Notification.objects.filter(user=self.buyer).count(), 1)
         self.assertEqual(
             DomainEvent.objects.filter(event_type="OrderCreatedEvent").count(),
             1,

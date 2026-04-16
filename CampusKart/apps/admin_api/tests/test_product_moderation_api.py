@@ -3,6 +3,7 @@ from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.notifications.models import Notification
 from apps.products.models import Category, Product
 from apps.vendors.models import VendorProfile
 
@@ -79,6 +80,10 @@ class ProductModerationApiTests(APITestCase):
         self.assertEqual(self.product.approved_by_id, self.admin_user.id)
         self.assertIsNotNone(self.product.approved_at)
 
+        notification = Notification.objects.filter(user=self.vendor_user, type=Notification.Type.PRODUCT).first()
+        self.assertIsNotNone(notification)
+        self.assertIn("approved", notification.message.lower())
+
         reject_response = self.client.post(
             f"/api/v1/admin/products/{self.product.slug}/reject/",
             {"reason": "bad metadata"},
@@ -88,3 +93,40 @@ class ProductModerationApiTests(APITestCase):
 
         self.product.refresh_from_db()
         self.assertEqual(self.product.status, Product.Status.REJECTED)
+
+    def test_repeated_approval_does_not_duplicate_notification(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        first_response = self.client.post(
+            f"/api/v1/admin/products/{self.product.slug}/approve/",
+            {"reason": "first"},
+            format="json",
+        )
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+
+        second_response = self.client.post(
+            f"/api/v1/admin/products/{self.product.slug}/approve/",
+            {"reason": "second"},
+            format="json",
+        )
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(
+            Notification.objects.filter(user=self.vendor_user, type=Notification.Type.PRODUCT).count(),
+            1,
+        )
+
+    def test_product_viewset_approve_path_also_triggers_notification(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.post(
+            f"/api/v1/products/{self.product.slug}/approve/",
+            {"action": "approve"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            Notification.objects.filter(user=self.vendor_user, type=Notification.Type.PRODUCT).count(),
+            1,
+        )

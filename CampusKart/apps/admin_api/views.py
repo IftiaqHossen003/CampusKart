@@ -15,6 +15,7 @@ from apps.auth_app.permissions import IsAdmin
 from apps.orders.models import Order
 from apps.payments.models import Payment
 from apps.products.models import Category, Product
+from apps.products.services import moderate_product_status
 from apps.vendors.models import VendorProfile
 
 from .models import AdminAuditLog, Banner
@@ -384,10 +385,11 @@ class AdminProductApproveView(APIView):
             "approved_at": product.approved_at.isoformat() if product.approved_at else None,
         }
 
-        product.status = Product.Status.APPROVED
-        product.approved_by = request.user
-        product.approved_at = timezone.now()
-        product.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
+        moderate_product_status(
+            product=product,
+            actor=request.user,
+            target_status=Product.Status.APPROVED,
+        )
 
         after = {
             "status": product.status,
@@ -432,10 +434,11 @@ class AdminProductRejectView(APIView):
             "approved_at": product.approved_at.isoformat() if product.approved_at else None,
         }
 
-        product.status = Product.Status.REJECTED
-        product.approved_by = request.user
-        product.approved_at = timezone.now()
-        product.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
+        moderate_product_status(
+            product=product,
+            actor=request.user,
+            target_status=Product.Status.REJECTED,
+        )
 
         after = {
             "status": product.status,

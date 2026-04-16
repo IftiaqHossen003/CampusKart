@@ -36,6 +36,7 @@ from apps.auth_app.permissions import IsAdmin, IsVendor
 
 from .filters import ProductFilter
 from .models import Category, Product, ProductImage, ProductTag
+from .services import moderate_product_status
 from .serializers import (
     CategorySerializer,
     ProductSerializer,
@@ -249,20 +250,22 @@ class ProductViewSet(viewsets.ModelViewSet):
         decision = request.data.get("action", "")
 
         if decision == "approve":
-            product.status      = Product.Status.APPROVED
-            product.approved_by = request.user
-            product.approved_at = timezone.now()
+            moderate_product_status(
+                product=product,
+                actor=request.user,
+                target_status=Product.Status.APPROVED,
+            )
         elif decision == "reject":
-            product.status      = Product.Status.REJECTED
-            product.approved_by = request.user
-            product.approved_at = timezone.now()
+            moderate_product_status(
+                product=product,
+                actor=request.user,
+                target_status=Product.Status.REJECTED,
+            )
         else:
             return Response(
                 {"detail": 'action must be \"approve\" or \"reject\".'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        product.save(update_fields=["status", "approved_by", "approved_at"])
         return Response(
             ProductSerializer(product, context={"request": request}).data,
             status=status.HTTP_200_OK,

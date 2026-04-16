@@ -13,7 +13,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.notifications.models import Notification
+from apps.notifications.tasks import create_notification
 from apps.orders.models import Order, VendorOrder
 from apps.orders.events import emit_domain_event
 
@@ -117,16 +117,12 @@ def _decimal_from_payload(value) -> Decimal | None:
 
 
 def _notify_order_confirmed(order: Order):
-    Notification.objects.create(
-        recipient=order.buyer,
-        notification_type=Notification.Type.ORDER,
-        title="Order confirmed",
-        body=f"Order {order.order_number} is confirmed.",
-        data={
-            "event": "order_confirmed",
-            "order_id": order.pk,
-            "order_number": str(order.order_number),
-        },
+    create_notification(
+        order.buyer.pk,
+        "payment",
+        "Order confirmed",
+        f"Order {order.order_number} is confirmed.",
+        f"/orders/{order.order_number}",
     )
 
 

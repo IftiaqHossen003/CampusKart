@@ -1,23 +1,31 @@
 from celery import shared_task
-from django.conf import settings
 
 
 @shared_task(bind=True, max_retries=3)
-def send_push_notification(self, user_id: int, title: str, body: str, data: dict = None):
-    """Celery task: send a push notification to a user."""
-    from .models import Notification
+def create_notification(self, user_id: int, type: str, title: str, message: str, link: str = ""):
+    """Create an in-app notification for the provided user."""
     from django.contrib.auth import get_user_model
+
+    from .models import Notification
 
     User = get_user_model()
     try:
         user = User.objects.get(pk=user_id)
         Notification.objects.create(
-            recipient=user,
-            notification_type="system",
+            user=user,
+            type=type,
             title=title,
-            body=body,
-            data=data or {},
+            message=message,
+            link=link,
         )
-        # TODO: integrate FCM / APNs here
     except User.DoesNotExist as exc:
         raise self.retry(exc=exc, countdown=60)
+
+
+@shared_task(bind=True, max_retries=3)
+def send_push_notification(self, user_id: int, title: str, body: str, data: dict = None):
+    """Backward-compatible wrapper around create_notification."""
+    link = ""
+    if isinstance(data, dict):
+        link = str(data.get("link") or "")
+    return create_notification(user_id, "system", title, body, link)

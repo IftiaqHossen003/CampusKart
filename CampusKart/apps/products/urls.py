@@ -1,5 +1,6 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+from apps.reviews.views import ProductReviewListCreateView
 
 from .views import (
     CategoryViewSet,
@@ -16,6 +17,7 @@ router.register("categories", CategoryViewSet, basename="category")
 router.register("", ProductViewSet, basename="product")
 
 urlpatterns = [
+    path("<int:id>/reviews/", ProductReviewListCreateView.as_view(), name="product-reviews"),
     path("<int:id>/images/", ProductImageUploadView.as_view(), name="product-image-upload"),
     path(
         "<int:id>/images/<int:image_id>/",

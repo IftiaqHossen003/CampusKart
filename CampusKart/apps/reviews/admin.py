@@ -4,6 +4,6 @@ from .models import Review
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ["reviewer", "product", "vendor", "rating", "is_verified_purchase", "created_at"]
-    list_filter = ["rating", "is_verified_purchase"]
-    search_fields = ["reviewer__email", "product__name", "vendor__shop_name"]
+    list_display = ["user", "product", "order", "rating", "is_approved", "created_at"]
+    list_filter = ["rating", "is_approved"]
+    search_fields = ["user__email", "product__name", "order__order_number"]

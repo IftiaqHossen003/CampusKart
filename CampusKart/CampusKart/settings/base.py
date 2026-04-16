@@ -68,6 +68,7 @@ LOCAL_APPS = [
     "apps.admin_api",
     "apps.vendors",
     "apps.products",
+    "apps.wishlist",
     "apps.cart",
     "apps.orders",
     "apps.payments",

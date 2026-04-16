@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.cart.models import Cart, CartItem
-from apps.notifications.models import Notification
+from apps.notifications.tasks import create_notification
 from apps.products.models import Product
 from apps.vendors.models import VendorProfile
 
@@ -266,20 +266,12 @@ class OrderListCreateView(generics.ListCreateAPIView):
 
             cart.items.all().delete()
 
-            Notification.objects.create(
-                recipient=self.request.user,
-                notification_type=Notification.Type.ORDER,
-                title="Order placed",
-                body=(
-                    f"Your order {order.order_number} has been placed successfully."
-                ),
-                data={
-                    "event": "order_placed",
-                    "order_id": order.id,
-                    "order_number": str(order.order_number),
-                    "vendor_order_count": len(vendor_orders),
-                    "payment_method": order.payment_method,
-                },
+            create_notification(
+                self.request.user.id,
+                "order",
+                "Order placed",
+                f"Your order {order.order_number} has been placed successfully.",
+                f"/orders/{order.order_number}",
             )
 
             emit_domain_event(
