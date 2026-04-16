@@ -109,6 +109,43 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+function isFileLike(value) {
+  if (typeof File !== "undefined" && value instanceof File) {
+    return true;
+  }
+
+  if (typeof Blob !== "undefined" && value instanceof Blob) {
+    return true;
+  }
+
+  return false;
+}
+
+function toBannerPayload(payload = {}) {
+  const imageFile = payload.image_file;
+  const hasFile = isFileLike(imageFile);
+
+  if (!hasFile) {
+    return payload;
+  }
+
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (!hasValue(value)) {
+      return;
+    }
+
+    if (key === "image_file") {
+      formData.append("image_file", value);
+      return;
+    }
+
+    formData.append(key, String(value));
+  });
+
+  return formData;
+}
+
 export async function fetchAdminStats(params = {}) {
   const queryString = buildQueryString(params);
   const response = await apiClient.get(`/admin/stats/${queryString}`);
@@ -248,20 +285,28 @@ export async function fetchAdminBanners({ page = 1 } = {}) {
 }
 
 export async function createAdminBanner(payload) {
-  const response = await apiClient.post("/admin/banners/", payload);
+  const response = await apiClient.post(
+    "/admin/banners/",
+    toBannerPayload(payload),
+  );
   return response.data;
 }
 
 export async function updateAdminBanner(bannerId, payload) {
   const response = await apiClient.patch(
     `/admin/banners/${bannerId}/`,
-    payload,
+    toBannerPayload(payload),
   );
   return response.data;
 }
 
 export async function deleteAdminBanner(bannerId) {
   await apiClient.delete(`/admin/banners/${bannerId}/`);
+}
+
+export async function reorderAdminBanners(items) {
+  const response = await apiClient.patch("/admin/banners/reorder/", { items });
+  return response.data;
 }
 
 export async function fetchAdminCategories({ page = 1 } = {}) {
