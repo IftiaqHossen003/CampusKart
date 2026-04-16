@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
 from .models import VendorProfile
-from .serializers import VendorProfileSerializer
+from .serializers import VendorProfileSerializer, VendorSpotlightSerializer
 from apps.admin_api.services import write_admin_audit_log
 
 
@@ -17,6 +17,25 @@ class VendorDetailView(generics.RetrieveAPIView):
     queryset = VendorProfile.objects.filter(status="approved")
     serializer_class = VendorProfileSerializer
     permission_classes = [permissions.AllowAny]
+
+
+class VendorSpotlightListView(generics.ListAPIView):
+    serializer_class = VendorSpotlightSerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = None
+
+    def get_queryset(self):
+        limit_raw = self.request.query_params.get("limit", "3")
+        try:
+            limit = int(limit_raw)
+        except (TypeError, ValueError):
+            limit = 3
+
+        limit = max(1, min(limit, 12))
+
+        return VendorProfile.objects.filter(status=VendorProfile.Status.APPROVED).order_by(
+            "-total_earnings", "-created_at", "id"
+        )[:limit]
 
 
 class MyVendorProfileView(generics.RetrieveUpdateAPIView):

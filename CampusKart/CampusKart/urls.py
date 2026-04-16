@@ -11,6 +11,7 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
+from apps.admin_api.views import PublicBannerListView
 from apps.products.views import CategoryViewSet
 
 API_V1 = "api/v1/"
@@ -35,6 +36,7 @@ urlpatterns = [
     path("api/categories/<int:pk>/", CategoryViewSet.as_view({"get": "retrieve"}), name="categories-public-detail"),
     path(API_V1 + "orders/",        include("apps.orders.urls",       namespace="orders")),
     path(API_V1 + "payments/",      include("apps.payments.urls",     namespace="payments")),
+    path(API_V1 + "banners/",       PublicBannerListView.as_view(), name="banners-public-list"),
     path(API_V1 + "admin/",         include("apps.admin_api.urls",    namespace="admin_api")),
     path(API_V1 + "chat/",          include("apps.chat.urls",         namespace="chat")),
     path(API_V1 + "notifications/", include("apps.notifications.urls",namespace="notifications")),

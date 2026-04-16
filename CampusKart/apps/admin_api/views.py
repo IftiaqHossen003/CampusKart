@@ -2,12 +2,14 @@ import csv
 from datetime import timedelta
 from decimal import Decimal
 
+from django.db import transaction
 from django.db.models import DecimalField, Q, Sum, Value
 from django.db.models.functions import Coalesce, TruncDate
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -21,8 +23,10 @@ from apps.vendors.models import VendorProfile
 from .models import AdminAuditLog, Banner
 from .serializers import (
     AdminAuditLogSerializer,
+    AdminBannerReorderSerializer,
     AdminBannerSerializer,
     AdminCategorySerializer,
+    PublicBannerSerializer,
     AdminProductQueueSerializer,
     AdminProductModerationSerializer,
     AdminRecentOrderSerializer,
@@ -472,6 +476,7 @@ class AdminProductRejectView(APIView):
 class AdminBannerListCreateView(generics.ListCreateAPIView):
     serializer_class = AdminBannerSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     queryset = Banner.objects.all().order_by("position", "id")
 
     def perform_create(self, serializer):
@@ -490,6 +495,7 @@ class AdminBannerListCreateView(generics.ListCreateAPIView):
 class AdminBannerDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = AdminBannerSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     queryset = Banner.objects.all()
 
     def perform_update(self, serializer):
@@ -518,6 +524,65 @@ class AdminBannerDetailView(generics.RetrieveUpdateDestroyAPIView):
             request_method=self.request.method,
             request_path=self.request.path,
             before=before,
+        )
+
+
+class PublicBannerListView(generics.ListAPIView):
+    serializer_class = PublicBannerSerializer
+    permission_classes = [permissions.AllowAny]
+    pagination_class = None
+    queryset = Banner.objects.filter(is_active=True).order_by("position", "id")
+
+
+class AdminBannerReorderView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def patch(self, request):
+        serializer = AdminBannerReorderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        requested_ids = serializer.validated_data["items"]
+
+        existing_ids = set(Banner.objects.filter(id__in=requested_ids).values_list("id", flat=True))
+        missing_ids = sorted(set(requested_ids) - existing_ids)
+        if missing_ids:
+            return Response(
+                {"detail": "Some banner IDs do not exist.", "missing_ids": missing_ids},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        before = list(
+            Banner.objects.all().order_by("position", "id").values("id", "position")
+        )
+
+        current_ids = [item["id"] for item in before]
+        remaining_ids = [banner_id for banner_id in current_ids if banner_id not in requested_ids]
+        final_order = requested_ids + remaining_ids
+
+        with transaction.atomic():
+            for position, banner_id in enumerate(final_order):
+                Banner.objects.filter(pk=banner_id).update(position=position)
+
+        after = list(
+            Banner.objects.all().order_by("position", "id").values("id", "position")
+        )
+
+        write_admin_audit_log(
+            actor=request.user,
+            action="banner_reordered",
+            resource_type="banner",
+            request_method=request.method,
+            request_path=request.path,
+            before={"items": before},
+            after={"items": after},
+            metadata={"requested_items": requested_ids},
+        )
+
+        return Response(
+            {
+                "detail": "Banner order updated.",
+                "items": final_order,
+            },
+            status=status.HTTP_200_OK,
         )
 
 

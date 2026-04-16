@@ -1,6 +1,9 @@
 from django.utils.text import slugify
 from rest_framework import serializers
+import cloudinary.uploader
+from django.core.exceptions import ValidationError as DjangoValidationError
 
+from apps.common.validators import validate_uploaded_image
 from apps.orders.models import Order
 from apps.products.models import Category, Product, ProductImage
 from apps.vendors.models import VendorProfile
@@ -176,6 +179,69 @@ class AdminProductModerationSerializer(serializers.Serializer):
 
 
 class AdminBannerSerializer(serializers.ModelSerializer):
+    image_file = serializers.FileField(write_only=True, required=False)
+
+    class Meta:
+        model = Banner
+        fields = [
+            "id",
+            "title",
+            "image_url",
+            "image_file",
+            "link",
+            "position",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+        extra_kwargs = {
+            "image_url": {"required": False},
+        }
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        image_file = attrs.get("image_file")
+        image_url = attrs.get("image_url")
+        if self.instance is None and not image_file and not image_url:
+            raise serializers.ValidationError(
+                {"image_file": "Provide an image file or image_url."}
+            )
+        return attrs
+
+    def validate_image_file(self, value):
+        try:
+            validate_uploaded_image(value, field_name="image_file")
+        except DjangoValidationError as exc:
+            message = exc.message_dict.get("image_file", ["Invalid banner image upload."])[0]
+            raise serializers.ValidationError(message) from exc
+        return value
+
+    def _upload_banner_image(self, image_file):
+        upload_result = cloudinary.uploader.upload(
+            image_file,
+            folder="campuskart/banners",
+            resource_type="image",
+        )
+        secure_url = upload_result.get("secure_url") or upload_result.get("url")
+        if not secure_url:
+            raise serializers.ValidationError({"image_file": "Could not upload banner image."})
+        return str(secure_url)
+
+    def create(self, validated_data):
+        image_file = validated_data.pop("image_file", None)
+        if image_file is not None:
+            validated_data["image_url"] = self._upload_banner_image(image_file)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        image_file = validated_data.pop("image_file", None)
+        if image_file is not None:
+            validated_data["image_url"] = self._upload_banner_image(image_file)
+        return super().update(instance, validated_data)
+
+
+class PublicBannerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banner
         fields = [
@@ -184,11 +250,20 @@ class AdminBannerSerializer(serializers.ModelSerializer):
             "image_url",
             "link",
             "position",
-            "is_active",
-            "created_at",
-            "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = fields
+
+
+class AdminBannerReorderSerializer(serializers.Serializer):
+    items = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        allow_empty=False,
+    )
+
+    def validate_items(self, value):
+        if len(set(value)) != len(value):
+            raise serializers.ValidationError("Banner IDs in items must be unique.")
+        return value
 
 
 class AdminCategorySerializer(serializers.ModelSerializer):

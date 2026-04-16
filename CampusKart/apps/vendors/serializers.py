@@ -18,3 +18,19 @@ class VendorProfileSerializer(serializers.ModelSerializer):
             "id", "shop_slug", "status", "approved_by", "approved_by_email",
             "approved_at", "total_earnings", "created_at", "updated_at",
         ]
+
+
+class VendorSpotlightSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VendorProfile
+        fields = [
+            "id",
+            "shop_name",
+            "shop_slug",
+            "description",
+            "logo_url",
+            "banner_url",
+            "total_earnings",
+            "created_at",
+        ]
+        read_only_fields = fields
