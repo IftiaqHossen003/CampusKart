@@ -235,6 +235,13 @@ class VendorAnalyticsApiTests(APITestCase):
         self.assertEqual(Decimal(data["total_revenue"]), Decimal("150.00"))
         self.assertEqual(Decimal(data["this_month_revenue"]), Decimal("100.00"))
         self.assertEqual(Decimal(data["last_month_revenue"]), Decimal("50.00"))
+        self.assertEqual(data["this_month_orders"], 2)
+        self.assertEqual(data["last_month_orders"], 1)
+        self.assertEqual(Decimal(data["this_month_avg_rating"]), Decimal("0.00"))
+        self.assertEqual(Decimal(data["last_month_avg_rating"]), Decimal("0.00"))
+        self.assertEqual(Decimal(data["pending_payout_amount"]), Decimal("100.00"))
+        self.assertEqual(Decimal(data["this_month_pending_payout"]), Decimal("100.00"))
+        self.assertEqual(Decimal(data["last_month_pending_payout"]), Decimal("0.00"))
         self.assertEqual(data["total_orders"], 3)
         self.assertEqual(data["pending_orders"], 1)
         self.assertEqual(data["completed_orders"], 2)
@@ -284,9 +291,14 @@ class VendorAnalyticsApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         data = response.data
+        self.assertEqual(Decimal(data["total_earned"]), Decimal("150.00"))
+        self.assertEqual(Decimal(data["total_commission_paid"]), Decimal("0.00"))
+        self.assertEqual(Decimal(data["total_net_received"]), Decimal("50.00"))
+        self.assertEqual(Decimal(data["total_pending_amount"]), Decimal("100.00"))
         self.assertEqual(Decimal(data["total_pending_payout_amount"]), Decimal("100.00"))
         self.assertEqual(len(data["payouts"]), 2)
         self.assertTrue(all("order_number" in item for item in data["payouts"]))
+        self.assertTrue(all("commission_percentage" in item for item in data["payouts"]))
 
     def test_student_cannot_access_vendor_analytics(self):
         self._auth(self.student_user)
