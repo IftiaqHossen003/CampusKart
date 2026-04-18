@@ -161,7 +161,7 @@ function AdminBannersPage() {
   const { showError, showSuccess } = useToast();
   const objectUrlRef = useRef(null);
 
-  const [orderedBanners, setOrderedBanners] = useState([]);
+  const [localOrderedIds, setLocalOrderedIds] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
@@ -178,9 +178,26 @@ function AdminBannersPage() {
     [bannersQuery.data],
   );
 
-  useEffect(() => {
-    setOrderedBanners(banners);
-  }, [banners]);
+  const orderedBanners = useMemo(() => {
+    if (!localOrderedIds || localOrderedIds.length === 0) {
+      return banners;
+    }
+
+    const bannerById = new Map(
+      banners.map((banner) => [String(banner.id), banner]),
+    );
+
+    const arranged = localOrderedIds
+      .map((bannerId) => bannerById.get(String(bannerId)))
+      .filter(Boolean);
+
+    const arrangedIds = new Set(arranged.map((banner) => String(banner.id)));
+    const remaining = banners.filter(
+      (banner) => !arrangedIds.has(String(banner.id)),
+    );
+
+    return [...arranged, ...remaining];
+  }, [banners, localOrderedIds]);
 
   useEffect(
     () => () => {
@@ -251,6 +268,23 @@ function AdminBannersPage() {
     reorderMutation.isPending ||
     activeToggleMutation.isPending;
 
+  const updateBannerCache = (nextBanners) => {
+    queryClient.setQueryData(["admin-banners"], (previous) => {
+      if (!previous) {
+        return previous;
+      }
+
+      if (Array.isArray(previous)) {
+        return nextBanners;
+      }
+
+      return {
+        ...previous,
+        results: nextBanners,
+      };
+    });
+  };
+
   const updatePreviewFromFile = (file, fallback = "") => {
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
@@ -303,19 +337,21 @@ function AdminBannersPage() {
 
   const handleToggleActive = (banner) => {
     const previous = orderedBanners;
+    const previousOrderedIds = localOrderedIds;
     const nextActive = !banner.is_active;
-
-    setOrderedBanners((current) =>
-      current.map((item) =>
-        item.id === banner.id ? { ...item, is_active: nextActive } : item,
-      ),
+    const next = orderedBanners.map((item) =>
+      item.id === banner.id ? { ...item, is_active: nextActive } : item,
     );
+
+    setLocalOrderedIds(orderedBanners.map((item) => String(item.id)));
+    updateBannerCache(next);
 
     activeToggleMutation.mutate(
       { bannerId: banner.id, nextActive },
       {
         onError: (error) => {
-          setOrderedBanners(previous);
+          setLocalOrderedIds(previousOrderedIds);
+          updateBannerCache(previous);
           showError(
             getAdminApiErrorMessage(error, "Could not update active state."),
           );
@@ -342,6 +378,7 @@ function AdminBannersPage() {
     }
 
     const previous = orderedBanners;
+    const previousOrderedIds = localOrderedIds;
     const next = arrayMove(orderedBanners, oldIndex, newIndex).map(
       (item, index) => ({
         ...item,
@@ -349,18 +386,21 @@ function AdminBannersPage() {
       }),
     );
 
-    setOrderedBanners(next);
+    setLocalOrderedIds(next.map((item) => String(item.id)));
+    updateBannerCache(next);
 
     reorderMutation.mutate(
       next.map((item) => item.id),
       {
         onError: (error) => {
-          setOrderedBanners(previous);
+          setLocalOrderedIds(previousOrderedIds);
+          updateBannerCache(previous);
           showError(
             getAdminApiErrorMessage(error, "Could not reorder banners."),
           );
         },
         onSuccess: () => {
+          setLocalOrderedIds(null);
           showSuccess("Banner order saved.");
         },
       },

@@ -138,6 +138,7 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
       return [
         { label: "Shop", to: "/shop" },
         { label: "Orders", to: "/orders" },
+        { label: "Chat", to: "/chat" },
         { label: "Wishlist", to: "/wishlist" },
       ];
     }
@@ -147,6 +148,7 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
         { label: "Dashboard", to: "/vendor/dashboard" },
         { label: "Products", to: "/vendor/products" },
         { label: "Orders", to: "/vendor/orders" },
+        { label: "Chat", to: "/chat" },
       ];
     }
 

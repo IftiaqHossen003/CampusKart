@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMyProfile, updateMyProfile } from "../api/auth";
 import { useToast } from "../hooks/useToast";
@@ -32,10 +32,7 @@ function StudentProfilePage() {
   const queryClient = useQueryClient();
   const { showError, showSuccess } = useToast();
   const updateUser = useAuthStore((state) => state.updateUser);
-  const [formState, setFormState] = useState({
-    full_name: "",
-    phone: "",
-  });
+  const [formState, setFormState] = useState(null);
 
   const profileQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -43,22 +40,25 @@ function StudentProfilePage() {
     staleTime: 30 * 1000,
   });
 
-  useEffect(() => {
-    if (!profileQuery.data) {
-      return;
-    }
+  const hydratedFormState = useMemo(
+    () => ({
+      full_name: profileQuery.data?.full_name || "",
+      phone: profileQuery.data?.phone || "",
+    }),
+    [profileQuery.data?.full_name, profileQuery.data?.phone],
+  );
 
-    setFormState({
-      full_name: profileQuery.data.full_name || "",
-      phone: profileQuery.data.phone || "",
-    });
-  }, [profileQuery.data]);
+  const resolvedFormState = formState || hydratedFormState;
 
   const updateProfileMutation = useMutation({
     mutationFn: updateMyProfile,
     onSuccess: (updatedProfile) => {
       queryClient.setQueryData(["auth", "me"], updatedProfile);
       updateUser(updatedProfile);
+      setFormState({
+        full_name: updatedProfile.full_name || "",
+        phone: updatedProfile.phone || "",
+      });
       showSuccess("Profile updated successfully.");
     },
     onError: (error) => {
@@ -70,8 +70,8 @@ function StudentProfilePage() {
     event.preventDefault();
 
     updateProfileMutation.mutate({
-      full_name: formState.full_name.trim(),
-      phone: formState.phone.trim(),
+      full_name: resolvedFormState.full_name.trim(),
+      phone: resolvedFormState.phone.trim(),
     });
   };
 
@@ -124,10 +124,10 @@ function StudentProfilePage() {
               <input
                 type="text"
                 required
-                value={formState.full_name}
+                  value={resolvedFormState.full_name}
                 onChange={(event) =>
                   setFormState((current) => ({
-                    ...current,
+                      ...(current || resolvedFormState),
                     full_name: event.target.value,
                   }))
                 }
@@ -141,10 +141,10 @@ function StudentProfilePage() {
               </span>
               <input
                 type="text"
-                value={formState.phone}
+                  value={resolvedFormState.phone}
                 onChange={(event) =>
                   setFormState((current) => ({
-                    ...current,
+                      ...(current || resolvedFormState),
                     phone: event.target.value,
                   }))
                 }

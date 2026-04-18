@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMyProfile, updateMyProfile } from "../api/auth";
 import { fetchMyVendorProfile, updateMyVendorProfile } from "../api/vendors";
@@ -34,20 +34,9 @@ function VendorProfilePage() {
   const { showError, showSuccess } = useToast();
   const updateUser = useAuthStore((state) => state.updateUser);
 
-  const [userForm, setUserForm] = useState({
-    full_name: "",
-    phone: "",
-  });
+  const [userForm, setUserForm] = useState(null);
 
-  const [vendorForm, setVendorForm] = useState({
-    shop_name: "",
-    description: "",
-    logo_url: "",
-    banner_url: "",
-    contact_email: "",
-    contact_phone: "",
-    address: "",
-  });
+  const [vendorForm, setVendorForm] = useState(null);
 
   const profileQuery = useQuery({
     queryKey: ["auth", "me"],
@@ -61,38 +50,47 @@ function VendorProfilePage() {
     staleTime: 30 * 1000,
   });
 
-  useEffect(() => {
-    if (!profileQuery.data) {
-      return;
-    }
+  const hydratedUserForm = useMemo(
+    () => ({
+      full_name: profileQuery.data?.full_name || "",
+      phone: profileQuery.data?.phone || "",
+    }),
+    [profileQuery.data?.full_name, profileQuery.data?.phone],
+  );
 
-    setUserForm({
-      full_name: profileQuery.data.full_name || "",
-      phone: profileQuery.data.phone || "",
-    });
-  }, [profileQuery.data]);
+  const hydratedVendorForm = useMemo(
+    () => ({
+      shop_name: vendorProfileQuery.data?.shop_name || "",
+      description: vendorProfileQuery.data?.description || "",
+      logo_url: vendorProfileQuery.data?.logo_url || "",
+      banner_url: vendorProfileQuery.data?.banner_url || "",
+      contact_email: vendorProfileQuery.data?.contact_email || "",
+      contact_phone: vendorProfileQuery.data?.contact_phone || "",
+      address: vendorProfileQuery.data?.address || "",
+    }),
+    [
+      vendorProfileQuery.data?.shop_name,
+      vendorProfileQuery.data?.description,
+      vendorProfileQuery.data?.logo_url,
+      vendorProfileQuery.data?.banner_url,
+      vendorProfileQuery.data?.contact_email,
+      vendorProfileQuery.data?.contact_phone,
+      vendorProfileQuery.data?.address,
+    ],
+  );
 
-  useEffect(() => {
-    if (!vendorProfileQuery.data) {
-      return;
-    }
-
-    setVendorForm({
-      shop_name: vendorProfileQuery.data.shop_name || "",
-      description: vendorProfileQuery.data.description || "",
-      logo_url: vendorProfileQuery.data.logo_url || "",
-      banner_url: vendorProfileQuery.data.banner_url || "",
-      contact_email: vendorProfileQuery.data.contact_email || "",
-      contact_phone: vendorProfileQuery.data.contact_phone || "",
-      address: vendorProfileQuery.data.address || "",
-    });
-  }, [vendorProfileQuery.data]);
+  const resolvedUserForm = userForm || hydratedUserForm;
+  const resolvedVendorForm = vendorForm || hydratedVendorForm;
 
   const updateUserMutation = useMutation({
     mutationFn: updateMyProfile,
     onSuccess: (updatedProfile) => {
       queryClient.setQueryData(["auth", "me"], updatedProfile);
       updateUser(updatedProfile);
+      setUserForm({
+        full_name: updatedProfile.full_name || "",
+        phone: updatedProfile.phone || "",
+      });
       showSuccess("Account details updated.");
     },
     onError: (error) => {
@@ -104,6 +102,15 @@ function VendorProfilePage() {
     mutationFn: updateMyVendorProfile,
     onSuccess: (updatedVendorProfile) => {
       queryClient.setQueryData(["vendor", "me"], updatedVendorProfile);
+      setVendorForm({
+        shop_name: updatedVendorProfile.shop_name || "",
+        description: updatedVendorProfile.description || "",
+        logo_url: updatedVendorProfile.logo_url || "",
+        banner_url: updatedVendorProfile.banner_url || "",
+        contact_email: updatedVendorProfile.contact_email || "",
+        contact_phone: updatedVendorProfile.contact_phone || "",
+        address: updatedVendorProfile.address || "",
+      });
       showSuccess("Vendor profile updated.");
     },
     onError: (error) => {
@@ -114,21 +121,21 @@ function VendorProfilePage() {
   const onSubmitUser = (event) => {
     event.preventDefault();
     updateUserMutation.mutate({
-      full_name: userForm.full_name.trim(),
-      phone: userForm.phone.trim(),
+      full_name: resolvedUserForm.full_name.trim(),
+      phone: resolvedUserForm.phone.trim(),
     });
   };
 
   const onSubmitVendor = (event) => {
     event.preventDefault();
     updateVendorMutation.mutate({
-      shop_name: vendorForm.shop_name.trim(),
-      description: vendorForm.description.trim(),
-      logo_url: vendorForm.logo_url.trim(),
-      banner_url: vendorForm.banner_url.trim(),
-      contact_email: vendorForm.contact_email.trim(),
-      contact_phone: vendorForm.contact_phone.trim(),
-      address: vendorForm.address.trim(),
+      shop_name: resolvedVendorForm.shop_name.trim(),
+      description: resolvedVendorForm.description.trim(),
+      logo_url: resolvedVendorForm.logo_url.trim(),
+      banner_url: resolvedVendorForm.banner_url.trim(),
+      contact_email: resolvedVendorForm.contact_email.trim(),
+      contact_phone: resolvedVendorForm.contact_phone.trim(),
+      address: resolvedVendorForm.address.trim(),
     });
   };
 
@@ -190,10 +197,10 @@ function VendorProfilePage() {
                 <input
                   type="text"
                   required
-                  value={userForm.full_name}
+                  value={resolvedUserForm.full_name}
                   onChange={(event) =>
                     setUserForm((current) => ({
-                      ...current,
+                      ...(current || resolvedUserForm),
                       full_name: event.target.value,
                     }))
                   }
@@ -207,10 +214,10 @@ function VendorProfilePage() {
                 </span>
                 <input
                   type="text"
-                  value={userForm.phone}
+                  value={resolvedUserForm.phone}
                   onChange={(event) =>
                     setUserForm((current) => ({
-                      ...current,
+                      ...(current || resolvedUserForm),
                       phone: event.target.value,
                     }))
                   }
@@ -242,10 +249,10 @@ function VendorProfilePage() {
                 <input
                   type="text"
                   required
-                  value={vendorForm.shop_name}
+                  value={resolvedVendorForm.shop_name}
                   onChange={(event) =>
                     setVendorForm((current) => ({
-                      ...current,
+                      ...(current || resolvedVendorForm),
                       shop_name: event.target.value,
                     }))
                   }
@@ -259,10 +266,10 @@ function VendorProfilePage() {
                 </span>
                 <textarea
                   rows={3}
-                  value={vendorForm.description}
+                  value={resolvedVendorForm.description}
                   onChange={(event) =>
                     setVendorForm((current) => ({
-                      ...current,
+                      ...(current || resolvedVendorForm),
                       description: event.target.value,
                     }))
                   }
@@ -276,10 +283,10 @@ function VendorProfilePage() {
                 </span>
                 <input
                   type="email"
-                  value={vendorForm.contact_email}
+                  value={resolvedVendorForm.contact_email}
                   onChange={(event) =>
                     setVendorForm((current) => ({
-                      ...current,
+                      ...(current || resolvedVendorForm),
                       contact_email: event.target.value,
                     }))
                   }
@@ -293,10 +300,10 @@ function VendorProfilePage() {
                 </span>
                 <input
                   type="text"
-                  value={vendorForm.contact_phone}
+                  value={resolvedVendorForm.contact_phone}
                   onChange={(event) =>
                     setVendorForm((current) => ({
-                      ...current,
+                      ...(current || resolvedVendorForm),
                       contact_phone: event.target.value,
                     }))
                   }
@@ -310,10 +317,10 @@ function VendorProfilePage() {
                 </span>
                 <textarea
                   rows={2}
-                  value={vendorForm.address}
+                  value={resolvedVendorForm.address}
                   onChange={(event) =>
                     setVendorForm((current) => ({
-                      ...current,
+                      ...(current || resolvedVendorForm),
                       address: event.target.value,
                     }))
                   }
@@ -327,10 +334,10 @@ function VendorProfilePage() {
                 </span>
                 <input
                   type="url"
-                  value={vendorForm.logo_url}
+                  value={resolvedVendorForm.logo_url}
                   onChange={(event) =>
                     setVendorForm((current) => ({
-                      ...current,
+                      ...(current || resolvedVendorForm),
                       logo_url: event.target.value,
                     }))
                   }
@@ -344,10 +351,10 @@ function VendorProfilePage() {
                 </span>
                 <input
                   type="url"
-                  value={vendorForm.banner_url}
+                  value={resolvedVendorForm.banner_url}
                   onChange={(event) =>
                     setVendorForm((current) => ({
-                      ...current,
+                      ...(current || resolvedVendorForm),
                       banner_url: event.target.value,
                     }))
                   }

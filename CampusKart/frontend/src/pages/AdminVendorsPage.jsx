@@ -76,10 +76,6 @@ function AdminVendorsPage() {
   const debouncedSearch = useDebouncedValue(searchInput, 400);
 
   useEffect(() => {
-    setSearchInput(initialSearch);
-  }, [initialSearch]);
-
-  useEffect(() => {
     const next = new URLSearchParams(searchParams);
     if (debouncedSearch.trim()) {
       next.set("search", debouncedSearch.trim());

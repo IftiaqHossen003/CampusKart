@@ -58,10 +58,6 @@ function ProductListingPage() {
   }, [searchParams, setSearchParams])
 
   useEffect(() => {
-    setSearchInput(searchTerm)
-  }, [searchTerm])
-
-  useEffect(() => {
     const normalized = debouncedSearch.trim()
     if (normalized === searchTerm) {
       return

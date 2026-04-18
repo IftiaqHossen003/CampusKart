@@ -148,12 +148,16 @@ function HomePage() {
   });
 
   const banners = bannersQuery.data || [];
-  const categoriesData = categoriesQuery.data;
-  const categories = Array.isArray(categoriesData)
-    ? categoriesData
-    : Array.isArray(categoriesData?.results)
-      ? categoriesData.results
-      : [];
+  const categories = useMemo(() => {
+    const categoriesData = categoriesQuery.data;
+    if (Array.isArray(categoriesData)) {
+      return categoriesData;
+    }
+    if (Array.isArray(categoriesData?.results)) {
+      return categoriesData.results;
+    }
+    return [];
+  }, [categoriesQuery.data]);
   const topProducts = topProductsQuery.data?.results || [];
   const newArrivals = newArrivalsQuery.data?.results || [];
   const vendorSpotlight = vendorSpotlightQuery.data || [];

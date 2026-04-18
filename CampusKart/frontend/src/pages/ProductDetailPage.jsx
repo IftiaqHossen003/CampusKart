@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { createChatRoom } from "../api/chat";
 import { fetchProductBySlug, fetchProducts } from "../api/products";
 import {
   createProductReview,
@@ -98,6 +99,7 @@ function DetailSkeleton() {
 
 function ProductDetailPage() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { showError, showSuccess } = useToast();
   const addItem = useCartStore((state) => state.addItem);
@@ -112,6 +114,7 @@ function ProductDetailPage() {
   const [reviewError, setReviewError] = useState("");
 
   const isStudent = user?.role === "student";
+  const canOpenChat = !user || isStudent;
 
   const productQuery = useQuery({
     queryKey: ["product-detail", slug],
@@ -187,16 +190,16 @@ function ProductDetailPage() {
   const relatedProducts = (relatedQuery.data?.results || [])
     .filter((item) => item.id !== product?.id)
     .slice(0, 3);
-  const eligibleOrders = reviewEligibilityQuery.data?.eligible_orders || [];
+  const eligibleOrders = useMemo(
+    () => reviewEligibilityQuery.data?.eligible_orders || [],
+    [reviewEligibilityQuery.data],
+  );
+  const activeSelectedOrderId =
+    selectedOrderId ||
+    (isReviewModalOpen && eligibleOrders.length > 0
+      ? String(eligibleOrders[0].id)
+      : "");
   const canWriteReview = isStudent && eligibleOrders.length > 0;
-
-  useEffect(() => {
-    if (!isReviewModalOpen || selectedOrderId || eligibleOrders.length === 0) {
-      return;
-    }
-
-    setSelectedOrderId(String(eligibleOrders[0].id));
-  }, [eligibleOrders, isReviewModalOpen, selectedOrderId]);
 
   const addToCartMutation = useMutation({
     mutationFn: () => addItem({ product, quantity }),
@@ -213,7 +216,7 @@ function ProductDetailPage() {
   const submitReviewMutation = useMutation({
     mutationFn: () =>
       createProductReview(product.id, {
-        order: Number(selectedOrderId),
+        order: Number(activeSelectedOrderId),
         rating: selectedRating,
         comment: reviewComment.trim(),
       }),
@@ -242,11 +245,46 @@ function ProductDetailPage() {
     },
   });
 
+  const openChatMutation = useMutation({
+    mutationFn: () => {
+      if (!product?.vendor_id) {
+        throw new Error("Vendor information is unavailable for this product.");
+      }
+
+      return createChatRoom({
+        vendorId: product.vendor_id,
+        productId: product.id,
+      });
+    },
+    onSuccess: (room) => {
+      navigate(`/chat?room=${room.id}`);
+    },
+    onError: (error) => {
+      showError(
+        getApiErrorMessage(error, "Could not open chat for this product."),
+      );
+    },
+  });
+
+  const handleStartChat = () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (!isStudent) {
+      showError("Only students can start chat from product details.");
+      return;
+    }
+
+    openChatMutation.mutate();
+  };
+
   const handleReviewSubmit = (event) => {
     event.preventDefault();
     setReviewError("");
 
-    if (!selectedOrderId) {
+    if (!activeSelectedOrderId) {
       setReviewError("Please select an order before submitting your review.");
       return;
     }
@@ -444,6 +482,21 @@ function ProductDetailPage() {
                 ? "Adding..."
                 : "Add to Cart"}
           </button>
+
+          {canOpenChat ? (
+            <button
+              type="button"
+              onClick={handleStartChat}
+              disabled={openChatMutation.isPending || !product.vendor_id}
+              className="w-full rounded-md border border-primary px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {!user
+                ? "Login to Chat with Vendor"
+                : openChatMutation.isPending
+                  ? "Opening Chat..."
+                  : "Chat with Vendor"}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -668,7 +721,7 @@ function ProductDetailPage() {
                 </label>
                 <select
                   id="review-order"
-                  value={selectedOrderId}
+                  value={activeSelectedOrderId}
                   onChange={(event) => setSelectedOrderId(event.target.value)}
                   className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
                 >

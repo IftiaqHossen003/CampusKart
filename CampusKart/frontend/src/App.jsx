@@ -18,6 +18,7 @@ const AdminPayoutsPage = lazy(() => import("./pages/AdminPayoutsPage"));
 const AdminSettingsPage = lazy(() => import("./pages/AdminSettingsPage"));
 const AdminVendorsPage = lazy(() => import("./pages/AdminVendorsPage"));
 const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
 const OrderDetailPage = lazy(() => import("./pages/OrderDetailPage"));
 const OrdersPage = lazy(() => import("./pages/OrdersPage"));
 const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage"));
@@ -156,7 +157,7 @@ function App() {
                 path="/chat"
                 element={
                   <ProtectedRoute>
-                    <RoutePlaceholderPage title="Chat" />
+                    <ChatPage />
                   </ProtectedRoute>
                 }
               />
