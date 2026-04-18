@@ -23,7 +23,8 @@ from cloudinary.utils import cloudinary_url
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import Count, QuerySet
+from django.db import IntegrityError
+from django.db.models import Count, F, QuerySet
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -38,7 +39,7 @@ from apps.auth_app.permissions import IsAdmin, IsVendor
 from apps.common.validators import validate_uploaded_image
 
 from .filters import ProductFilter
-from .models import Category, Product, ProductImage, ProductTag
+from .models import Category, Product, ProductImage, ProductTag, ProductViewDaily
 from .services import moderate_product_status
 from .serializers import (
     CategorySerializer,
@@ -88,6 +89,33 @@ def _ensure_vendor_owns_product(user, product: Product) -> None:
         raise PermissionDenied("Vendor role is required.")
     if not hasattr(user, "vendor_profile") or product.vendor_id != user.vendor_profile.id:
         raise PermissionDenied("You can only manage your own product images.")
+
+
+def _track_product_view(product_id: int) -> None:
+    if not product_id:
+        return
+
+    today = timezone.localdate()
+    try:
+        updated = ProductViewDaily.objects.filter(
+            product_id=product_id,
+            view_date=today,
+        ).update(view_count=F("view_count") + 1)
+        if updated:
+            return
+
+        ProductViewDaily.objects.create(
+            product_id=product_id,
+            view_date=today,
+            view_count=1,
+        )
+    except IntegrityError:
+        ProductViewDaily.objects.filter(
+            product_id=product_id,
+            view_date=today,
+        ).update(view_count=F("view_count") + 1)
+    except Exception:
+        logger.warning("Product view tracking failed for product_id=%s", product_id, exc_info=True)
 
 
 # ---------------------------------------------------------------------------
@@ -233,8 +261,14 @@ class ProductViewSet(viewsets.ModelViewSet):
         cache_key = f"{_PREFIX}:detail:{slug}"
         cached = _cache_get_safe(cache_key)
         if cached is not None:
+            product_id = cached.get("id") if isinstance(cached, dict) else None
+            if isinstance(product_id, int):
+                _track_product_view(product_id)
             return Response(cached)
         response = super().retrieve(request, *args, **kwargs)
+        product_id = response.data.get("id") if isinstance(response.data, dict) else None
+        if isinstance(product_id, int):
+            _track_product_view(product_id)
         _cache_set_safe(cache_key, response.data, _TTL_DETAIL)
         return response
 

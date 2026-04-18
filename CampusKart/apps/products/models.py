@@ -116,6 +116,31 @@ class Product(models.Model):
         return self.stock > 0
 
 
+class ProductViewDaily(models.Model):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="daily_views",
+    )
+    view_date = models.DateField(db_index=True)
+    view_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "product_view_daily"
+        ordering = ["-view_date", "-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product", "view_date"],
+                name="uniq_product_daily_view",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.product_id}:{self.view_date}:{self.view_count}"
+
+
 # ---------------------------------------------------------------------------
 # ProductImage
 # ---------------------------------------------------------------------------

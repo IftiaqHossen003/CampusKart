@@ -27,6 +27,7 @@ urlpatterns = [
 
     # Application routes
     path(API_V1 + "auth/",          include("apps.auth_app.urls",     namespace="auth")),
+    path(API_V1 + "vendor/analytics/", include("apps.vendors.analytics_urls", namespace="vendor_analytics")),
     path(API_V1 + "vendors/",       include("apps.vendors.urls",      namespace="vendors")),
     path(API_V1 + "products/",      include("apps.products.urls",     namespace="products")),
     path(API_V1 + "wishlist/",      include("apps.wishlist.urls",     namespace="wishlist")),
