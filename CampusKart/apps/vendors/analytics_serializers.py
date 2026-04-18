@@ -11,6 +11,13 @@ class VendorOverviewSerializer(serializers.Serializer):
     total_revenue = serializers.DecimalField(max_digits=14, decimal_places=2)
     this_month_revenue = serializers.DecimalField(max_digits=14, decimal_places=2)
     last_month_revenue = serializers.DecimalField(max_digits=14, decimal_places=2)
+    this_month_orders = serializers.IntegerField()
+    last_month_orders = serializers.IntegerField()
+    this_month_avg_rating = serializers.DecimalField(max_digits=4, decimal_places=2)
+    last_month_avg_rating = serializers.DecimalField(max_digits=4, decimal_places=2)
+    pending_payout_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    this_month_pending_payout = serializers.DecimalField(max_digits=14, decimal_places=2)
+    last_month_pending_payout = serializers.DecimalField(max_digits=14, decimal_places=2)
     total_orders = serializers.IntegerField()
     pending_orders = serializers.IntegerField()
     completed_orders = serializers.IntegerField()
@@ -36,6 +43,7 @@ class VendorRevenuePointSerializer(serializers.Serializer):
 
 class VendorProductAnalyticsSerializer(serializers.Serializer):
     name = serializers.CharField()
+    image_url = serializers.URLField(allow_null=True, allow_blank=True)
     views = serializers.IntegerField()
     sold = serializers.IntegerField()
     revenue = serializers.DecimalField(max_digits=14, decimal_places=2)
@@ -46,6 +54,7 @@ class VendorPayoutAnalyticsItemSerializer(serializers.Serializer):
     order_number = serializers.CharField()
     gross = serializers.DecimalField(max_digits=14, decimal_places=2)
     commission = serializers.DecimalField(max_digits=14, decimal_places=2)
+    commission_percentage = serializers.DecimalField(max_digits=5, decimal_places=2)
     net = serializers.DecimalField(max_digits=14, decimal_places=2)
     status = serializers.CharField()
     date = serializers.DateTimeField()
@@ -53,4 +62,8 @@ class VendorPayoutAnalyticsItemSerializer(serializers.Serializer):
 
 class VendorPayoutAnalyticsResponseSerializer(serializers.Serializer):
     payouts = VendorPayoutAnalyticsItemSerializer(many=True)
+    total_earned = serializers.DecimalField(max_digits=14, decimal_places=2)
+    total_commission_paid = serializers.DecimalField(max_digits=14, decimal_places=2)
+    total_net_received = serializers.DecimalField(max_digits=14, decimal_places=2)
+    total_pending_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
     total_pending_payout_amount = serializers.DecimalField(max_digits=14, decimal_places=2)

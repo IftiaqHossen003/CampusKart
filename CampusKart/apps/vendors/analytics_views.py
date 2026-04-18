@@ -1,3 +1,7 @@
+import csv
+
+from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,10 +17,21 @@ from .analytics_serializers import (
 )
 from .analytics_services import (
     get_vendor_overview,
+    get_vendor_payouts_csv_rows,
     get_vendor_payouts_analytics,
     get_vendor_products_analytics,
     get_vendor_revenue_series,
 )
+
+
+def _csv_response(*, filename: str, headers: list[str], rows: list[list[object]]) -> HttpResponse:
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow(headers)
+    writer.writerows(rows)
+    return response
 
 
 class VendorAnalyticsOverviewView(APIView):
@@ -57,3 +72,24 @@ class VendorAnalyticsPayoutsView(APIView):
         payload = get_vendor_payouts_analytics(request.user.vendor_profile)
         serializer = VendorPayoutAnalyticsResponseSerializer(payload)
         return Response(serializer.data)
+
+
+class VendorAnalyticsPayoutsExportCsvView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsVendor]
+
+    def get(self, request):
+        rows = get_vendor_payouts_csv_rows(request.user.vendor_profile)
+        filename = f'vendor-payouts-{timezone.localdate().isoformat()}.csv'
+        return _csv_response(
+            filename=filename,
+            headers=[
+                "order_number",
+                "date",
+                "gross",
+                "commission",
+                "commission_percentage",
+                "net",
+                "status",
+            ],
+            rows=rows,
+        )
