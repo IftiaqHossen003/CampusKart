@@ -39,6 +39,7 @@ urlpatterns = [
     path(API_V1 + "banners/",       PublicBannerListView.as_view(), name="banners-public-list"),
     path(API_V1 + "admin/",         include("apps.admin_api.urls",    namespace="admin_api")),
     path(API_V1 + "chat/",          include("apps.chat.urls",         namespace="chat")),
+    path("api/chat/",               include("apps.chat.urls", namespace="chat_unversioned")),
     path(API_V1 + "notifications/", include("apps.notifications.urls",namespace="notifications")),
     path(API_V1 + "reviews/",       include("apps.reviews.urls",      namespace="reviews")),
 ]
