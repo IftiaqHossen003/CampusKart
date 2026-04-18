@@ -153,7 +153,8 @@ function ChatPage() {
     });
 
     return [...merged.values()].sort(
-      (left, right) => new Date(left.sent_at).getTime() - new Date(right.sent_at).getTime(),
+      (left, right) =>
+        new Date(left.sent_at).getTime() - new Date(right.sent_at).getTime(),
     );
   }, [messagesQuery.data, liveMessagesByRoom, selectedRoomId]);
 
@@ -161,40 +162,43 @@ function ChatPage() {
   const isPeerTyping =
     typingState.roomId === selectedRoomId && typingState.isTyping;
 
-  const updateRoomInState = useCallback((roomId, updater) => {
-    if (!roomId) {
-      return;
-    }
-
-    queryClient.setQueryData(["chat-rooms"], (previousRooms) => {
-      const sourceRooms = Array.isArray(previousRooms)
-        ? previousRooms
-        : Array.isArray(previousRooms?.results)
-          ? previousRooms.results
-          : null;
-
-      if (!sourceRooms) {
-        return previousRooms;
+  const updateRoomInState = useCallback(
+    (roomId, updater) => {
+      if (!roomId) {
+        return;
       }
 
-      const nextRooms = sourceRooms.map((room) => {
-        if (room.id !== roomId) {
-          return room;
+      queryClient.setQueryData(["chat-rooms"], (previousRooms) => {
+        const sourceRooms = Array.isArray(previousRooms)
+          ? previousRooms
+          : Array.isArray(previousRooms?.results)
+            ? previousRooms.results
+            : null;
+
+        if (!sourceRooms) {
+          return previousRooms;
         }
 
-        return updater(room);
+        const nextRooms = sourceRooms.map((room) => {
+          if (room.id !== roomId) {
+            return room;
+          }
+
+          return updater(room);
+        });
+
+        if (Array.isArray(previousRooms)) {
+          return nextRooms;
+        }
+
+        return {
+          ...previousRooms,
+          results: nextRooms,
+        };
       });
-
-      if (Array.isArray(previousRooms)) {
-        return nextRooms;
-      }
-
-      return {
-        ...previousRooms,
-        results: nextRooms,
-      };
-    });
-  }, [queryClient]);
+    },
+    [queryClient],
+  );
 
   const handleSocketMessage = useCallback(
     (payload) => {

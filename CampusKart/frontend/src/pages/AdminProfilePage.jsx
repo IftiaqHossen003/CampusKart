@@ -122,10 +122,10 @@ function AdminProfilePage() {
               <input
                 type="text"
                 required
-                  value={resolvedFormState.full_name}
+                value={resolvedFormState.full_name}
                 onChange={(event) =>
                   setFormState((current) => ({
-                      ...(current || resolvedFormState),
+                    ...(current || resolvedFormState),
                     full_name: event.target.value,
                   }))
                 }
@@ -139,10 +139,10 @@ function AdminProfilePage() {
               </span>
               <input
                 type="text"
-                  value={resolvedFormState.phone}
+                value={resolvedFormState.phone}
                 onChange={(event) =>
                   setFormState((current) => ({
-                      ...(current || resolvedFormState),
+                    ...(current || resolvedFormState),
                     phone: event.target.value,
                   }))
                 }

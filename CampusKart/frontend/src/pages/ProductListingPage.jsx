@@ -1,77 +1,84 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
-import { fetchCategories, fetchProducts, fetchProductTags } from '../api/products'
-import EmptyState from '../components/ui/EmptyState'
-import Pagination from '../components/ui/Pagination'
-import ProductCard from '../components/ui/ProductCard'
-import ProductGridSkeleton from '../components/ui/ProductGridSkeleton'
-import { useDebouncedValue } from '../hooks/useDebouncedValue'
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
+import {
+  fetchCategories,
+  fetchProducts,
+  fetchProductTags,
+} from "../api/products";
+import EmptyState from "../components/ui/EmptyState";
+import Pagination from "../components/ui/Pagination";
+import ProductCard from "../components/ui/ProductCard";
+import ProductGridSkeleton from "../components/ui/ProductGridSkeleton";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
-const PRICE_MIN = 0
-const PRICE_MAX = 5000
+const PRICE_MIN = 0;
+const PRICE_MAX = 5000;
 
 const SORT_OPTIONS = [
-  { label: 'Newest', value: 'newest', ordering: '-created_at' },
-  { label: 'Price: Low to High', value: 'price', ordering: 'price' },
-  { label: 'Rating: High to Low', value: 'rating', ordering: '-avg_rating' },
-  { label: 'Popular', value: 'popular', ordering: '-total_sold' },
-]
+  { label: "Newest", value: "newest", ordering: "-created_at" },
+  { label: "Price: Low to High", value: "price", ordering: "price" },
+  { label: "Rating: High to Low", value: "rating", ordering: "-avg_rating" },
+  { label: "Popular", value: "popular", ordering: "-total_sold" },
+];
 
 function clampNumber(value, min, max) {
-  const parsed = Number(value)
+  const parsed = Number(value);
   if (Number.isNaN(parsed)) {
-    return min
+    return min;
   }
-  return Math.max(min, Math.min(max, parsed))
+  return Math.max(min, Math.min(max, parsed));
 }
 
 function parseCurrentSort(value) {
-  const found = SORT_OPTIONS.find((option) => option.value === value)
-  return found?.value || 'newest'
+  const found = SORT_OPTIONS.find((option) => option.value === value);
+  return found?.value || "newest";
 }
 
 function sortToOrdering(sort) {
-  return SORT_OPTIONS.find((option) => option.value === sort)?.ordering || '-created_at'
+  return (
+    SORT_OPTIONS.find((option) => option.value === sort)?.ordering ||
+    "-created_at"
+  );
 }
 
 function ProductListingPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const category = searchParams.get('category') || ''
-  const selectedTags = searchParams.getAll('tag').filter(Boolean)
-  const minPrice = searchParams.get('min_price') || ''
-  const maxPrice = searchParams.get('max_price') || ''
-  const currentPage = Math.max(1, Number(searchParams.get('page') || 1))
-  const currentSort = parseCurrentSort(searchParams.get('sort') || 'newest')
-  const searchTerm = searchParams.get('search') || ''
+  const category = searchParams.get("category") || "";
+  const selectedTags = searchParams.getAll("tag").filter(Boolean);
+  const minPrice = searchParams.get("min_price") || "";
+  const maxPrice = searchParams.get("max_price") || "";
+  const currentPage = Math.max(1, Number(searchParams.get("page") || 1));
+  const currentSort = parseCurrentSort(searchParams.get("sort") || "newest");
+  const searchTerm = searchParams.get("search") || "";
 
-  const [searchInput, setSearchInput] = useState(searchTerm)
-  const debouncedSearch = useDebouncedValue(searchInput, 400)
+  const [searchInput, setSearchInput] = useState(searchTerm);
+  const debouncedSearch = useDebouncedValue(searchInput, 400);
 
   useEffect(() => {
-    if (!searchParams.get('page')) {
-      const next = new URLSearchParams(searchParams)
-      next.set('page', '1')
-      setSearchParams(next, { replace: true })
+    if (!searchParams.get("page")) {
+      const next = new URLSearchParams(searchParams);
+      next.set("page", "1");
+      setSearchParams(next, { replace: true });
     }
-  }, [searchParams, setSearchParams])
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
-    const normalized = debouncedSearch.trim()
+    const normalized = debouncedSearch.trim();
     if (normalized === searchTerm) {
-      return
+      return;
     }
 
-    const next = new URLSearchParams(searchParams)
+    const next = new URLSearchParams(searchParams);
     if (normalized) {
-      next.set('search', normalized)
+      next.set("search", normalized);
     } else {
-      next.delete('search')
+      next.delete("search");
     }
-    next.set('page', '1')
-    setSearchParams(next)
-  }, [debouncedSearch, searchParams, searchTerm, setSearchParams])
+    next.set("page", "1");
+    setSearchParams(next);
+  }, [debouncedSearch, searchParams, searchTerm, setSearchParams]);
 
   const productFilters = useMemo(
     () => ({
@@ -83,125 +90,145 @@ function ProductListingPage() {
       ordering: sortToOrdering(currentSort),
       search: searchTerm,
     }),
-    [category, selectedTags, minPrice, maxPrice, currentPage, currentSort, searchTerm],
-  )
+    [
+      category,
+      selectedTags,
+      minPrice,
+      maxPrice,
+      currentPage,
+      currentSort,
+      searchTerm,
+    ],
+  );
 
   const categoriesQuery = useQuery({
-    queryKey: ['categories'],
+    queryKey: ["categories"],
     queryFn: fetchCategories,
     staleTime: 5 * 60 * 1000,
-  })
+  });
 
   const productsQuery = useQuery({
-    queryKey: ['products', productFilters],
+    queryKey: ["products", productFilters],
     queryFn: () => fetchProducts(productFilters),
     staleTime: 5 * 60 * 1000,
-  })
+  });
 
   const tagsQuery = useQuery({
-    queryKey: ['product-tags'],
+    queryKey: ["product-tags"],
     queryFn: fetchProductTags,
     staleTime: 5 * 60 * 1000,
-  })
+  });
 
-  const categoriesData = categoriesQuery.data
+  const categoriesData = categoriesQuery.data;
   const categories = Array.isArray(categoriesData)
     ? categoriesData
     : Array.isArray(categoriesData?.results)
       ? categoriesData.results
-      : []
-  const products = productsQuery.data?.results || []
-  const totalCount = productsQuery.data?.count || 0
-  const pageSize = products.length > 0 ? products.length : 20
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
+      : [];
+  const products = productsQuery.data?.results || [];
+  const totalCount = productsQuery.data?.count || 0;
+  const pageSize = products.length > 0 ? products.length : 20;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const tagOptions = useMemo(() => {
-    const tagsData = tagsQuery.data
+    const tagsData = tagsQuery.data;
     if (Array.isArray(tagsData)) {
-      return tagsData
+      return tagsData;
     }
     if (Array.isArray(tagsData?.results)) {
-      return tagsData.results
+      return tagsData.results;
     }
-    return []
-  }, [tagsQuery.data])
+    return [];
+  }, [tagsQuery.data]);
 
   const updateParams = (updater) => {
-    const next = new URLSearchParams(searchParams)
-    updater(next)
-    setSearchParams(next)
-  }
+    const next = new URLSearchParams(searchParams);
+    updater(next);
+    setSearchParams(next);
+  };
 
   const handleCategorySelect = (categoryId) => {
     updateParams((next) => {
       if (categoryId) {
-        next.set('category', String(categoryId))
+        next.set("category", String(categoryId));
       } else {
-        next.delete('category')
+        next.delete("category");
       }
-      next.set('page', '1')
-    })
-  }
+      next.set("page", "1");
+    });
+  };
 
   const handleTagToggle = (tag) => {
     updateParams((next) => {
-      const current = next.getAll('tag')
-      const exists = current.includes(tag)
-      next.delete('tag')
+      const current = next.getAll("tag");
+      const exists = current.includes(tag);
+      next.delete("tag");
 
-      const nextTags = exists ? current.filter((item) => item !== tag) : [...current, tag]
-      nextTags.forEach((item) => next.append('tag', item))
-      next.set('page', '1')
-    })
-  }
+      const nextTags = exists
+        ? current.filter((item) => item !== tag)
+        : [...current, tag];
+      nextTags.forEach((item) => next.append("tag", item));
+      next.set("page", "1");
+    });
+  };
 
   const handlePriceApply = (nextMin, nextMax) => {
     updateParams((next) => {
-      if (nextMin === '') {
-        next.delete('min_price')
+      if (nextMin === "") {
+        next.delete("min_price");
       } else {
-        next.set('min_price', String(nextMin))
+        next.set("min_price", String(nextMin));
       }
 
-      if (nextMax === '') {
-        next.delete('max_price')
+      if (nextMax === "") {
+        next.delete("max_price");
       } else {
-        next.set('max_price', String(nextMax))
+        next.set("max_price", String(nextMax));
       }
 
-      next.set('page', '1')
-    })
-  }
+      next.set("page", "1");
+    });
+  };
 
   const handleSortChange = (value) => {
     updateParams((next) => {
-      next.set('sort', value)
-      next.set('page', '1')
-    })
-  }
+      next.set("sort", value);
+      next.set("page", "1");
+    });
+  };
 
   const handlePageChange = (page) => {
     updateParams((next) => {
-      next.set('page', String(page))
-    })
-  }
+      next.set("page", String(page));
+    });
+  };
 
   const handleResetFilters = () => {
-    const next = new URLSearchParams()
-    next.set('page', '1')
-    setSearchInput('')
-    setSearchParams(next)
-  }
+    const next = new URLSearchParams();
+    next.set("page", "1");
+    setSearchInput("");
+    setSearchParams(next);
+  };
 
-  const minSliderValue = clampNumber(minPrice || PRICE_MIN, PRICE_MIN, PRICE_MAX)
-  const maxSliderValue = clampNumber(maxPrice || PRICE_MAX, PRICE_MIN, PRICE_MAX)
-  const safeMinValue = Math.min(minSliderValue, maxSliderValue)
-  const safeMaxValue = Math.max(minSliderValue, maxSliderValue)
+  const minSliderValue = clampNumber(
+    minPrice || PRICE_MIN,
+    PRICE_MIN,
+    PRICE_MAX,
+  );
+  const maxSliderValue = clampNumber(
+    maxPrice || PRICE_MAX,
+    PRICE_MIN,
+    PRICE_MAX,
+  );
+  const safeMinValue = Math.min(minSliderValue, maxSliderValue);
+  const safeMaxValue = Math.max(minSliderValue, maxSliderValue);
 
   return (
     <section className="space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white px-4 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">Shop Campus Essentials</h1>
+        <h1 className="text-2xl font-bold text-primary">
+          Shop Campus Essentials
+        </h1>
         <p className="mt-1 text-sm text-muted">
           Discover verified products from trusted campus vendors.
         </p>
@@ -221,13 +248,17 @@ function ProductListingPage() {
           </div>
 
           <div className="border-t border-slate-200 pt-4">
-            <p className="mb-2 text-sm font-semibold text-slate-800">Category</p>
+            <p className="mb-2 text-sm font-semibold text-slate-800">
+              Category
+            </p>
             <div className="space-y-1 text-sm">
               <button
                 type="button"
-                onClick={() => handleCategorySelect('')}
+                onClick={() => handleCategorySelect("")}
                 className={`block w-full rounded px-2 py-1 text-left ${
-                  !category ? 'bg-primary/10 text-primary' : 'hover:bg-slate-100'
+                  !category
+                    ? "bg-primary/10 text-primary"
+                    : "hover:bg-slate-100"
                 }`}
               >
                 All Categories
@@ -240,8 +271,8 @@ function ProductListingPage() {
                     onClick={() => handleCategorySelect(rootCategory.id)}
                     className={`block w-full rounded px-2 py-1 text-left font-medium ${
                       String(category) === String(rootCategory.id)
-                        ? 'bg-primary/10 text-primary'
-                        : 'hover:bg-slate-100'
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-slate-100"
                     }`}
                   >
                     {rootCategory.name}
@@ -254,8 +285,8 @@ function ProductListingPage() {
                       onClick={() => handleCategorySelect(child.id)}
                       className={`ml-3 block w-[calc(100%-12px)] rounded px-2 py-1 text-left text-xs ${
                         String(category) === String(child.id)
-                          ? 'bg-accent/10 text-accent'
-                          : 'hover:bg-slate-100'
+                          ? "bg-accent/10 text-accent"
+                          : "hover:bg-slate-100"
                       }`}
                     >
                       {child.name}
@@ -267,10 +298,15 @@ function ProductListingPage() {
           </div>
 
           <div className="border-t border-slate-200 pt-4">
-            <p className="mb-2 text-sm font-semibold text-slate-800">Price Range</p>
+            <p className="mb-2 text-sm font-semibold text-slate-800">
+              Price Range
+            </p>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs text-muted" htmlFor="min-price-range">
+                <label
+                  className="mb-1 block text-xs text-muted"
+                  htmlFor="min-price-range"
+                >
                   Minimum: BDT {safeMinValue}
                 </label>
                 <input
@@ -280,14 +316,21 @@ function ProductListingPage() {
                   max={PRICE_MAX}
                   value={safeMinValue}
                   onChange={(event) => {
-                    const nextMin = clampNumber(event.target.value, PRICE_MIN, safeMaxValue)
-                    handlePriceApply(nextMin, safeMaxValue)
+                    const nextMin = clampNumber(
+                      event.target.value,
+                      PRICE_MIN,
+                      safeMaxValue,
+                    );
+                    handlePriceApply(nextMin, safeMaxValue);
                   }}
                   className="w-full accent-accent"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-muted" htmlFor="max-price-range">
+                <label
+                  className="mb-1 block text-xs text-muted"
+                  htmlFor="max-price-range"
+                >
                   Maximum: BDT {safeMaxValue}
                 </label>
                 <input
@@ -297,8 +340,12 @@ function ProductListingPage() {
                   max={PRICE_MAX}
                   value={safeMaxValue}
                   onChange={(event) => {
-                    const nextMax = clampNumber(event.target.value, safeMinValue, PRICE_MAX)
-                    handlePriceApply(safeMinValue, nextMax)
+                    const nextMax = clampNumber(
+                      event.target.value,
+                      safeMinValue,
+                      PRICE_MAX,
+                    );
+                    handlePriceApply(safeMinValue, nextMax);
                   }}
                   className="w-full accent-accent"
                 />
@@ -309,10 +356,15 @@ function ProductListingPage() {
           <div className="border-t border-slate-200 pt-4">
             <p className="mb-2 text-sm font-semibold text-slate-800">Tags</p>
             <div className="space-y-2">
-              {tagsQuery.isLoading ? <p className="text-xs text-muted">Loading tags...</p> : null}
+              {tagsQuery.isLoading ? (
+                <p className="text-xs text-muted">Loading tags...</p>
+              ) : null}
               {!tagsQuery.isLoading && tagOptions.length > 0
                 ? tagOptions.map((tagOption) => (
-                    <label key={tagOption.tag} className="flex items-center gap-2 text-sm text-slate-700">
+                    <label
+                      key={tagOption.tag}
+                      className="flex items-center gap-2 text-sm text-slate-700"
+                    >
                       <input
                         type="checkbox"
                         checked={selectedTags.includes(tagOption.tag)}
@@ -320,12 +372,16 @@ function ProductListingPage() {
                         className="h-4 w-4 rounded border-slate-300 text-accent focus:ring-accent"
                       />
                       <span>{tagOption.tag}</span>
-                      <span className="text-xs text-muted">({tagOption.count})</span>
+                      <span className="text-xs text-muted">
+                        ({tagOption.count})
+                      </span>
                     </label>
                   ))
                 : null}
               {!tagsQuery.isLoading && tagOptions.length === 0 ? (
-                <p className="text-xs text-muted">No global tags available yet.</p>
+                <p className="text-xs text-muted">
+                  No global tags available yet.
+                </p>
               ) : null}
             </div>
           </div>
@@ -343,10 +399,15 @@ function ProductListingPage() {
               />
 
               <p className="text-sm text-muted">
-                {productsQuery.isLoading ? 'Loading results...' : `${totalCount} result${totalCount === 1 ? '' : 's'}`}
+                {productsQuery.isLoading
+                  ? "Loading results..."
+                  : `${totalCount} result${totalCount === 1 ? "" : "s"}`}
               </p>
 
-              <label className="flex items-center gap-2 text-sm text-slate-700" htmlFor="sort-by">
+              <label
+                className="flex items-center gap-2 text-sm text-slate-700"
+                htmlFor="sort-by"
+              >
                 <span>Sort</span>
                 <select
                   id="sort-by"
@@ -393,7 +454,7 @@ function ProductListingPage() {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
-export default ProductListingPage
+export default ProductListingPage;
