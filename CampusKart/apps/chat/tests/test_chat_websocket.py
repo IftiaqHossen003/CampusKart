@@ -160,3 +160,70 @@ class ChatWebSocketTests(TransactionTestCase):
 
         self.assertTrue(incoming.is_read)
         self.assertFalse(own_message.is_read)
+
+    def test_typing_event_is_broadcast_to_room_members(self):
+        async def scenario():
+            buyer_socket = self._query_communicator(self.buyer)
+            vendor_socket = self._query_communicator(self.vendor_user)
+
+            buyer_connected, _ = await buyer_socket.connect()
+            vendor_connected, _ = await vendor_socket.connect()
+
+            self.assertTrue(buyer_connected)
+            self.assertTrue(vendor_connected)
+
+            await buyer_socket.send_json_to({"type": "typing", "is_typing": True})
+
+            buyer_event = await buyer_socket.receive_json_from()
+            vendor_event = await vendor_socket.receive_json_from()
+
+            self.assertEqual(buyer_event["type"], "typing")
+            self.assertEqual(vendor_event["type"], "typing")
+            self.assertTrue(vendor_event["is_typing"])
+            self.assertEqual(vendor_event["sender_id"], self.buyer.id)
+            self.assertEqual(vendor_event["room_id"], self.room.id)
+
+            await buyer_socket.disconnect()
+            await vendor_socket.disconnect()
+
+        async_to_sync(scenario)()
+
+    def test_read_receipt_event_marks_message_and_broadcasts(self):
+        unread_message = ChatMessage.objects.create(
+            room=self.room,
+            sender=self.vendor_user,
+            message="Please confirm seen",
+            is_read=False,
+        )
+
+        async def scenario():
+            buyer_socket = self._query_communicator(self.buyer)
+            vendor_socket = self._query_communicator(self.vendor_user)
+
+            buyer_connected, _ = await buyer_socket.connect()
+            vendor_connected, _ = await vendor_socket.connect()
+
+            self.assertTrue(buyer_connected)
+            self.assertTrue(vendor_connected)
+
+            await buyer_socket.send_json_to(
+                {"type": "read_receipt", "message_id": unread_message.id}
+            )
+
+            buyer_event = await buyer_socket.receive_json_from()
+            vendor_event = await vendor_socket.receive_json_from()
+
+            self.assertEqual(buyer_event["type"], "read_receipt")
+            self.assertEqual(vendor_event["type"], "read_receipt")
+            self.assertEqual(vendor_event["message_id"], unread_message.id)
+            self.assertEqual(vendor_event["reader_id"], self.buyer.id)
+            self.assertEqual(vendor_event["room_id"], self.room.id)
+            self.assertIn("read_at", vendor_event)
+
+            await buyer_socket.disconnect()
+            await vendor_socket.disconnect()
+
+        async_to_sync(scenario)()
+
+        unread_message.refresh_from_db()
+        self.assertTrue(unread_message.is_read)
