@@ -326,3 +326,45 @@ class VendorAnalyticsApiTests(APITestCase):
         second = self.client.get(self.overview_url)
         self.assertEqual(second.status_code, status.HTTP_200_OK)
         self.assertEqual(Decimal(second.data["total_revenue"]), Decimal("175.00"))
+
+    def test_payouts_cache_is_invalidated_on_payout_status_change(self):
+        self._auth(self.vendor_user)
+
+        first = self.client.get(self.payouts_url)
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(Decimal(first.data["total_pending_payout_amount"]), Decimal("100.00"))
+
+        pending = VendorPayout.objects.filter(
+            vendor=self.vendor_profile,
+            status=VendorPayout.Status.PENDING,
+        ).first()
+        self.assertIsNotNone(pending)
+
+        pending.status = VendorPayout.Status.PAID
+        pending.save(update_fields=["status", "updated_at"])
+
+        second = self.client.get(self.payouts_url)
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertEqual(Decimal(second.data["total_pending_payout_amount"]), Decimal("0.00"))
+
+    def test_products_cache_is_invalidated_on_view_counter_change(self):
+        self._auth(self.vendor_user)
+
+        first = self.client.get(self.products_url)
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+
+        product_one_row = next(item for item in first.data if item["name"] == "Product One")
+        self.assertEqual(product_one_row["views"], 12)
+
+        daily = ProductViewDaily.objects.get(
+            product=self.product_one,
+            view_date=timezone.localdate(),
+        )
+        daily.view_count = 20
+        daily.save(update_fields=["view_count", "updated_at"])
+
+        second = self.client.get(self.products_url)
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+
+        product_one_row_after = next(item for item in second.data if item["name"] == "Product One")
+        self.assertEqual(product_one_row_after["views"], 20)
