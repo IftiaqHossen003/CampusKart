@@ -15,6 +15,7 @@ const vendorNavItems = [
   { key: "dashboard", label: "Dashboard" },
   { key: "products", label: "Products" },
   { key: "orders", label: "Orders" },
+  { key: "analytics", label: "Analytics" },
   { key: "payouts", label: "Payouts" },
   { key: "settings", label: "Settings" },
 ];
