@@ -4,6 +4,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from .models import ChatMessage, ChatRoom
+from .pagination import ChatMessageCursorPagination
 from .serializers import ChatMessageSerializer, ChatRoomCreateSerializer, ChatRoomSerializer
 
 
@@ -36,6 +37,7 @@ class ChatRoomListCreateView(generics.ListCreateAPIView):
 class ChatMessageListView(generics.ListAPIView):
     serializer_class = ChatMessageSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = ChatMessageCursorPagination
 
     _room = None
 
@@ -54,7 +56,7 @@ class ChatMessageListView(generics.ListAPIView):
 
     def get_queryset(self):
         room = self._get_room()
-        return room.messages.select_related("sender").order_by("sent_at")
+        return room.messages.select_related("sender").order_by("-sent_at")
 
     def list(self, request, *args, **kwargs):
         room = self._get_room()

@@ -81,7 +81,6 @@ class ProductReviewListCreateView(generics.ListCreateAPIView):
 class LegacyProductReviewListView(generics.ListAPIView):
     serializer_class = ProductReviewSerializer
     permission_classes = [permissions.AllowAny]
-    pagination_class = None
 
     def get_queryset(self):
         product_id = self.request.query_params.get("product")

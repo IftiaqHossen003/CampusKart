@@ -42,7 +42,11 @@ class ChatRoomSerializer(serializers.ModelSerializer):
         ]
 
     def get_last_message(self, obj):
-        msg = obj.messages.order_by("-sent_at").first()
+        messages = list(obj.messages.all())
+        if not messages:
+            return None
+
+        msg = max(messages, key=lambda message: message.sent_at)
         if msg:
             return ChatMessageSerializer(msg).data
         return None

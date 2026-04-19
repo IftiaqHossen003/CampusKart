@@ -184,6 +184,20 @@ class ProductReviewsApiTests(APITestCase):
         self.assertEqual(len(response.data["results"]), 5)
         self.assertIsNotNone(response.data.get("next"))
 
+    def test_legacy_review_list_is_paginated(self):
+        delivered_order = self._create_order(buyer=self.buyer, status_value=Order.Status.DELIVERED)
+        Review.objects.create(
+            user=self.buyer,
+            product=self.product,
+            order=delivered_order,
+            rating=5,
+            comment="Legacy paginated review",
+        )
+
+        response = self.client.get(f"/api/v1/reviews/?product={self.product.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+
     def test_review_eligibility_returns_only_unreviewed_delivered_orders_for_user(self):
         delivered = self._create_order(buyer=self.buyer, status_value=Order.Status.DELIVERED)
         pending = self._create_order(buyer=self.buyer, status_value=Order.Status.PENDING)

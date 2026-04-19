@@ -140,7 +140,7 @@ class ChatApiTests(APITestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["id"], own_room.id)
 
-    def test_messages_are_oldest_first_and_marked_read_on_open(self):
+    def test_messages_are_newest_first_and_marked_read_on_open(self):
         room = ChatRoom.objects.create(buyer=self.buyer, vendor=self.vendor, product=self.product)
         first = ChatMessage.objects.create(room=room, sender=self.vendor_user, message="First")
         second = ChatMessage.objects.create(room=room, sender=self.vendor_user, message="Second")
@@ -151,7 +151,7 @@ class ChatApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data.get("results", response.data)
-        self.assertEqual([msg["id"] for msg in results], [first.id, second.id, self_message.id])
+        self.assertEqual([msg["id"] for msg in results], [self_message.id, second.id, first.id])
 
         first.refresh_from_db()
         second.refresh_from_db()
@@ -159,6 +159,22 @@ class ChatApiTests(APITestCase):
         self.assertTrue(first.is_read)
         self.assertTrue(second.is_read)
         self.assertFalse(self_message.is_read)
+
+    def test_messages_use_cursor_pagination(self):
+        room = ChatRoom.objects.create(buyer=self.buyer, vendor=self.vendor, product=self.product)
+        for i in range(55):
+            ChatMessage.objects.create(room=room, sender=self.vendor_user, message=f"Message {i}")
+
+        self.client.force_authenticate(user=self.buyer)
+        response = self.client.get(f"/api/v1/chat/rooms/{room.id}/messages/?page_size=20")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+        self.assertIn("next", response.data)
+        self.assertIn("previous", response.data)
+        self.assertEqual(len(response.data["results"]), 20)
+        self.assertIsNotNone(response.data["next"])
+        self.assertIsNone(response.data["previous"])
 
     def test_non_participant_cannot_access_room_messages(self):
         room = ChatRoom.objects.create(buyer=self.buyer, vendor=self.vendor, product=self.product)

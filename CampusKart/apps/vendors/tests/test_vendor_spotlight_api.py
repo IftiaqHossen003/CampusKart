@@ -58,9 +58,10 @@ class VendorSpotlightApiTests(APITestCase):
 
         response = self.client.get("/api/v1/vendors/spotlight/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 3)
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 3)
         self.assertEqual(
-            [item["id"] for item in response.data],
+            [item["id"] for item in results],
             [top_1.id, top_2.id, top_3.id],
         )
 
@@ -86,5 +87,6 @@ class VendorSpotlightApiTests(APITestCase):
 
         response = self.client.get("/api/v1/vendors/spotlight/?limit=2")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
-        self.assertEqual([item["id"] for item in response.data], [first.id, second.id])
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 2)
+        self.assertEqual([item["id"] for item in results], [first.id, second.id])

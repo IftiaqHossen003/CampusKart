@@ -1,41 +1,46 @@
 from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
+from CampusKart.pagination import DefaultPageNumberPagination
 from .models import VendorProfile
 from .serializers import VendorProfileSerializer, VendorSpotlightSerializer
 from apps.admin_api.services import write_admin_audit_log
 
 
 class VendorListView(generics.ListAPIView):
-    queryset = VendorProfile.objects.filter(status="approved")
     serializer_class = VendorProfileSerializer
     permission_classes = [permissions.AllowAny]
     search_fields = ["shop_name", "description", "address"]
     ordering_fields = ["created_at", "total_earnings"]
 
+    def get_queryset(self):
+        return VendorProfile.objects.filter(status=VendorProfile.Status.APPROVED).select_related("user", "approved_by")
+
 
 class VendorDetailView(generics.RetrieveAPIView):
-    queryset = VendorProfile.objects.filter(status="approved")
     serializer_class = VendorProfileSerializer
     permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        return VendorProfile.objects.filter(status=VendorProfile.Status.APPROVED).select_related("user", "approved_by")
+
+
+class VendorSpotlightPagination(DefaultPageNumberPagination):
+    page_size = 3
+    page_size_query_param = "limit"
+    max_page_size = 12
 
 
 class VendorSpotlightListView(generics.ListAPIView):
     serializer_class = VendorSpotlightSerializer
     permission_classes = [permissions.AllowAny]
-    pagination_class = None
+    pagination_class = VendorSpotlightPagination
 
     def get_queryset(self):
-        limit_raw = self.request.query_params.get("limit", "3")
-        try:
-            limit = int(limit_raw)
-        except (TypeError, ValueError):
-            limit = 3
-
-        limit = max(1, min(limit, 12))
-
-        return VendorProfile.objects.filter(status=VendorProfile.Status.APPROVED).order_by(
+        return VendorProfile.objects.filter(status=VendorProfile.Status.APPROVED).select_related(
+            "user", "approved_by"
+        ).order_by(
             "-total_earnings", "-created_at", "id"
-        )[:limit]
+        )
 
 
 class MyVendorProfileView(generics.RetrieveUpdateAPIView):
@@ -56,7 +61,7 @@ class MyVendorProfileView(generics.RetrieveUpdateAPIView):
                 "contact_email": user.email,
             },
         )
-        return vendor_profile
+        return VendorProfile.objects.select_related("user", "approved_by").get(pk=vendor_profile.pk)
 
     def perform_update(self, serializer):
         instance = self.get_object()
