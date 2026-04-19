@@ -29,6 +29,7 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    command: ["postgres", "-c", "log_min_duration_statement=100"]
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
