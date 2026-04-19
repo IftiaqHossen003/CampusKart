@@ -17,6 +17,9 @@ from .models import AdminAuditLog
 _STATS_PREFIX = "admin:stats:v1"
 _STATS_REGISTRY_KEY = f"{_STATS_PREFIX}:registry"
 _STATS_TTL_SECONDS = 600
+PUBLIC_BANNER_CACHE_PREFIX = "admin:banners:v1:public"
+_PUBLIC_BANNER_REGISTRY_KEY = f"{PUBLIC_BANNER_CACHE_PREFIX}:registry"
+PUBLIC_BANNER_CACHE_TTL_SECONDS = 60 * 60
 
 
 def _stats_key(*, from_date: date | None, to_date: date | None) -> str:
@@ -142,6 +145,31 @@ def invalidate_admin_stats_cache() -> None:
     for cache_key in keys:
         cache.delete(cache_key)
     cache.delete(_STATS_REGISTRY_KEY)
+
+
+def invalidate_public_banner_cache() -> None:
+    delete_pattern = getattr(cache, "delete_pattern", None)
+    if callable(delete_pattern):
+        delete_pattern(f"{PUBLIC_BANNER_CACHE_PREFIX}:*")
+        cache.delete(_PUBLIC_BANNER_REGISTRY_KEY)
+        return
+
+    keys = cache.get(_PUBLIC_BANNER_REGISTRY_KEY) or []
+    for cache_key in keys:
+        cache.delete(cache_key)
+    cache.delete(_PUBLIC_BANNER_REGISTRY_KEY)
+
+
+def public_banner_cache_key(*, query_string: str) -> str:
+    suffix = query_string or "default"
+    return f"{PUBLIC_BANNER_CACHE_PREFIX}:{suffix}"
+
+
+def track_public_banner_cache_key(cache_key: str) -> None:
+    keys = cache.get(_PUBLIC_BANNER_REGISTRY_KEY) or []
+    if cache_key not in keys:
+        keys.append(cache_key)
+        cache.set(_PUBLIC_BANNER_REGISTRY_KEY, keys, PUBLIC_BANNER_CACHE_TTL_SECONDS * 12)
 
 
 def write_admin_audit_log(

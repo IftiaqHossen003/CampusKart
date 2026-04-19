@@ -4,7 +4,8 @@ from django.dispatch import receiver
 from apps.orders.models import Order
 from apps.payments.models import Payment, VendorPayout
 
-from .services import invalidate_admin_stats_cache
+from .models import Banner
+from .services import invalidate_admin_stats_cache, invalidate_public_banner_cache
 
 
 @receiver([post_save, post_delete], sender=Order)
@@ -20,3 +21,8 @@ def invalidate_admin_stats_on_payment_change(sender, instance, **kwargs):
 @receiver([post_save, post_delete], sender=VendorPayout)
 def invalidate_admin_stats_on_payout_change(sender, instance, **kwargs):
     invalidate_admin_stats_cache()
+
+
+@receiver([post_save, post_delete], sender=Banner)
+def invalidate_public_banner_cache_on_banner_change(sender, instance, **kwargs):
+    invalidate_public_banner_cache()

@@ -96,8 +96,9 @@ class BannerApiTests(APITestCase):
 
         response = self.client.get("/api/v1/banners/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
-        self.assertEqual([item["title"] for item in response.data], ["First", "Second"])
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 2)
+        self.assertEqual([item["title"] for item in results], ["First", "Second"])
 
     def test_admin_reorder_updates_positions_and_preserves_remaining_items(self):
         self.client.force_authenticate(user=self.admin_user)

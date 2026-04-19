@@ -2,6 +2,7 @@ import csv
 from datetime import timedelta
 from decimal import Decimal
 
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import DecimalField, Q, Sum, Value
 from django.db.models.functions import Coalesce, TruncDate
@@ -39,6 +40,12 @@ from .serializers import (
     AdminVendorModerationSerializer,
 )
 from .services import get_cached_admin_stats, write_admin_audit_log
+from .services import (
+    PUBLIC_BANNER_CACHE_TTL_SECONDS,
+    invalidate_public_banner_cache,
+    public_banner_cache_key,
+    track_public_banner_cache_key,
+)
 
 
 def _build_vendor_queue_queryset(request):
@@ -530,8 +537,18 @@ class AdminBannerDetailView(generics.RetrieveUpdateDestroyAPIView):
 class PublicBannerListView(generics.ListAPIView):
     serializer_class = PublicBannerSerializer
     permission_classes = [permissions.AllowAny]
-    pagination_class = None
     queryset = Banner.objects.filter(is_active=True).order_by("position", "id")
+
+    def list(self, request, *args, **kwargs):
+        cache_key = public_banner_cache_key(query_string=request.META.get("QUERY_STRING", ""))
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        response = super().list(request, *args, **kwargs)
+        cache.set(cache_key, response.data, PUBLIC_BANNER_CACHE_TTL_SECONDS)
+        track_public_banner_cache_key(cache_key)
+        return response
 
 
 class AdminBannerReorderView(APIView):
@@ -576,6 +593,8 @@ class AdminBannerReorderView(APIView):
             after={"items": after},
             metadata={"requested_items": requested_ids},
         )
+
+        invalidate_public_banner_cache()
 
         return Response(
             {
