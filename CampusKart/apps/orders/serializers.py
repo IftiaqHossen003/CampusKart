@@ -25,16 +25,16 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "order_number", "total_amount", "created_at"]
 
     def get_items(self, obj):
-        items = obj.items.all()
+        items = list(obj.items.all())
         request = self.context.get("request")
         user = getattr(request, "user", None)
 
         if user is not None and getattr(user, "role", "") == "vendor":
             vendor_profile = getattr(user, "vendor_profile", None)
             if vendor_profile is None:
-                items = items.none()
+                items = []
             else:
-                items = items.filter(product__vendor=vendor_profile)
+                items = [item for item in items if item.product.vendor_id == vendor_profile.id]
 
         return OrderItemSerializer(items, many=True, context=self.context).data
 

@@ -59,6 +59,11 @@ def _invalidate_list_caches():
         _cache_clear_safe()
 
 
+def _invalidate_detail_caches_for_slug(slug: str) -> None:
+    if not _cache_delete_pattern_safe(f"{_PREFIX}:detail:{slug}:*"):
+        _cache_clear_safe()
+
+
 def _invalidate_list_and_tags_caches():
     """
     Clears list and global tags caches.
@@ -93,7 +98,7 @@ def invalidate_product_cache(sender, instance, **kwargs):
     during unit testing).
     """
     # Detail cache
-    _cache_delete_safe(f"{_PREFIX}:detail:{instance.slug}")
+    _invalidate_detail_caches_for_slug(instance.slug)
 
     _invalidate_list_and_tags_caches()
 
@@ -112,7 +117,7 @@ def invalidate_product_tag_cache(sender, instance, **kwargs):
     if instance.product_id:
         slug = Product.objects.filter(pk=instance.product_id).values_list("slug", flat=True).first()
         if slug:
-            _cache_delete_safe(f"{_PREFIX}:detail:{slug}")
+            _invalidate_detail_caches_for_slug(slug)
 
     _invalidate_list_and_tags_caches()
 
@@ -125,7 +130,7 @@ def invalidate_product_cache_on_image_change(sender, instance, **kwargs):
     if instance.product_id:
         slug = Product.objects.filter(pk=instance.product_id).values_list("slug", flat=True).first()
         if slug:
-            _cache_delete_safe(f"{_PREFIX}:detail:{slug}")
+            _invalidate_detail_caches_for_slug(slug)
 
     _invalidate_list_caches()
 

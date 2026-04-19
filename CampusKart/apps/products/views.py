@@ -43,6 +43,7 @@ from .models import Category, Product, ProductImage, ProductTag, ProductViewDail
 from .services import moderate_product_status
 from .serializers import (
     CategorySerializer,
+    ProductListSerializer,
     ProductSerializer,
     ProductWriteSerializer,
 )
@@ -74,10 +75,35 @@ def _cache_set_safe(key: str, value, timeout: int) -> None:
 
 
 def _list_cache_key(request) -> str:
-    """Deterministic cache key derived from the full query string."""
+    """Deterministic cache key derived from viewer scope + full query string."""
+    user = getattr(request, "user", None)
+    if user and user.is_authenticated:
+        if getattr(user, "role", "") == "admin":
+            scope = "admin"
+        elif getattr(user, "role", "") == "vendor" and hasattr(user, "vendor_profile"):
+            scope = f"vendor:{user.vendor_profile.id}"
+        else:
+            scope = "authenticated"
+    else:
+        scope = "public"
+
     qs = request.META.get("QUERY_STRING", "")
-    digest = hashlib.md5(qs.encode(), usedforsecurity=False).hexdigest()
+    digest = hashlib.md5(f"{scope}:{qs}".encode(), usedforsecurity=False).hexdigest()
     return f"{_PREFIX}:list:{digest}"
+
+
+def _detail_cache_key(request, *, slug: str) -> str:
+    user = getattr(request, "user", None)
+    if user and user.is_authenticated:
+        if getattr(user, "role", "") == "admin":
+            scope = "admin"
+        elif getattr(user, "role", "") == "vendor" and hasattr(user, "vendor_profile"):
+            scope = f"vendor:{user.vendor_profile.id}"
+        else:
+            scope = "authenticated"
+    else:
+        scope = "public"
+    return f"{_PREFIX}:detail:{slug}:{scope}"
 
 
 def _ensure_vendor_owns_product(user, product: Product) -> None:
@@ -192,6 +218,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ("create", "update", "partial_update"):
             return ProductWriteSerializer
+        if self.action == "list":
+            return ProductListSerializer
         return ProductSerializer
 
     # ── permissions ───────────────────────────────────────────────────────────
@@ -206,11 +234,11 @@ class ProductViewSet(viewsets.ModelViewSet):
     # ── queryset ──────────────────────────────────────────────────────────────
 
     def get_queryset(self) -> QuerySet[Product]:
-        qs = (
-            Product.objects
-            .select_related("vendor", "category", "approved_by")
-            .prefetch_related("images", "tags")
-        )
+        qs = Product.objects.select_related("vendor", "category", "approved_by")
+        if self.action == "list":
+            qs = qs.prefetch_related("images")
+        else:
+            qs = qs.prefetch_related("images", "tags")
 
         # Access scope for list/retrieve:
         # - public: approved only
@@ -258,7 +286,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         slug = kwargs.get(self.lookup_field)
-        cache_key = f"{_PREFIX}:detail:{slug}"
+        cache_key = _detail_cache_key(request, slug=slug)
         cached = _cache_get_safe(cache_key)
         if cached is not None:
             product_id = cached.get("id") if isinstance(cached, dict) else None
