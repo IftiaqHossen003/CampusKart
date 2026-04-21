@@ -1,20 +1,15 @@
-import { useMemo } from "react";
+import { Suspense, lazy, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import {
   fetchAdminRecentOrders,
   fetchAdminRevenueTimeseries,
   fetchAdminStats,
   getAdminApiErrorMessage,
 } from "../api/admin";
+
+const AdminRevenueChart = lazy(
+  () => import("../components/charts/AdminRevenueChart"),
+);
 
 function toNumber(value) {
   const number = Number(value);
@@ -320,25 +315,11 @@ function AdminDashboardPage() {
             </p>
           ) : (
             <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                  <XAxis
-                    dataKey="shortDate"
-                    interval={4}
-                    tick={{ fontSize: 12, fill: "#64748B" }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: "#64748B" }}
-                    tickFormatter={(value) => `${Math.round(value / 1000)}k`}
-                  />
-                  <Tooltip
-                    formatter={(value) => formatMoney(value)}
-                    labelFormatter={(label) => `Date: ${label}`}
-                  />
-                  <Bar dataKey="revenue" fill="#2E86AB" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <Suspense
+                fallback={<div className="h-full animate-pulse rounded-lg bg-slate-100" />}
+              >
+                <AdminRevenueChart data={chartData} />
+              </Suspense>
             </div>
           )}
         </article>
