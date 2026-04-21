@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchCategories,
@@ -13,6 +13,7 @@ import {
   fetchProductTags,
 } from "../api/products";
 import EmptyState from "../components/ui/EmptyState";
+import Pagination from "../components/ui/Pagination";
 import ProductCard from "../components/ui/ProductCard";
 import ProductGridSkeleton from "../components/ui/ProductGridSkeleton";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
@@ -83,35 +84,17 @@ function writeRecentSearches(values) {
   }
 }
 
-function parseNextPageFromUrl(nextValue) {
-  if (!nextValue || typeof nextValue !== "string") {
-    return null;
-  }
-
-  try {
-    const parsed = new URL(nextValue, window.location.origin);
-    const parsedPage = Number(parsed.searchParams.get("page"));
-    if (Number.isFinite(parsedPage) && parsedPage > 0) {
-      return parsedPage;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
 function ProductListingPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchDropdownRef = useRef(null);
-  const loadMoreRef = useRef(null);
 
   const category = searchParams.get("category") || "";
   const vendor = searchParams.get("vendor") || "";
   const selectedTags = searchParams.getAll("tag").filter(Boolean);
   const minPrice = searchParams.get("min_price") || "";
   const maxPrice = searchParams.get("max_price") || "";
+  const currentPage = Math.max(1, Number(searchParams.get("page") || 1));
   const currentSort = parseCurrentSort(searchParams.get("sort") || "newest");
   const searchTerm = searchParams.get("search") || "";
 
@@ -121,16 +104,6 @@ function ProductListingPage() {
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const debouncedSearchInput = useDebouncedValue(searchInput, 300);
   const normalizedSuggestionTerm = debouncedSearchInput.trim().toLowerCase();
-
-  useEffect(() => {
-    if (!searchParams.get("page")) {
-      return;
-    }
-
-    const next = new URLSearchParams(searchParams);
-    next.delete("page");
-    setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams]);
 
   const pushRecentSearch = useCallback((term) => {
     const normalized = String(term || "").trim();
@@ -151,11 +124,15 @@ function ProductListingPage() {
   }, []);
 
   const updateParams = useCallback(
-    (updater, options) => {
+    (updater, { resetPage = true } = {}) => {
       const next = new URLSearchParams(searchParams);
       updater(next);
-      next.delete("page");
-      setSearchParams(next, options);
+      if (resetPage) {
+        next.set("page", "1");
+      } else if (!next.get("page")) {
+        next.set("page", "1");
+      }
+      setSearchParams(next);
     },
     [searchParams, setSearchParams],
   );
@@ -181,11 +158,21 @@ function ProductListingPage() {
       tags: selectedTags,
       min_price: minPrice,
       max_price: maxPrice,
+      page: currentPage,
       vendor,
       ordering: sortToOrdering(currentSort),
       search: searchTerm,
     }),
-    [category, selectedTags, minPrice, maxPrice, vendor, currentSort, searchTerm],
+    [
+      category,
+      selectedTags,
+      minPrice,
+      maxPrice,
+      currentPage,
+      vendor,
+      currentSort,
+      searchTerm,
+    ],
   );
 
   const categoriesQuery = useQuery({
@@ -194,38 +181,9 @@ function ProductListingPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const productsQuery = useInfiniteQuery({
-    queryKey: ["products", "infinite", productFilters],
-    queryFn: ({ pageParam = 1 }) =>
-      fetchProducts({
-        ...productFilters,
-        page: pageParam,
-      }),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage, allPages, lastPageParam) => {
-      const nextFromUrl = parseNextPageFromUrl(lastPage?.next);
-      if (nextFromUrl) {
-        return nextFromUrl;
-      }
-
-      if (typeof lastPage?.nextPage === "number" && lastPage.nextPage > 0) {
-        return lastPage.nextPage;
-      }
-
-      const lastResults = Array.isArray(lastPage?.results) ? lastPage.results : [];
-      const totalAvailable = Number(lastPage?.count);
-
-      if (Number.isFinite(totalAvailable)) {
-        const loadedCount = allPages.reduce((sum, page) => {
-          const pageResults = Array.isArray(page?.results) ? page.results : [];
-          return sum + pageResults.length;
-        }, 0);
-
-        return loadedCount < totalAvailable ? Number(lastPageParam) + 1 : undefined;
-      }
-
-      return lastResults.length > 0 ? Number(lastPageParam) + 1 : undefined;
-    },
+  const productsQuery = useQuery({
+    queryKey: ["products", productFilters],
+    queryFn: () => fetchProducts(productFilters),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -270,30 +228,13 @@ function ProductListingPage() {
     return [];
   }, [tagsQuery.data]);
 
-  const products = useMemo(() => {
-    const seen = new Set();
-    const merged = [];
-
-    (productsQuery.data?.pages || []).forEach((page) => {
-      const pageResults = Array.isArray(page?.results) ? page.results : [];
-      pageResults.forEach((product) => {
-        const key = product?.id ?? product?.slug;
-        if (!key || seen.has(key)) {
-          return;
-        }
-        seen.add(key);
-        merged.push(product);
-      });
-    });
-
-    return merged;
-  }, [productsQuery.data]);
-
-  const totalCount = useMemo(() => {
-    const firstPage = productsQuery.data?.pages?.[0];
-    const count = Number(firstPage?.count);
-    return Number.isFinite(count) ? count : products.length;
-  }, [productsQuery.data, products.length]);
+  const products = productsQuery.data?.results || [];
+  const totalCount = Number(productsQuery.data?.count || 0);
+  const pageSize = Math.max(
+    1,
+    Number(productsQuery.data?.results?.length || productsQuery.data?.page_size || 20),
+  );
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const productSuggestions = useMemo(() => {
     if (!normalizedSuggestionTerm) {
@@ -413,29 +354,6 @@ function ProductListingPage() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  const hasNextPage = productsQuery.hasNextPage;
-  const isFetchingNextPage = productsQuery.isFetchingNextPage;
-  const fetchNextPage = productsQuery.fetchNextPage;
-
-  useEffect(() => {
-    if (!loadMoreRef.current || !hasNextPage) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { rootMargin: "300px 0px" },
-    );
-
-    observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
-
   const handleCategorySelect = (categoryId) => {
     updateParams((next) => {
       if (categoryId) {
@@ -483,8 +401,18 @@ function ProductListingPage() {
 
   const handleResetFilters = () => {
     const next = new URLSearchParams();
+    next.set("page", "1");
     setSearchInput("");
     setSearchParams(next);
+  };
+
+  const handlePageChange = (page) => {
+    updateParams(
+      (next) => {
+        next.set("page", String(page));
+      },
+      { resetPage: false },
+    );
   };
 
   const applySearchValue = useCallback(
@@ -606,8 +534,9 @@ function ProductListingPage() {
   const safeMinValue = Math.min(minSliderValue, maxSliderValue);
   const safeMaxValue = Math.max(minSliderValue, maxSliderValue);
 
-  const isInitialLoading = productsQuery.isLoading && products.length === 0;
-  const showEmptyState = !isInitialLoading && products.length === 0;
+  const isInitialLoading = productsQuery.isLoading;
+  const showEmptyState =
+    !isInitialLoading && !productsQuery.isError && products.length === 0;
 
   return (
     <section className="space-y-6">
@@ -909,23 +838,11 @@ function ProductListingPage() {
                 ))}
               </div>
 
-              <div ref={loadMoreRef} className="h-1 w-full" aria-hidden="true" />
-
-              {productsQuery.isFetchingNextPage ? (
-                <div className="flex justify-center py-2">
-                  <p className="rounded-md bg-slate-100 px-3 py-1.5 text-sm text-muted">
-                    Loading more products...
-                  </p>
-                </div>
-              ) : null}
-
-              {!productsQuery.hasNextPage ? (
-                <div className="flex justify-center py-2">
-                  <p className="rounded-md bg-slate-100 px-3 py-1.5 text-sm text-muted">
-                    All products loaded.
-                  </p>
-                </div>
-              ) : null}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
             </>
           ) : null}
         </div>
