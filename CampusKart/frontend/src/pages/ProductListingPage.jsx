@@ -20,6 +20,7 @@ import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 const PRICE_MIN = 0;
 const PRICE_MAX = 5000;
+const PRODUCTS_PAGE_SIZE = 20;
 const RECENT_SEARCHES_KEY = "campuskart_recent_shop_searches_v1";
 const MAX_RECENT_SEARCHES = 6;
 
@@ -94,7 +95,9 @@ function ProductListingPage() {
   const selectedTags = searchParams.getAll("tag").filter(Boolean);
   const minPrice = searchParams.get("min_price") || "";
   const maxPrice = searchParams.get("max_price") || "";
-  const currentPage = Math.max(1, Number(searchParams.get("page") || 1));
+  const pageParam = Number(searchParams.get("page"));
+  const currentPage =
+    Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
   const currentSort = parseCurrentSort(searchParams.get("sort") || "newest");
   const searchTerm = searchParams.get("search") || "";
 
@@ -152,6 +155,14 @@ function ProductListingPage() {
     });
   }, [debouncedSearchInput, searchTerm, updateParams]);
 
+  useEffect(() => {
+    if (searchInput === searchTerm) {
+      return;
+    }
+
+    setSearchInput(searchTerm);
+  }, [searchInput, searchTerm]);
+
   const productFilters = useMemo(
     () => ({
       category,
@@ -159,6 +170,7 @@ function ProductListingPage() {
       min_price: minPrice,
       max_price: maxPrice,
       page: currentPage,
+      page_size: PRODUCTS_PAGE_SIZE,
       vendor,
       ordering: sortToOrdering(currentSort),
       search: searchTerm,
@@ -230,11 +242,14 @@ function ProductListingPage() {
 
   const products = productsQuery.data?.results || [];
   const totalCount = Number(productsQuery.data?.count || 0);
-  const pageSize = Math.max(
-    1,
-    Number(productsQuery.data?.results?.length || productsQuery.data?.page_size || 20),
+  const apiPageSize = Number(
+    productsQuery.data?.page_size || productsQuery.data?.pageSize,
   );
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const resolvedPageSize =
+    Number.isFinite(apiPageSize) && apiPageSize > 0
+      ? Math.floor(apiPageSize)
+      : PRODUCTS_PAGE_SIZE;
+  const totalPages = Math.max(1, Math.ceil(totalCount / resolvedPageSize));
 
   const productSuggestions = useMemo(() => {
     if (!normalizedSuggestionTerm) {
@@ -407,13 +422,45 @@ function ProductListingPage() {
   };
 
   const handlePageChange = (page) => {
+    const normalizedPage = Math.max(
+      1,
+      Math.min(totalPages, Math.floor(Number(page) || 1)),
+    );
+
+    if (normalizedPage === currentPage) {
+      return;
+    }
+
     updateParams(
       (next) => {
-        next.set("page", String(page));
+        next.set("page", String(normalizedPage));
       },
       { resetPage: false },
     );
   };
+
+  useEffect(() => {
+    if (productsQuery.isLoading || productsQuery.isError) {
+      return;
+    }
+
+    if (currentPage <= totalPages) {
+      return;
+    }
+
+    updateParams(
+      (next) => {
+        next.set("page", String(totalPages));
+      },
+      { resetPage: false },
+    );
+  }, [
+    currentPage,
+    productsQuery.isError,
+    productsQuery.isLoading,
+    totalPages,
+    updateParams,
+  ]);
 
   const applySearchValue = useCallback(
     (value, { saveToRecent = true } = {}) => {
@@ -839,7 +886,7 @@ function ProductListingPage() {
               </div>
 
               <Pagination
-                currentPage={currentPage}
+                currentPage={Math.min(currentPage, totalPages)}
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
               />

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   fetchNotifications,
   fetchUnreadNotificationCount,
@@ -9,11 +9,13 @@ import {
 import { useCartStore } from "../../store/cartStore";
 
 function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
+  const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const notificationMenuRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
   const totalItems = useCartStore((state) => state.totalItems);
   const showCart = !user || user.role === "student";
   const profilePath = user ? "/profile" : "/login";
@@ -110,6 +112,30 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
   const unreadCount =
     typeof unreadCountQuery.data === "number" ? unreadCountQuery.data : 0;
 
+  useEffect(() => {
+    if (location.pathname !== "/shop") {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    setSearchInput(params.get("search") || "");
+  }, [location.pathname, location.search]);
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+
+    const normalizedSearch = searchInput.trim();
+    const next = new URLSearchParams();
+    next.set("page", "1");
+
+    if (normalizedSearch) {
+      next.set("search", normalizedSearch);
+    }
+
+    navigate(`/shop?${next.toString()}`);
+    setMobileOpen(false);
+  };
+
   const handleNotificationClick = (notification) => {
     if (!notification.is_read && !markReadMutation.isPending) {
       markReadMutation.mutate(notification.id);
@@ -178,13 +204,15 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
         </Link>
 
         <div className="hidden flex-1 items-center justify-center md:flex">
-          <div className="w-full max-w-md">
+          <form className="w-full max-w-md" onSubmit={handleSearchSubmit}>
             <input
               type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Search products, shops, categories"
               className="w-full rounded-md border border-white/25 bg-white/10 px-3 py-2 text-sm placeholder:text-slate-200 focus:border-accent focus:outline-none"
             />
-          </div>
+          </form>
         </div>
 
         <nav className="hidden items-center gap-3 text-sm md:flex">
@@ -332,13 +360,15 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
 
       {!showSidebarToggle && mobileOpen ? (
         <div className="border-t border-white/20 px-4 pb-3 md:hidden">
-          <div className="mb-3 mt-3">
+          <form className="mb-3 mt-3" onSubmit={handleSearchSubmit}>
             <input
               type="search"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Search products, shops, categories"
               className="w-full rounded-md border border-white/25 bg-white/10 px-3 py-2 text-sm placeholder:text-slate-200 focus:border-accent focus:outline-none"
             />
-          </div>
+          </form>
           <nav className="flex flex-col gap-1 text-sm">
             {links.map((item) => (
               <NavLink
