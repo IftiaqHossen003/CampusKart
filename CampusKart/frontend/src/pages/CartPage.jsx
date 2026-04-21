@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import OptimizedProductImage from '../components/ui/OptimizedProductImage'
 import { useToast } from '../hooks/useToast'
 import { useCartStore } from '../store/cartStore'
 
@@ -125,10 +126,13 @@ function CartPage() {
                 className="grid grid-cols-1 gap-3 px-4 py-4 md:grid-cols-[80px_1fr_130px_120px_90px] md:items-center"
               >
                 <Link to={item.productSlug ? `/shop/products/${item.productSlug}` : '/shop'} className="block">
-                  <img
+                  <OptimizedProductImage
                     src={item.imageUrl}
                     alt={item.name}
-                    className="h-20 w-20 rounded-md border border-slate-200 object-cover"
+                    width={160}
+                    height={160}
+                    className="h-20 w-20 rounded-md border border-slate-200"
+                    imgClassName="h-full w-full object-cover"
                   />
                 </Link>
 

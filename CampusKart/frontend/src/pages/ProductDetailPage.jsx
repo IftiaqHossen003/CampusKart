@@ -13,6 +13,7 @@ import {
   fetchProductReviewEligibility,
   fetchProductReviews,
 } from "../api/reviews";
+import OptimizedProductImage from "../components/ui/OptimizedProductImage";
 import ProductCard from "../components/ui/ProductCard";
 import { useToast } from "../hooks/useToast";
 import { useAuthStore } from "../store/authStore";
@@ -342,10 +343,15 @@ function ProductDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-3">
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <img
+            <OptimizedProductImage
               src={selectedImage}
               alt={product.name}
-              className="aspect-[4/3] w-full object-cover"
+              width={1200}
+              height={900}
+              className="aspect-[4/3] w-full"
+              imgClassName="h-full w-full object-cover"
+              loading="eager"
+              fetchPriority="high"
             />
           </div>
 
@@ -361,10 +367,13 @@ function ProductDetailPage() {
                     : "border-slate-200"
                 }`}
               >
-                <img
+                <OptimizedProductImage
                   src={image.image_url}
                   alt={`${product.name} ${index + 1}`}
-                  className="aspect-square w-full object-cover"
+                  width={240}
+                  height={240}
+                  className="aspect-square w-full"
+                  imgClassName="h-full w-full object-cover"
                 />
               </button>
             ))}

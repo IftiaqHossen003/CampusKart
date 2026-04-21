@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "../../hooks/useToast";
 import { useWishlist } from "../../hooks/useWishlist";
 import { useCartStore } from "../../store/cartStore";
+import OptimizedProductImage from "./OptimizedProductImage";
 
 function toNumber(value) {
   const number = Number(value);
@@ -94,11 +95,13 @@ function ProductCard({
           </svg>
         </button>
 
-        <img
+        <OptimizedProductImage
           src={imageUrl}
           alt={product.name}
-          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-          loading="lazy"
+          width={640}
+          height={480}
+          className="h-full w-full"
+          imgClassName="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
         />
         {hasDiscount ? (
           <span className="absolute left-3 top-3 rounded-full bg-error px-2.5 py-1 text-xs font-semibold text-white">
