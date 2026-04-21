@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-04-21T13:34:03.026Z",
+  "entryManifestKey": "index.html",
+  "budgetGzipBytes": 204800,
+  "totalRawBytes": 271806,
+  "totalGzipBytes": 91591,
+  "withinBudget": true,
+  "files": [
+    {
+      "file": "assets/react-dom-BWtKWfLN.js",
+      "rawBytes": 132693,
+      "gzipBytes": 42513
+    },
+    {
+      "file": "assets/client-BUSto3v-.js",
+      "rawBytes": 38269,
+      "gzipBytes": 14892
+    },
+    {
+      "file": "assets/dist-DcAdKV93.js",
+      "rawBytes": 24152,
+      "gzipBytes": 8782
+    },
+    {
+      "file": "assets/index-Jo--mABn.js",
+      "rawBytes": 30969,
+      "gzipBytes": 8754
+    },
+    {
+      "file": "assets/useQuery-CQg-C1fh.js",
+      "rawBytes": 14993,
+      "gzipBytes": 4926
+    },
+    {
+      "file": "assets/QueryClientProvider-3bmcPg4d.js",
+      "rawBytes": 7658,
+      "gzipBytes": 3008
+    },
+    {
+      "file": "assets/jsx-runtime-D57Vegw5.js",
+      "rawBytes": 7742,
+      "gzipBytes": 2975
+    },
+    {
+      "file": "assets/cartStore-D684oE4f.js",
+      "rawBytes": 5707,
+      "gzipBytes": 1932
+    },
+    {
+      "file": "assets/useMutation-B6vrwFvF.js",
+      "rawBytes": 5571,
+      "gzipBytes": 1773
+    },
+    {
+      "file": "assets/infiniteQueryBehavior-RKSLwRUx.js",
+      "rawBytes": 1409,
+      "gzipBytes": 671
+    },
+    {
+      "file": "assets/authStore-DhNIo2nC.js",
+      "rawBytes": 1216,
+      "gzipBytes": 562
+    },
+    {
+      "file": "assets/notifications-iDjbqN1F.js",
+      "rawBytes": 1042,
+      "gzipBytes": 545
+    },
+    {
+      "file": "assets/toastStore-YRv_7VV6.js",
+      "rawBytes": 385,
+      "gzipBytes": 258
+    }
+  ]
+}

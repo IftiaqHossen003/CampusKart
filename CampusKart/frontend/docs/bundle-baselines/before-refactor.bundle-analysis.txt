@@ -1,0 +1,25 @@
+CampusKart Frontend Bundle Analysis
+Generated: 2026-04-21T13:34:03.026Z
+Entry key: index.html
+
+Public initial JS (entry + static shared imports):
+Raw total: 265.44 KB (271806 bytes)
+Gzip total: 89.44 KB (91591 bytes)
+Budget: 200.00 KB (204800 bytes)
+Budget status: PASS
+
+Files:
+- assets/react-dom-BWtKWfLN.js: raw 129.58 KB, gzip 41.52 KB
+- assets/client-BUSto3v-.js: raw 37.37 KB, gzip 14.54 KB
+- assets/dist-DcAdKV93.js: raw 23.59 KB, gzip 8.58 KB
+- assets/index-Jo--mABn.js: raw 30.24 KB, gzip 8.55 KB
+- assets/useQuery-CQg-C1fh.js: raw 14.64 KB, gzip 4.81 KB
+- assets/QueryClientProvider-3bmcPg4d.js: raw 7.48 KB, gzip 2.94 KB
+- assets/jsx-runtime-D57Vegw5.js: raw 7.56 KB, gzip 2.91 KB
+- assets/cartStore-D684oE4f.js: raw 5.57 KB, gzip 1.89 KB
+- assets/useMutation-B6vrwFvF.js: raw 5.44 KB, gzip 1.73 KB
+- assets/infiniteQueryBehavior-RKSLwRUx.js: raw 1.38 KB, gzip 0.66 KB
+- assets/authStore-DhNIo2nC.js: raw 1.19 KB, gzip 0.55 KB
+- assets/notifications-iDjbqN1F.js: raw 1.02 KB, gzip 0.53 KB
+- assets/toastStore-YRv_7VV6.js: raw 0.38 KB, gzip 0.25 KB
+
