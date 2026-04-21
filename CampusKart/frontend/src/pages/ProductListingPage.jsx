@@ -1,19 +1,26 @@
-import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchCategories,
   fetchProducts,
   fetchProductTags,
 } from "../api/products";
 import EmptyState from "../components/ui/EmptyState";
-import Pagination from "../components/ui/Pagination";
 import ProductCard from "../components/ui/ProductCard";
 import ProductGridSkeleton from "../components/ui/ProductGridSkeleton";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 const PRICE_MIN = 0;
 const PRICE_MAX = 5000;
+const RECENT_SEARCHES_KEY = "campuskart_recent_shop_searches_v1";
+const MAX_RECENT_SEARCHES = 6;
 
 const SORT_OPTIONS = [
   { label: "Newest", value: "newest", ordering: "-created_at" },
@@ -42,43 +49,131 @@ function sortToOrdering(sort) {
   );
 }
 
+function readRecentSearches() {
+  try {
+    const raw = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+      .slice(0, MAX_RECENT_SEARCHES);
+  } catch {
+    return [];
+  }
+}
+
+function writeRecentSearches(values) {
+  try {
+    if (!values.length) {
+      window.localStorage.removeItem(RECENT_SEARCHES_KEY);
+      return;
+    }
+
+    window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(values));
+  } catch {
+    // Ignore localStorage write errors.
+  }
+}
+
+function parseNextPageFromUrl(nextValue) {
+  if (!nextValue || typeof nextValue !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(nextValue, window.location.origin);
+    const parsedPage = Number(parsed.searchParams.get("page"));
+    if (Number.isFinite(parsedPage) && parsedPage > 0) {
+      return parsedPage;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function ProductListingPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchDropdownRef = useRef(null);
+  const loadMoreRef = useRef(null);
 
   const category = searchParams.get("category") || "";
+  const vendor = searchParams.get("vendor") || "";
   const selectedTags = searchParams.getAll("tag").filter(Boolean);
   const minPrice = searchParams.get("min_price") || "";
   const maxPrice = searchParams.get("max_price") || "";
-  const currentPage = Math.max(1, Number(searchParams.get("page") || 1));
   const currentSort = parseCurrentSort(searchParams.get("sort") || "newest");
   const searchTerm = searchParams.get("search") || "";
 
-  const [searchInput, setSearchInput] = useState(searchTerm);
-  const debouncedSearch = useDebouncedValue(searchInput, 400);
+  const [searchInput, setSearchInput] = useState(() => searchTerm);
+  const [recentSearches, setRecentSearches] = useState(() => readRecentSearches());
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const debouncedSearchInput = useDebouncedValue(searchInput, 300);
+  const normalizedSuggestionTerm = debouncedSearchInput.trim().toLowerCase();
 
   useEffect(() => {
     if (!searchParams.get("page")) {
-      const next = new URLSearchParams(searchParams);
-      next.set("page", "1");
-      setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
-
-  useEffect(() => {
-    const normalized = debouncedSearch.trim();
-    if (normalized === searchTerm) {
       return;
     }
 
     const next = new URLSearchParams(searchParams);
-    if (normalized) {
-      next.set("search", normalized);
-    } else {
-      next.delete("search");
+    next.delete("page");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const pushRecentSearch = useCallback((term) => {
+    const normalized = String(term || "").trim();
+    if (!normalized) {
+      return;
     }
-    next.set("page", "1");
-    setSearchParams(next);
-  }, [debouncedSearch, searchParams, searchTerm, setSearchParams]);
+
+    setRecentSearches((current) => {
+      const nextValues = [
+        normalized,
+        ...current.filter(
+          (item) => item.toLowerCase() !== normalized.toLowerCase(),
+        ),
+      ].slice(0, MAX_RECENT_SEARCHES);
+      writeRecentSearches(nextValues);
+      return nextValues;
+    });
+  }, []);
+
+  const updateParams = useCallback(
+    (updater, options) => {
+      const next = new URLSearchParams(searchParams);
+      updater(next);
+      next.delete("page");
+      setSearchParams(next, options);
+    },
+    [searchParams, setSearchParams],
+  );
+
+  useEffect(() => {
+    const normalized = debouncedSearchInput.trim();
+    if (normalized === searchTerm) {
+      return;
+    }
+
+    updateParams((next) => {
+      if (normalized) {
+        next.set("search", normalized);
+      } else {
+        next.delete("search");
+      }
+    });
+  }, [debouncedSearchInput, searchTerm, updateParams]);
 
   const productFilters = useMemo(
     () => ({
@@ -86,19 +181,11 @@ function ProductListingPage() {
       tags: selectedTags,
       min_price: minPrice,
       max_price: maxPrice,
-      page: currentPage,
+      vendor,
       ordering: sortToOrdering(currentSort),
       search: searchTerm,
     }),
-    [
-      category,
-      selectedTags,
-      minPrice,
-      maxPrice,
-      currentPage,
-      currentSort,
-      searchTerm,
-    ],
+    [category, selectedTags, minPrice, maxPrice, vendor, currentSort, searchTerm],
   );
 
   const categoriesQuery = useQuery({
@@ -107,9 +194,38 @@ function ProductListingPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const productsQuery = useQuery({
-    queryKey: ["products", productFilters],
-    queryFn: () => fetchProducts(productFilters),
+  const productsQuery = useInfiniteQuery({
+    queryKey: ["products", "infinite", productFilters],
+    queryFn: ({ pageParam = 1 }) =>
+      fetchProducts({
+        ...productFilters,
+        page: pageParam,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages, lastPageParam) => {
+      const nextFromUrl = parseNextPageFromUrl(lastPage?.next);
+      if (nextFromUrl) {
+        return nextFromUrl;
+      }
+
+      if (typeof lastPage?.nextPage === "number" && lastPage.nextPage > 0) {
+        return lastPage.nextPage;
+      }
+
+      const lastResults = Array.isArray(lastPage?.results) ? lastPage.results : [];
+      const totalAvailable = Number(lastPage?.count);
+
+      if (Number.isFinite(totalAvailable)) {
+        const loadedCount = allPages.reduce((sum, page) => {
+          const pageResults = Array.isArray(page?.results) ? page.results : [];
+          return sum + pageResults.length;
+        }, 0);
+
+        return loadedCount < totalAvailable ? Number(lastPageParam) + 1 : undefined;
+      }
+
+      return lastResults.length > 0 ? Number(lastPageParam) + 1 : undefined;
+    },
     staleTime: 5 * 60 * 1000,
   });
 
@@ -119,16 +235,29 @@ function ProductListingPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const categoriesData = categoriesQuery.data;
-  const categories = Array.isArray(categoriesData)
-    ? categoriesData
-    : Array.isArray(categoriesData?.results)
-      ? categoriesData.results
-      : [];
-  const products = productsQuery.data?.results || [];
-  const totalCount = productsQuery.data?.count || 0;
-  const pageSize = products.length > 0 ? products.length : 20;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const suggestionsProductsQuery = useQuery({
+    queryKey: ["shop-search-suggestions", normalizedSuggestionTerm],
+    queryFn: () =>
+      fetchProducts({
+        search: normalizedSuggestionTerm,
+        ordering: "-total_sold",
+        page: 1,
+        page_size: 5,
+      }),
+    enabled: normalizedSuggestionTerm.length >= 2,
+    staleTime: 60 * 1000,
+  });
+
+  const categories = useMemo(() => {
+    const categoriesData = categoriesQuery.data;
+    if (Array.isArray(categoriesData)) {
+      return categoriesData;
+    }
+    if (Array.isArray(categoriesData?.results)) {
+      return categoriesData.results;
+    }
+    return [];
+  }, [categoriesQuery.data]);
 
   const tagOptions = useMemo(() => {
     const tagsData = tagsQuery.data;
@@ -141,11 +270,171 @@ function ProductListingPage() {
     return [];
   }, [tagsQuery.data]);
 
-  const updateParams = (updater) => {
-    const next = new URLSearchParams(searchParams);
-    updater(next);
-    setSearchParams(next);
-  };
+  const products = useMemo(() => {
+    const seen = new Set();
+    const merged = [];
+
+    (productsQuery.data?.pages || []).forEach((page) => {
+      const pageResults = Array.isArray(page?.results) ? page.results : [];
+      pageResults.forEach((product) => {
+        const key = product?.id ?? product?.slug;
+        if (!key || seen.has(key)) {
+          return;
+        }
+        seen.add(key);
+        merged.push(product);
+      });
+    });
+
+    return merged;
+  }, [productsQuery.data]);
+
+  const totalCount = useMemo(() => {
+    const firstPage = productsQuery.data?.pages?.[0];
+    const count = Number(firstPage?.count);
+    return Number.isFinite(count) ? count : products.length;
+  }, [productsQuery.data, products.length]);
+
+  const productSuggestions = useMemo(() => {
+    if (!normalizedSuggestionTerm) {
+      return [];
+    }
+
+    const raw = suggestionsProductsQuery.data?.results || [];
+    return raw.slice(0, 5).map((product) => ({
+      type: "product",
+      label: product.name,
+      description: product.vendor_name || "Campus Vendor",
+      slug: product.slug,
+      searchTerm: product.name,
+    }));
+  }, [normalizedSuggestionTerm, suggestionsProductsQuery.data]);
+
+  const categorySuggestions = useMemo(() => {
+    if (!normalizedSuggestionTerm) {
+      return [];
+    }
+
+    const flattened = [];
+    categories.forEach((rootCategory) => {
+      flattened.push(rootCategory);
+      if (Array.isArray(rootCategory.children)) {
+        flattened.push(...rootCategory.children);
+      }
+    });
+
+    return flattened
+      .filter((item) =>
+        String(item?.name || "").toLowerCase().includes(normalizedSuggestionTerm),
+      )
+      .slice(0, 5)
+      .map((item) => ({
+        type: "category",
+        label: item.name,
+        description: "Filter by category",
+        categoryId: item.id,
+      }));
+  }, [categories, normalizedSuggestionTerm]);
+
+  const recentSuggestions = useMemo(() => {
+    if (!recentSearches.length) {
+      return [];
+    }
+
+    if (!normalizedSuggestionTerm) {
+      return recentSearches.slice(0, 4).map((term) => ({
+        type: "recent",
+        label: term,
+        description: "Recent search",
+      }));
+    }
+
+    return recentSearches
+      .filter((term) => term.toLowerCase().includes(normalizedSuggestionTerm))
+      .slice(0, 4)
+      .map((term) => ({
+        type: "recent",
+        label: term,
+        description: "Recent search",
+      }));
+  }, [recentSearches, normalizedSuggestionTerm]);
+
+  const suggestionGroups = useMemo(() => {
+    let nextIndex = 0;
+    const groups = [];
+
+    if (productSuggestions.length > 0) {
+      groups.push({
+        title: "Products",
+        items: productSuggestions.map((item) => ({
+          ...item,
+          index: nextIndex++,
+        })),
+      });
+    }
+
+    if (categorySuggestions.length > 0) {
+      groups.push({
+        title: "Categories",
+        items: categorySuggestions.map((item) => ({
+          ...item,
+          index: nextIndex++,
+        })),
+      });
+    }
+
+    if (recentSuggestions.length > 0) {
+      groups.push({
+        title: "Recent Searches",
+        items: recentSuggestions.map((item) => ({
+          ...item,
+          index: nextIndex++,
+        })),
+      });
+    }
+
+    return groups;
+  }, [productSuggestions, categorySuggestions, recentSuggestions]);
+
+  const flatSuggestions = useMemo(
+    () => suggestionGroups.flatMap((group) => group.items),
+    [suggestionGroups],
+  );
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!searchDropdownRef.current?.contains(event.target)) {
+        setIsSuggestionsOpen(false);
+        setActiveSuggestionIndex(-1);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  const hasNextPage = productsQuery.hasNextPage;
+  const isFetchingNextPage = productsQuery.isFetchingNextPage;
+  const fetchNextPage = productsQuery.fetchNextPage;
+
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasNextPage) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: "300px 0px" },
+    );
+
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const handleCategorySelect = (categoryId) => {
     updateParams((next) => {
@@ -154,7 +443,6 @@ function ProductListingPage() {
       } else {
         next.delete("category");
       }
-      next.set("page", "1");
     });
   };
 
@@ -168,7 +456,6 @@ function ProductListingPage() {
         ? current.filter((item) => item !== tag)
         : [...current, tag];
       nextTags.forEach((item) => next.append("tag", item));
-      next.set("page", "1");
     });
   };
 
@@ -185,29 +472,125 @@ function ProductListingPage() {
       } else {
         next.set("max_price", String(nextMax));
       }
-
-      next.set("page", "1");
     });
   };
 
   const handleSortChange = (value) => {
     updateParams((next) => {
       next.set("sort", value);
-      next.set("page", "1");
-    });
-  };
-
-  const handlePageChange = (page) => {
-    updateParams((next) => {
-      next.set("page", String(page));
     });
   };
 
   const handleResetFilters = () => {
     const next = new URLSearchParams();
-    next.set("page", "1");
     setSearchInput("");
     setSearchParams(next);
+  };
+
+  const applySearchValue = useCallback(
+    (value, { saveToRecent = true } = {}) => {
+      const normalized = String(value || "").trim();
+      setSearchInput(value);
+
+      updateParams((next) => {
+        if (normalized) {
+          next.set("search", normalized);
+        } else {
+          next.delete("search");
+        }
+      });
+
+      if (normalized && saveToRecent) {
+        pushRecentSearch(normalized);
+      }
+    },
+    [updateParams, pushRecentSearch],
+  );
+
+  const handleSuggestionSelect = useCallback(
+    (suggestion) => {
+      if (!suggestion) {
+        return;
+      }
+
+      if (suggestion.type === "product" && suggestion.slug) {
+        if (suggestion.searchTerm) {
+          pushRecentSearch(suggestion.searchTerm);
+        }
+        navigate(`/shop/products/${suggestion.slug}`);
+        setIsSuggestionsOpen(false);
+        setActiveSuggestionIndex(-1);
+        return;
+      }
+
+      if (suggestion.type === "category" && suggestion.categoryId) {
+        updateParams((next) => {
+          next.set("category", String(suggestion.categoryId));
+          next.delete("search");
+        });
+        setSearchInput("");
+      } else {
+        applySearchValue(suggestion.label, {
+          saveToRecent: suggestion.type !== "recent",
+        });
+      }
+
+      setIsSuggestionsOpen(false);
+      setActiveSuggestionIndex(-1);
+    },
+    [navigate, pushRecentSearch, updateParams, applySearchValue],
+  );
+
+  const boundedActiveSuggestionIndex =
+    activeSuggestionIndex >= 0 && activeSuggestionIndex < flatSuggestions.length
+      ? activeSuggestionIndex
+      : -1;
+
+  const handleSearchKeyDown = (event) => {
+    if (event.key === "Escape") {
+      setIsSuggestionsOpen(false);
+      setActiveSuggestionIndex(-1);
+      return;
+    }
+
+    if (event.key === "Enter") {
+      if (isSuggestionsOpen && boundedActiveSuggestionIndex >= 0) {
+        event.preventDefault();
+        handleSuggestionSelect(flatSuggestions[boundedActiveSuggestionIndex]);
+        return;
+      }
+
+      event.preventDefault();
+      applySearchValue(searchInput);
+      setIsSuggestionsOpen(false);
+      return;
+    }
+
+    if (!flatSuggestions.length) {
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setIsSuggestionsOpen(true);
+      setActiveSuggestionIndex((current) => {
+        if (current < 0 || current >= flatSuggestions.length) {
+          return 0;
+        }
+        return (current + 1) % flatSuggestions.length;
+      });
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setIsSuggestionsOpen(true);
+      setActiveSuggestionIndex((current) => {
+        if (current < 0 || current >= flatSuggestions.length) {
+          return flatSuggestions.length - 1;
+        }
+        return (current - 1 + flatSuggestions.length) % flatSuggestions.length;
+      });
+    }
   };
 
   const minSliderValue = clampNumber(
@@ -222,6 +605,9 @@ function ProductListingPage() {
   );
   const safeMinValue = Math.min(minSliderValue, maxSliderValue);
   const safeMaxValue = Math.max(minSliderValue, maxSliderValue);
+
+  const isInitialLoading = productsQuery.isLoading && products.length === 0;
+  const showEmptyState = !isInitialLoading && products.length === 0;
 
   return (
     <section className="space-y-6">
@@ -390,16 +776,89 @@ function ProductListingPage() {
         <div className="space-y-4">
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
-              <input
-                type="search"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search products by name, description, or tags"
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
-              />
+              <div className="relative" ref={searchDropdownRef}>
+                <input
+                  type="search"
+                  value={searchInput}
+                  onChange={(event) => {
+                    setSearchInput(event.target.value);
+                    if (!isSuggestionsOpen && flatSuggestions.length > 0) {
+                      setIsSuggestionsOpen(true);
+                      setActiveSuggestionIndex(0);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (flatSuggestions.length > 0) {
+                      setIsSuggestionsOpen(true);
+                      setActiveSuggestionIndex((current) =>
+                        current >= 0 && current < flatSuggestions.length
+                          ? current
+                          : 0,
+                      );
+                    }
+                  }}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Search products by name, description, or tags"
+                  role="combobox"
+                  aria-expanded={isSuggestionsOpen && flatSuggestions.length > 0}
+                  aria-controls="shop-search-suggestions"
+                  aria-activedescendant={
+                    boundedActiveSuggestionIndex >= 0
+                      ? `shop-search-suggestion-${boundedActiveSuggestionIndex}`
+                      : undefined
+                  }
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                />
+
+                {isSuggestionsOpen && flatSuggestions.length > 0 ? (
+                  <div
+                    id="shop-search-suggestions"
+                    role="listbox"
+                    className="absolute z-30 mt-1 max-h-80 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+                  >
+                    {suggestionGroups.map((group) => (
+                      <div key={group.title} className="py-1">
+                        <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                          {group.title}
+                        </p>
+
+                        {group.items.map((item) => {
+                          const isActive = item.index === activeSuggestionIndex;
+                          return (
+                            <button
+                              key={`${item.type}-${item.index}-${item.label}`}
+                              id={`shop-search-suggestion-${item.index}`}
+                              type="button"
+                              role="option"
+                              aria-selected={isActive}
+                              onMouseEnter={() =>
+                                setActiveSuggestionIndex(item.index)
+                              }
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => handleSuggestionSelect(item)}
+                              className={`flex w-full items-start justify-between gap-3 px-3 py-2 text-left text-sm ${
+                                isActive
+                                  ? "bg-primary/10 text-primary"
+                                  : "hover:bg-slate-50"
+                              }`}
+                            >
+                              <span className="line-clamp-1 font-medium">
+                                {item.label}
+                              </span>
+                              <span className="shrink-0 text-xs text-muted">
+                                {item.description}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
 
               <p className="text-sm text-muted">
-                {productsQuery.isLoading
+                {isInitialLoading
                   ? "Loading results..."
                   : `${totalCount} result${totalCount === 1 ? "" : "s"}`}
               </p>
@@ -425,9 +884,15 @@ function ProductListingPage() {
             </div>
           </div>
 
-          {productsQuery.isLoading ? <ProductGridSkeleton /> : null}
+          {isInitialLoading ? <ProductGridSkeleton /> : null}
 
-          {!productsQuery.isLoading && products.length === 0 ? (
+          {productsQuery.isError && !isInitialLoading ? (
+            <div className="rounded-md border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
+              Could not load products. Please refresh or try again shortly.
+            </div>
+          ) : null}
+
+          {showEmptyState ? (
             <EmptyState
               title="No Products Found"
               message="Try broadening your filters or reset to explore all products available in CampusKart."
@@ -436,7 +901,7 @@ function ProductListingPage() {
             />
           ) : null}
 
-          {!productsQuery.isLoading && products.length > 0 ? (
+          {!isInitialLoading && products.length > 0 ? (
             <>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {products.map((product) => (
@@ -444,11 +909,23 @@ function ProductListingPage() {
                 ))}
               </div>
 
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
+              <div ref={loadMoreRef} className="h-1 w-full" aria-hidden="true" />
+
+              {productsQuery.isFetchingNextPage ? (
+                <div className="flex justify-center py-2">
+                  <p className="rounded-md bg-slate-100 px-3 py-1.5 text-sm text-muted">
+                    Loading more products...
+                  </p>
+                </div>
+              ) : null}
+
+              {!productsQuery.hasNextPage ? (
+                <div className="flex justify-center py-2">
+                  <p className="rounded-md bg-slate-100 px-3 py-1.5 text-sm text-muted">
+                    All products loaded.
+                  </p>
+                </div>
+              ) : null}
             </>
           ) : null}
         </div>

@@ -280,7 +280,7 @@ function HomePage() {
               <button
                 key={category.id}
                 type="button"
-                onClick={() => navigate(`/shop?category=${category.id}&page=1`)}
+                onClick={() => navigate(`/shop?category=${category.id}`)}
                 className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:-translate-y-0.5 hover:border-accent/40 hover:bg-white"
               >
                 {category.icon_url ? (
@@ -315,7 +315,7 @@ function HomePage() {
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-xl font-bold text-primary">Top Products</h2>
           <Link
-            to="/shop?sort=popular&page=1"
+            to="/shop?sort=popular"
             className="text-sm font-semibold text-accent hover:underline"
           >
             View all
@@ -348,7 +348,7 @@ function HomePage() {
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-xl font-bold text-primary">New Arrivals</h2>
           <Link
-            to="/shop?sort=newest&page=1"
+            to="/shop?sort=newest"
             className="text-sm font-semibold text-accent hover:underline"
           >
             See all
@@ -391,7 +391,7 @@ function HomePage() {
               <button
                 key={vendor.id}
                 type="button"
-                onClick={() => navigate(`/shop?vendor=${vendor.id}&page=1`)}
+                onClick={() => navigate(`/shop?vendor=${vendor.id}`)}
                 className="overflow-hidden rounded-xl border border-slate-200 text-left transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 <img
