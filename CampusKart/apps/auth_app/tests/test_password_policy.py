@@ -92,14 +92,13 @@ class PasswordPolicyApiTests(APITestCase):
         response = self.client.post(
             "/api/v1/auth/register/",
             {
-                "email": "register-policy@example.com",
+                "email": "registerpolicy2001@stud.kuet.ac.bd",
                 "full_name": "Register Policy",
                 "phone": "01710000100",
                 "role": "student",
                 "password": "StrongPass12",
                 "password2": "StrongPass12",
                 "student_id": "S2001",
-                "university": "Campus University",
                 "department": "CSE",
             },
             format="json",
@@ -151,3 +150,41 @@ class PasswordPolicyApiTests(APITestCase):
             "Password must contain at least one uppercase letter.",
             response.data["new_password"],
         )
+
+    def test_register_rejects_invalid_kuet_email_for_student_role(self):
+        response = self.client.post(
+            "/api/v1/auth/register/",
+            {
+                "email": "student@example.com",
+                "full_name": "KUET Student",
+                "phone": "01710000101",
+                "role": "student",
+                "password": "StrongPass123!",
+                "password2": "StrongPass123!",
+                "student_id": "S2002",
+                "department": "CSE",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("email", response.data)
+        self.assertIn("Invalid KUET email format", response.data["email"])
+
+    def test_register_rejects_invalid_kuet_email_for_vendor_role(self):
+        response = self.client.post(
+            "/api/v1/auth/register/",
+            {
+                "email": "vendor@example.com",
+                "full_name": "KUET Vendor",
+                "phone": "01710000102",
+                "role": "vendor",
+                "password": "StrongPass123!",
+                "password2": "StrongPass123!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("email", response.data)
+        self.assertIn("Invalid KUET email format", response.data["email"])
