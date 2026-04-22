@@ -5,6 +5,35 @@ import Button from "../components/ui/Button";
 import apiClient from "../api/client";
 import { useToast } from "../hooks/useToast";
 
+function getRegisterErrorMessage(error) {
+  const data = error?.response?.data;
+
+  if (typeof data?.detail === "string") {
+    return data.detail;
+  }
+
+  if (Array.isArray(data?.non_field_errors) && data.non_field_errors.length > 0) {
+    return String(data.non_field_errors[0]);
+  }
+
+  if (Array.isArray(data?.email) && data.email.length > 0) {
+    return String(data.email[0]);
+  }
+
+  if (data && typeof data === "object") {
+    for (const value of Object.values(data)) {
+      if (Array.isArray(value) && value.length > 0) {
+        return String(value[0]);
+      }
+      if (typeof value === "string") {
+        return value;
+      }
+    }
+  }
+
+  return "Unable to create account. Please review your details and try again.";
+}
+
 function RegisterPage() {
   const [submitError, setSubmitError] = useState("");
   const navigate = useNavigate();
@@ -24,7 +53,6 @@ function RegisterPage() {
       confirm_password: "",
       role: "student",
       student_id: "",
-      university: "",
       shop_name: "",
       contact_phone: "",
     },
@@ -50,7 +78,6 @@ function RegisterPage() {
 
       if (values.role === "student") {
         payload.student_id = values.student_id;
-        payload.university = values.university;
       }
 
       await apiClient.post("/auth/register/", payload);
@@ -64,10 +91,7 @@ function RegisterPage() {
         state: { email },
       });
     } catch (error) {
-      const detail = error?.response?.data?.detail;
-      const fallback =
-        "Unable to create account. Please review your details and try again.";
-      setSubmitError(detail || fallback);
+      setSubmitError(getRegisterErrorMessage(error));
     }
   };
 
@@ -170,7 +194,7 @@ function RegisterPage() {
           ) : null}
         </label>
 
-        <label className="block md:col-span-2">
+        <label className="block">
           <span className="mb-1 block text-sm font-medium text-slate-800">
             Role
           </span>
@@ -203,23 +227,6 @@ function RegisterPage() {
               ) : null}
             </label>
 
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium text-slate-800">
-                University
-              </span>
-              <input
-                type="text"
-                className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-accent"
-                {...register("university", {
-                  required: "University is required for students.",
-                })}
-              />
-              {errors.university ? (
-                <span className="mt-1 block text-xs text-red-600">
-                  {errors.university.message}
-                </span>
-              ) : null}
-            </label>
           </>
         ) : (
           <>

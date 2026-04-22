@@ -13,7 +13,7 @@ class StudentProfileInline(admin.StackedInline):
     model       = StudentProfile
     can_delete  = False
     verbose_name_plural = "Student Profile"
-    fields      = ["student_id", "university", "department", "id_document_url", "is_id_verified"]
+    fields      = ["student_id", "department"]
 
 
 # ---------------------------------------------------------------------------
@@ -72,10 +72,8 @@ class CustomUserAdmin(BaseUserAdmin):
 
 @admin.register(StudentProfile)
 class StudentProfileAdmin(admin.ModelAdmin):
-    list_display   = ["user", "student_id", "university", "department", "is_id_verified"]
-    list_filter    = ["is_id_verified", "university"]
-    search_fields  = ["user__email", "student_id", "university"]
-    list_editable  = ["is_id_verified"]
+    list_display   = ["user", "student_id", "department"]
+    search_fields  = ["user__email", "student_id", "department"]
     readonly_fields = ["user"]
 
 

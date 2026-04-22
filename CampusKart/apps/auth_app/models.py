@@ -122,10 +122,7 @@ class StudentProfile(models.Model):
         CustomUser, on_delete=models.CASCADE, related_name="student_profile"
     )
     student_id      = models.CharField(max_length=50, unique=True)
-    university      = models.CharField(max_length=200)
     department      = models.CharField(max_length=200, blank=True)
-    id_document_url = models.URLField(max_length=500, blank=True)
-    is_id_verified  = models.BooleanField(default=False)
 
     class Meta:
         db_table = "student_profiles"

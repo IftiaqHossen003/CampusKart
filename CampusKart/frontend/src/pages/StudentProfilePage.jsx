@@ -82,7 +82,7 @@ function StudentProfilePage() {
       <article className="rounded-xl border border-slate-200 bg-white p-5">
         <h1 className="text-2xl font-bold text-primary">Student Profile</h1>
         <p className="mt-1 text-sm text-muted">
-          Manage your account details and campus identity information.
+          Manage your account details and academic information.
         </p>
       </article>
 
@@ -163,26 +163,10 @@ function StudentProfilePage() {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  University
-                </p>
-                <p className="mt-1 text-slate-700">
-                  {studentProfile?.university || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Department
                 </p>
                 <p className="mt-1 text-slate-700">
                   {studentProfile?.department || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  ID verification
-                </p>
-                <p className="mt-1 text-slate-700">
-                  {studentProfile?.is_id_verified ? "Verified" : "Pending"}
                 </p>
               </div>
             </div>
