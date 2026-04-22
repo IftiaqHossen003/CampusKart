@@ -55,14 +55,13 @@ class AuthRateLimitingTests(APITestCase):
         first_response = self.client.post(
             "/api/v1/auth/register/",
             {
-                "email": "rate-register-1@example.com",
+                "email": "rateregister1001@stud.kuet.ac.bd",
                 "full_name": "Rate Register One",
                 "phone": "01710000001",
                 "role": "student",
                 "password": "StrongPass123!",
                 "password2": "StrongPass123!",
                 "student_id": "S1001",
-                "university": "Campus University",
                 "department": "CSE",
             },
             format="json",
@@ -70,14 +69,13 @@ class AuthRateLimitingTests(APITestCase):
         second_response = self.client.post(
             "/api/v1/auth/register/",
             {
-                "email": "rate-register-2@example.com",
+                "email": "rateregister1002@stud.kuet.ac.bd",
                 "full_name": "Rate Register Two",
                 "phone": "01710000002",
                 "role": "student",
                 "password": "StrongPass123!",
                 "password2": "StrongPass123!",
                 "student_id": "S1002",
-                "university": "Campus University",
                 "department": "EEE",
             },
             format="json",
@@ -85,14 +83,13 @@ class AuthRateLimitingTests(APITestCase):
         third_response = self.client.post(
             "/api/v1/auth/register/",
             {
-                "email": "rate-register-3@example.com",
+                "email": "rateregister1003@stud.kuet.ac.bd",
                 "full_name": "Rate Register Three",
                 "phone": "01710000003",
                 "role": "student",
                 "password": "StrongPass123!",
                 "password2": "StrongPass123!",
                 "student_id": "S1003",
-                "university": "Campus University",
                 "department": "BBA",
             },
             format="json",
