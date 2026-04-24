@@ -80,3 +80,13 @@ a {
   background: var(--ck-accent);
   color: #111111;
 }
+
+@keyframes kartShine {
+  0% {
+    background-position: 0% center;
+  }
+
+  100% {
+    background-position: 220% center;
+  }
+}

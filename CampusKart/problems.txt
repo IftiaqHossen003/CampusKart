@@ -1,3 +1,0 @@
-1. how to implement mix order for multi vendor system
-2. how to automate the verification for only kuet student can get access
-3. how to give role for student and vendor for same user

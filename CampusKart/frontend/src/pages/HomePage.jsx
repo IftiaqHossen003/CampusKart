@@ -289,6 +289,8 @@ function HomePage() {
       <section className="relative min-h-screen overflow-hidden bg-[#0a0a0a] flex items-center justify-center">
         <div className="absolute inset-0 bg-gradient-to-br from-black via-[#0f0f0f] to-black" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(200,255,47,0.08),transparent_60%)]" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(183,245,30,0.22)_0%,rgba(183,245,30,0.10)_38%,transparent_72%)] blur-3xl" />
+        <div className="pointer-events-none absolute -top-24 right-[-80px] z-0 h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.14)_0%,transparent_70%)] blur-3xl" />
 
         <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-4xl space-y-8">
@@ -296,9 +298,27 @@ function HomePage() {
               Campus Lifestyle Marketplace
             </div>
 
-            <h1 className="text-7xl sm:text-7xl lg:text-[8rem] font-extrabold leading-[1.02] text-white">
-              Campus
-              <span className="text-[var(--ck-accent)]">Kart</span>
+            <h1 className="text-7xl sm:text-7xl lg:text-[8rem] font-extrabold leading-[1.02] tracking-tight">
+              <span
+                className="text-white/95"
+                style={{
+                  textShadow:
+                    "0 0 10px rgba(255,255,255,0.18), 0 0 28px rgba(255,255,255,0.10)",
+                }}
+              >
+                Campus
+              </span>
+              <span
+                className="ml-1 inline-block bg-gradient-to-r from-[#a8ff2a] via-[#d8ff78] to-[#79d000] bg-clip-text text-transparent animate-[kartShine_3.2s_linear_infinite]"
+                style={{
+                  backgroundSize: "220% auto",
+                  textShadow:
+                    "0 0 12px rgba(183,245,30,0.55), 0 0 32px rgba(183,245,30,0.45), 0 0 58px rgba(183,245,30,0.30)",
+                  filter: "drop-shadow(0 0 16px rgba(183,245,30,0.35))",
+                }}
+              >
+                Kart
+              </span>
             </h1>
 
             <p className="text-base sm:text-lg lg:text-xl text-[#d9d9d9] max-w-2xl mx-auto">
