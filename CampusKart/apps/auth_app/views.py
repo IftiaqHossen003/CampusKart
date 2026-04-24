@@ -95,6 +95,24 @@ def _blacklist_user_refresh_tokens(user):
         BlacklistedToken.objects.get_or_create(token=token)
 
 
+def _get_dashboard_redirect_url(user):
+    """
+    Determine the appropriate dashboard URL based on user role.
+    
+    Args:
+        user: CustomUser instance
+        
+    Returns:
+        str: URL path to redirect to based on user role
+    """
+    if user.role == "admin":
+        return "/api/v1/admin/stats/"
+    elif user.role == "vendor":
+        return "/api/v1/vendor/analytics/overview/"
+    else:  # student or default
+        return "/"
+
+
 # ---------------------------------------------------------------------------
 # Register
 # ---------------------------------------------------------------------------
@@ -178,6 +196,13 @@ class LoginView(TokenObtainPairView):
         refresh_token = _normalize_token_value(response_data.pop("refresh", None))
         if refresh_token:
             set_refresh_cookie(response, refresh_token)
+
+        # Add redirect URL based on user role
+        user_data = response_data.get("user")
+        if user_data and "role" in user_data:
+            # Fetch full user object to use role for redirect determination
+            user = User.objects.get(pk=user_data.get("id"))
+            response_data["redirect_url"] = _get_dashboard_redirect_url(user)
 
         return response
 
@@ -321,6 +346,7 @@ class BootstrapSessionView(APIView):
                 "authenticated": True,
                 "access": access_token,
                 "user": CustomUserSerializer(user).data,
+                "redirect_url": _get_dashboard_redirect_url(user),
             },
             status=status.HTTP_200_OK,
         )
