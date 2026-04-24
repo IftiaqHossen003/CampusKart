@@ -294,15 +294,6 @@ function App() {
               />
 
               <Route
-                path="/vendor/settings"
-                element={
-                  <ProtectedRoute allowedRoles={["vendor"]}>
-                    <RoutePlaceholderPage title="Vendor Settings" />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
                 path="/admin/dashboard"
                 element={
                   <ProtectedRoute allowedRoles={["admin"]}>

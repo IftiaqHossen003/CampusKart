@@ -245,10 +245,18 @@ function AdminDashboardPage() {
             Loading dashboard metrics...
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7">
-          {Array.from({ length: 7 }).map((_, index) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={`admin-dashboard-card-skeleton-${index}`}
+              className="h-28 animate-pulse rounded-xl border border-white/10 bg-white/5"
+            />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={`admin-dashboard-card-skeleton-row-two-${index}`}
               className="h-28 animate-pulse rounded-xl border border-white/10 bg-white/5"
             />
           ))}
@@ -290,8 +298,27 @@ function AdminDashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7">
-        {cards.map((card) => (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.slice(0, 4).map((card) => (
+          <article
+            key={card.id}
+            className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-4 shadow-sm"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              {card.title}
+            </p>
+            <p className="mt-2 text-2xl font-bold text-white">{card.value}</p>
+            <p
+              className={`mt-2 text-xs font-semibold ${deltaTone(card.delta)}`}
+            >
+              {formatDelta(card.delta)} vs yesterday
+            </p>
+          </article>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {cards.slice(4).map((card) => (
           <article
             key={card.id}
             className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-4 shadow-sm"
@@ -334,7 +361,9 @@ function AdminDashboardPage() {
           ) : (
             <div className="h-72">
               <Suspense
-                fallback={<div className="h-full animate-pulse rounded-lg bg-white/5" />}
+                fallback={
+                  <div className="h-full animate-pulse rounded-lg bg-white/5" />
+                }
               >
                 <AdminRevenueChart data={chartData} />
               </Suspense>
@@ -446,7 +475,3 @@ function AdminDashboardPage() {
 }
 
 export default AdminDashboardPage;
-
-
-
-

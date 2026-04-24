@@ -123,7 +123,10 @@ function VendorDashboardPage() {
           Could not load dashboard
         </h1>
         <p className="mt-2 text-sm text-slate-400">
-          {getVendorAnalyticsErrorMessage(error, "Please try again in a moment.")}
+          {getVendorAnalyticsErrorMessage(
+            error,
+            "Please try again in a moment.",
+          )}
         </p>
       </section>
     );
@@ -231,7 +234,9 @@ function VendorDashboardPage() {
         </div>
 
         <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5 sm:p-6">
-          <h2 className="text-lg font-semibold text-white">Recent Revenue (30d)</h2>
+          <h2 className="text-lg font-semibold text-white">
+            Recent Revenue (30d)
+          </h2>
           {recentRevenue.length === 0 ? (
             <p className="mt-4 rounded-md bg-white/5 px-3 py-2 text-sm text-slate-400">
               No revenue data available.
@@ -268,7 +273,9 @@ function VendorDashboardPage() {
                 className="rounded-lg border border-white/10 bg-[var(--ck-surface-deep)] p-3"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-white">{product.name}</p>
+                  <p className="text-sm font-semibold text-white">
+                    {product.name}
+                  </p>
                   <p className="text-xs text-slate-400">
                     Revenue: {formatMoney(product.revenue)}
                   </p>

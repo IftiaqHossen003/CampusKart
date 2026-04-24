@@ -185,9 +185,7 @@ function AdminPayoutsPage() {
         </div>
 
         <div className="rounded-xl border border-dashed border-white/20 bg-[var(--ck-surface)] p-8 text-center">
-          <h2 className="text-xl font-semibold text-white">
-            No payouts found
-          </h2>
+          <h2 className="text-xl font-semibold text-white">No payouts found</h2>
           <p className="mt-2 text-sm text-slate-400">
             Payout rows will appear as orders move through payment lifecycle.
           </p>
@@ -339,7 +337,3 @@ function AdminPayoutsPage() {
 }
 
 export default AdminPayoutsPage;
-
-
-
-

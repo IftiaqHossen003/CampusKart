@@ -17,7 +17,6 @@ const vendorNavItems = [
   { key: "orders", label: "Orders" },
   { key: "analytics", label: "Analytics" },
   { key: "payouts", label: "Payouts" },
-  { key: "settings", label: "Settings" },
 ];
 
 function Sidebar({ role }) {
