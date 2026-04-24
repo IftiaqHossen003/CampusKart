@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -102,7 +96,9 @@ function ProductListingPage() {
   const searchTerm = searchParams.get("search") || "";
 
   const [searchInput, setSearchInput] = useState(() => searchTerm);
-  const [recentSearches, setRecentSearches] = useState(() => readRecentSearches());
+  const [recentSearches, setRecentSearches] = useState(() =>
+    readRecentSearches(),
+  );
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const debouncedSearchInput = useDebouncedValue(searchInput, 300);
@@ -280,7 +276,9 @@ function ProductListingPage() {
 
     return flattened
       .filter((item) =>
-        String(item?.name || "").toLowerCase().includes(normalizedSuggestionTerm),
+        String(item?.name || "")
+          .toLowerCase()
+          .includes(normalizedSuggestionTerm),
       )
       .slice(0, 5)
       .map((item) => ({
@@ -609,9 +607,7 @@ function ProductListingPage() {
           </div>
 
           <div className="border-t border-white/10 pt-4">
-            <p className="mb-2 text-sm font-semibold text-white">
-              Category
-            </p>
+            <p className="mb-2 text-sm font-semibold text-white">Category</p>
             <div className="space-y-1 text-sm">
               <button
                 type="button"
@@ -659,9 +655,7 @@ function ProductListingPage() {
           </div>
 
           <div className="border-t border-white/10 pt-4">
-            <p className="mb-2 text-sm font-semibold text-white">
-              Price Range
-            </p>
+            <p className="mb-2 text-sm font-semibold text-white">Price Range</p>
             <div className="space-y-3">
               <div>
                 <label
@@ -775,7 +769,9 @@ function ProductListingPage() {
                   onKeyDown={handleSearchKeyDown}
                   placeholder="Search products by name, description, or tags"
                   role="combobox"
-                  aria-expanded={isSuggestionsOpen && flatSuggestions.length > 0}
+                  aria-expanded={
+                    isSuggestionsOpen && flatSuggestions.length > 0
+                  }
                   aria-controls="shop-search-suggestions"
                   aria-activedescendant={
                     boundedActiveSuggestionIndex >= 0
@@ -898,5 +894,3 @@ function ProductListingPage() {
 }
 
 export default ProductListingPage;
-
-

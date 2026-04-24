@@ -72,7 +72,9 @@ function SectionHeader({
           {title}
         </h2>
         {subtitle ? (
-          <p className={`mt-1 text-sm ${dark ? "text-[#d9d9d9]" : "text-[#313131]"}`}>
+          <p
+            className={`mt-1 text-sm ${dark ? "text-[#d9d9d9]" : "text-[#313131]"}`}
+          >
             {subtitle}
           </p>
         ) : null}
@@ -84,11 +86,7 @@ function SectionHeader({
         >
           <span>{ctaLabel}</span>
           {showArrow ? (
-            <svg
-              viewBox="0 0 20 20"
-              aria-hidden="true"
-              className="h-4 w-4"
-            >
+            <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4">
               <path
                 fill="currentColor"
                 d="M11.3 4.3a1 1 0 0 1 1.4 0l4 4a1 1 0 0 1 0 1.4l-4 4a1 1 0 1 1-1.4-1.4L13.59 10H4a1 1 0 1 1 0-2h9.59L11.3 5.7a1 1 0 0 1 0-1.4Z"
@@ -428,19 +426,21 @@ function HomePage() {
 
             {newArrivals.length > cardsPerView ? (
               <div className="flex justify-center gap-2">
-                {Array.from({ length: maxNewArrivalStart + 1 }).map((_, index) => (
-                  <button
-                    key={`new-arrival-dot-${index}`}
-                    type="button"
-                    onClick={() => setNewArrivalStartIndex(index)}
-                    className={`h-2.5 rounded-full transition ${
-                      index === newArrivalStartIndex
-                        ? "w-7 bg-[var(--ck-accent)]"
-                        : "w-2.5 bg-white/45 hover:bg-white/75"
-                    }`}
-                    aria-label={`Go to new arrivals slide ${index + 1}`}
-                  />
-                ))}
+                {Array.from({ length: maxNewArrivalStart + 1 }).map(
+                  (_, index) => (
+                    <button
+                      key={`new-arrival-dot-${index}`}
+                      type="button"
+                      onClick={() => setNewArrivalStartIndex(index)}
+                      className={`h-2.5 rounded-full transition ${
+                        index === newArrivalStartIndex
+                          ? "w-7 bg-[var(--ck-accent)]"
+                          : "w-2.5 bg-white/45 hover:bg-white/75"
+                      }`}
+                      aria-label={`Go to new arrivals slide ${index + 1}`}
+                    />
+                  ),
+                )}
               </div>
             ) : null}
           </div>
@@ -579,5 +579,3 @@ function HomePage() {
 }
 
 export default HomePage;
-
-

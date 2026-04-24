@@ -29,23 +29,32 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body :is(
-  [class*="bg-[var(--ck-surface)]"],
-  [class*="bg-[var(--ck-surface-deep)]"],
-  [class*="bg-black"],
-  [class*="bg-white/5"],
-  [class*="bg-white/10"]
-) {
+body
+  :is(
+    [class*="bg-[var(--ck-surface)]"],
+    [class*="bg-[var(--ck-surface-deep)]"],
+    [class*="bg-black"],
+    [class*="bg-white/5"],
+    [class*="bg-white/10"]
+  ) {
   color: var(--ck-text);
 }
 
-body :is(
-  [class*="bg-[var(--ck-surface)]"],
-  [class*="bg-[var(--ck-surface-deep)]"],
-  [class*="bg-black"],
-  [class*="bg-white/5"],
-  [class*="bg-white/10"]
-) :is(.text-slate-300, .text-slate-400, .text-slate-500, .text-slate-600, .text-slate-700) {
+body
+  :is(
+    [class*="bg-[var(--ck-surface)]"],
+    [class*="bg-[var(--ck-surface-deep)]"],
+    [class*="bg-black"],
+    [class*="bg-white/5"],
+    [class*="bg-white/10"]
+  )
+  :is(
+    .text-slate-300,
+    .text-slate-400,
+    .text-slate-500,
+    .text-slate-600,
+    .text-slate-700
+  ) {
   color: var(--ck-text) !important;
 }
 
@@ -59,8 +68,8 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: "Manrope", "DM Sans", "Segoe UI", Tahoma, Geneva, Verdana,
-    sans-serif;
+  font-family:
+    "Manrope", "DM Sans", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 a {
