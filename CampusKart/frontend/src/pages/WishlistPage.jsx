@@ -24,21 +24,21 @@ function WishlistPage() {
   if (wishlistQuery.isLoading) {
     return (
       <section className="space-y-4">
-        <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-          <h1 className="text-2xl font-bold text-primary">My Wishlist</h1>
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+          <h1 className="text-2xl font-bold text-white">My Wishlist</h1>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <div
               key={`wishlist-skeleton-${index}`}
-              className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+              className="overflow-hidden rounded-xl border border-white/10 bg-[var(--ck-surface)]"
             >
-              <div className="aspect-[4/3] animate-pulse bg-slate-200" />
+              <div className="aspect-[4/3] animate-pulse bg-white/10" />
               <div className="space-y-3 p-4">
-                <div className="h-4 w-4/5 animate-pulse rounded bg-slate-200" />
-                <div className="h-3 w-2/5 animate-pulse rounded bg-slate-200" />
-                <div className="h-10 w-full animate-pulse rounded bg-slate-200" />
+                <div className="h-4 w-4/5 animate-pulse rounded bg-white/10" />
+                <div className="h-3 w-2/5 animate-pulse rounded bg-white/10" />
+                <div className="h-10 w-full animate-pulse rounded bg-white/10" />
               </div>
             </div>
           ))}
@@ -53,15 +53,15 @@ function WishlistPage() {
       "Could not load your wishlist right now. Please try again.";
 
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-        <h1 className="text-xl font-semibold text-primary">
+      <section className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-8 text-center">
+        <h1 className="text-xl font-semibold text-white">
           Could not load wishlist
         </h1>
-        <p className="mt-2 text-sm text-muted">{detail}</p>
+        <p className="mt-2 text-sm text-slate-400">{detail}</p>
         <button
           type="button"
           onClick={() => wishlistQuery.refetch()}
-          className="mt-5 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+          className="mt-5 rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
         >
           Retry
         </button>
@@ -72,9 +72,9 @@ function WishlistPage() {
   if (wishlistItems.length === 0) {
     return (
       <section className="space-y-4">
-        <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-          <h1 className="text-2xl font-bold text-primary">My Wishlist</h1>
-          <p className="mt-1 text-sm text-muted">
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+          <h1 className="text-2xl font-bold text-white">My Wishlist</h1>
+          <p className="mt-1 text-sm text-slate-400">
             Save products here for quick access later.
           </p>
         </div>
@@ -91,9 +91,9 @@ function WishlistPage() {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">My Wishlist</h1>
-        <p className="mt-1 text-sm text-muted">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+        <h1 className="text-2xl font-bold text-white">My Wishlist</h1>
+        <p className="mt-1 text-sm text-slate-400">
           {wishlistItems.length} product{wishlistItems.length === 1 ? "" : "s"}{" "}
           saved.
         </p>
@@ -134,7 +134,7 @@ function WishlistPage() {
       <div>
         <Link
           to="/shop"
-          className="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+          className="inline-flex rounded-md border border-white/20 px-4 py-2 text-sm font-semibold text-slate-400 hover:bg-white/5"
         >
           Continue browsing
         </Link>
@@ -144,3 +144,7 @@ function WishlistPage() {
 }
 
 export default WishlistPage;
+
+
+
+

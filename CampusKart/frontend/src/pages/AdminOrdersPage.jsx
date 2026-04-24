@@ -192,16 +192,16 @@ function AdminOrdersPage() {
   if (ordersQuery.isLoading) {
     return (
       <section className="space-y-5">
-        <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-          <h1 className="text-2xl font-bold text-primary">Admin Orders</h1>
-          <p className="mt-1 text-sm text-muted">Loading orders...</p>
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+          <h1 className="text-2xl font-bold text-white">Admin Orders</h1>
+          <p className="mt-1 text-sm text-slate-400">Loading orders...</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, index) => (
               <div
                 key={`admin-orders-skeleton-${index}`}
-                className="h-12 animate-pulse rounded bg-slate-100"
+                className="h-12 animate-pulse rounded bg-white/5"
               />
             ))}
           </div>
@@ -212,11 +212,11 @@ function AdminOrdersPage() {
 
   if (ordersQuery.isError) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-        <h1 className="text-xl font-semibold text-primary">
+      <section className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-8 text-center">
+        <h1 className="text-xl font-semibold text-white">
           Could not load orders
         </h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-slate-400">
           {getOrderApiErrorMessage(
             ordersQuery.error,
             "Please try again in a moment.",
@@ -225,7 +225,7 @@ function AdminOrdersPage() {
         <button
           type="button"
           onClick={() => ordersQuery.refetch()}
-          className="mt-5 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+          className="mt-5 rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
         >
           Retry
         </button>
@@ -235,26 +235,26 @@ function AdminOrdersPage() {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">Admin Orders</h1>
-        <p className="mt-1 text-sm text-muted">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+        <h1 className="text-2xl font-bold text-white">Admin Orders</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Monitor and progress orders across all buyers and vendors.
         </p>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
           <input
             type="search"
             value={search}
             onChange={handleSearchChange}
             placeholder="Search order number, customer, or address"
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+            className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
           />
           <select
             value={status}
             onChange={(event) => handleStatusFilterChange(event.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+            className="rounded-md border border-white/20 bg-[var(--ck-surface)] px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
           >
             {ORDER_STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -263,51 +263,51 @@ function AdminOrdersPage() {
             ))}
           </select>
         </div>
-        <p className="mt-3 text-sm text-muted">
+        <p className="mt-3 text-sm text-slate-400">
           Showing {filteredOrders.length} order
           {filteredOrders.length === 1 ? "" : "s"} on this page.
         </p>
       </div>
 
       {filteredOrders.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <h2 className="text-lg font-semibold text-primary">
+        <div className="rounded-xl border border-dashed border-white/20 bg-[var(--ck-surface)] p-8 text-center">
+          <h2 className="text-lg font-semibold text-white">
             No orders found
           </h2>
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-2 text-sm text-slate-400">
             Try a different filter or search query.
           </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white">
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)]">
           <div className="hidden overflow-x-auto md:block">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
+            <table className="min-w-full divide-y divide-white/10">
+              <thead className="bg-[var(--ck-surface-deep)]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Order
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Customer
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Date
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Items
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Total
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Next Step
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-white/10 bg-[var(--ck-surface)]">
                 {filteredOrders.map((order) => {
                   const targetOrderId = order.statusUpdateId || order.id;
                   const transitions = getAllowedTransitions(order.status);
@@ -321,22 +321,22 @@ function AdminOrdersPage() {
 
                   return (
                     <tr key={order.id || order.orderNumber}>
-                      <td className="px-4 py-3 text-sm font-medium text-slate-800">
+                      <td className="px-4 py-3 text-sm font-medium text-white">
                         #{order.orderNumber || order.id}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
+                      <td className="px-4 py-3 text-sm text-slate-400">
                         <p>{order.customerName || "Customer"}</p>
-                        <p className="text-xs text-muted">
+                        <p className="text-xs text-slate-400">
                           {order.customerEmail || "-"}
                         </p>
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
+                      <td className="px-4 py-3 text-sm text-slate-400">
                         {formatDate(order.placedAt)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
+                      <td className="px-4 py-3 text-sm text-slate-400">
                         {order.itemCount || 0}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
+                      <td className="px-4 py-3 text-sm text-slate-400">
                         {formatPrice(order.total)}
                       </td>
                       <td className="px-4 py-3 text-sm">
@@ -357,7 +357,7 @@ function AdminOrdersPage() {
                               nextStatus,
                             });
                           }}
-                          className="w-full max-w-[180px] rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
+                          className="w-full max-w-[180px] rounded-md border border-white/20 bg-[var(--ck-surface)] px-2 py-1.5 text-sm focus:border-[var(--ck-accent)] focus:outline-none disabled:cursor-not-allowed disabled:bg-white/5"
                         >
                           {transitions.map((option) => (
                             <option
@@ -376,7 +376,7 @@ function AdminOrdersPage() {
             </table>
           </div>
 
-          <div className="divide-y divide-slate-100 md:hidden">
+          <div className="divide-y divide-white/10 md:hidden">
             {filteredOrders.map((order) => {
               const targetOrderId = order.statusUpdateId || order.id;
               const transitions = getAllowedTransitions(order.status);
@@ -393,20 +393,20 @@ function AdminOrdersPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">
+                      <p className="text-sm font-semibold text-white">
                         Order #{order.orderNumber || order.id}
                       </p>
-                      <p className="text-xs text-muted">
+                      <p className="text-xs text-slate-400">
                         {order.customerName || "Customer"}
                       </p>
-                      <p className="text-xs text-muted">
+                      <p className="text-xs text-slate-400">
                         {order.customerEmail || "-"}
                       </p>
                     </div>
                     <OrderStatusBadge status={order.status} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs text-muted">
+                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-400">
                     <p>Date: {formatDate(order.placedAt)}</p>
                     <p>Items: {order.itemCount || 0}</p>
                     <p className="col-span-2">
@@ -428,7 +428,7 @@ function AdminOrdersPage() {
                         nextStatus,
                       });
                     }}
-                    className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
+                    className="w-full rounded-md border border-white/20 bg-[var(--ck-surface)] px-2 py-1.5 text-sm focus:border-[var(--ck-accent)] focus:outline-none disabled:cursor-not-allowed disabled:bg-white/5"
                   >
                     {transitions.map((option) => (
                       <option
@@ -458,3 +458,7 @@ function AdminOrdersPage() {
 }
 
 export default AdminOrdersPage;
+
+
+
+

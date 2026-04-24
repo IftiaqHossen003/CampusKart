@@ -76,14 +76,14 @@ function SortableBannerRow({
     <article
       ref={setNodeRef}
       style={style}
-      className={`rounded-lg border border-slate-200 p-3 ${isDragging ? "bg-slate-100" : "bg-white"}`}
+      className={`rounded-lg border border-white/10 p-3 ${isDragging ? "bg-white/5" : "bg-[var(--ck-surface)]"}`}
     >
       <div className="flex items-start gap-3">
         <button
           type="button"
           {...attributes}
           {...listeners}
-          className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-slate-300 text-slate-600 hover:bg-slate-100"
+          className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded border border-white/20 text-slate-400 hover:bg-white/5"
           aria-label="Drag to reorder"
           title="Drag to reorder"
         >
@@ -94,22 +94,22 @@ function SortableBannerRow({
           src={banner.image_url}
           alt={banner.title}
           loading="lazy"
-          className="h-16 w-24 rounded border border-slate-200 object-cover"
+          className="h-16 w-24 rounded border border-white/10 object-cover"
         />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <p className="line-clamp-1 text-sm font-semibold text-slate-900">
+              <p className="line-clamp-1 text-sm font-semibold text-white">
                 {banner.title}
               </p>
-              <p className="text-xs text-muted">Position: {banner.position}</p>
-              <p className="text-xs text-muted">
+              <p className="text-xs text-slate-400">Position: {banner.position}</p>
+              <p className="text-xs text-slate-400">
                 Updated: {formatDate(banner.updated_at)}
               </p>
             </div>
 
-            <label className="inline-flex items-center gap-2 text-xs text-slate-700">
+            <label className="inline-flex items-center gap-2 text-xs text-slate-400">
               <input
                 type="checkbox"
                 checked={Boolean(banner.is_active)}
@@ -125,19 +125,19 @@ function SortableBannerRow({
               href={banner.link}
               target="_blank"
               rel="noreferrer"
-              className="mt-1 block truncate text-xs text-accent hover:underline"
+              className="mt-1 block truncate text-xs text-[var(--ck-accent)] hover:underline"
             >
               {banner.link}
             </a>
           ) : (
-            <p className="mt-1 text-xs text-muted">No link provided</p>
+            <p className="mt-1 text-xs text-slate-400">No link provided</p>
           )}
 
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => onEdit(banner)}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              className="rounded-md border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:bg-white/5"
             >
               Edit
             </button>
@@ -431,11 +431,11 @@ function AdminBannersPage() {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-primary">Banner Manager</h1>
-            <p className="mt-1 text-sm text-muted">
+            <h1 className="text-2xl font-bold text-white">Banner Manager</h1>
+            <p className="mt-1 text-sm text-slate-400">
               Drag to reorder banners. Changes save automatically after drop.
             </p>
           </div>
@@ -443,20 +443,20 @@ function AdminBannersPage() {
           <button
             type="button"
             onClick={openCreateModal}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+            className="rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
           >
             Add Banner
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
         {bannersQuery.isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, index) => (
               <div
                 key={`banner-row-skeleton-${index}`}
-                className="h-24 animate-pulse rounded-lg bg-slate-200"
+                className="h-24 animate-pulse rounded-lg bg-white/10"
               />
             ))}
           </div>
@@ -474,7 +474,7 @@ function AdminBannersPage() {
         {!bannersQuery.isLoading &&
         !bannersQuery.isError &&
         orderedBanners.length === 0 ? (
-          <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-muted">
+          <p className="rounded-md bg-white/5 px-3 py-2 text-sm text-slate-400">
             No banners yet. Add one to get started.
           </p>
         ) : null}
@@ -510,7 +510,7 @@ function AdminBannersPage() {
 
       {isModalOpen ? (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/60 p-4"
+          className="fixed inset-0 z-50 bg-black/70 p-4"
           onClick={() => {
             if (!isBusy) {
               closeModal();
@@ -519,14 +519,14 @@ function AdminBannersPage() {
           role="presentation"
         >
           <div
-            className="mx-auto mt-10 w-full max-w-xl rounded-xl bg-white p-5 shadow-xl"
+            className="mx-auto mt-10 w-full max-w-xl rounded-xl bg-[var(--ck-surface)] p-5 shadow-xl"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label={editingBanner ? "Edit Banner" : "Add Banner"}
           >
             <div className="flex items-start justify-between gap-3">
-              <h2 className="text-lg font-semibold text-primary">
+              <h2 className="text-lg font-semibold text-white">
                 {editingBanner ? "Edit Banner" : "Add Banner"}
               </h2>
 
@@ -534,7 +534,7 @@ function AdminBannersPage() {
                 type="button"
                 onClick={closeModal}
                 disabled={isBusy}
-                className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600"
+                className="rounded border border-white/20 px-2 py-1 text-xs text-slate-400"
               >
                 Close
               </button>
@@ -542,7 +542,7 @@ function AdminBannersPage() {
 
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
               <label className="block text-sm">
-                <span className="mb-1 block text-sm font-medium text-slate-700">
+                <span className="mb-1 block text-sm font-medium text-slate-400">
                   Title
                 </span>
                 <input
@@ -555,12 +555,12 @@ function AdminBannersPage() {
                       title: event.target.value,
                     }))
                   }
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </label>
 
               <label className="block text-sm">
-                <span className="mb-1 block text-sm font-medium text-slate-700">
+                <span className="mb-1 block text-sm font-medium text-slate-400">
                   Link URL
                 </span>
                 <input
@@ -572,13 +572,13 @@ function AdminBannersPage() {
                       link: event.target.value,
                     }))
                   }
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                   placeholder="https://example.com/deal"
                 />
               </label>
 
               <label className="block text-sm">
-                <span className="mb-1 block text-sm font-medium text-slate-700">
+                <span className="mb-1 block text-sm font-medium text-slate-400">
                   Position
                 </span>
                 <input
@@ -591,11 +591,11 @@ function AdminBannersPage() {
                       position: event.target.value,
                     }))
                   }
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </label>
 
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-400">
                 <input
                   type="checkbox"
                   checked={formState.is_active}
@@ -610,7 +610,7 @@ function AdminBannersPage() {
               </label>
 
               <label className="block text-sm">
-                <span className="mb-1 block text-sm font-medium text-slate-700">
+                <span className="mb-1 block text-sm font-medium text-slate-400">
                   Banner Image
                 </span>
                 <input
@@ -624,7 +624,7 @@ function AdminBannersPage() {
                     }));
                     updatePreviewFromFile(file, editingBanner?.image_url || "");
                   }}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-white/20 px-3 py-2 text-sm"
                 />
               </label>
 
@@ -633,7 +633,7 @@ function AdminBannersPage() {
                   src={imagePreviewUrl}
                   alt="Banner preview"
                   loading="lazy"
-                  className="h-40 w-full rounded-md border border-slate-200 object-cover"
+                  className="h-40 w-full rounded-md border border-white/10 object-cover"
                 />
               ) : null}
 
@@ -642,14 +642,14 @@ function AdminBannersPage() {
                   type="button"
                   onClick={closeModal}
                   disabled={isBusy}
-                  className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-md border border-white/20 px-4 py-2 text-sm font-semibold text-slate-400 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isBusy}
-                  className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {saveMutation.isPending
                     ? "Saving..."
@@ -667,3 +667,7 @@ function AdminBannersPage() {
 }
 
 export default AdminBannersPage;
+
+
+
+

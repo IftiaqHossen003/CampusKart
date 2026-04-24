@@ -43,7 +43,7 @@ function MainLayout() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg">
+    <div className="flex min-h-screen flex-col bg-[var(--ck-bg)]">
       <Navbar
         user={user}
         onLogout={handleLogout}

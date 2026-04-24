@@ -257,13 +257,13 @@ function OrderDetailPage() {
   if (orderQuery.isLoading) {
     return (
       <section className="space-y-4">
-        <div className="h-6 w-48 animate-pulse rounded bg-slate-200" />
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="h-6 w-48 animate-pulse rounded bg-white/10" />
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, index) => (
               <div
                 key={`order-detail-skeleton-${index}`}
-                className="h-12 animate-pulse rounded bg-slate-200"
+                className="h-12 animate-pulse rounded bg-white/10"
               />
             ))}
           </div>
@@ -274,9 +274,9 @@ function OrderDetailPage() {
 
   if (orderQuery.isError || !orderQuery.data) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-        <h1 className="text-xl font-semibold text-primary">Order not found</h1>
-        <p className="mt-2 text-sm text-muted">
+      <section className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-8 text-center">
+        <h1 className="text-xl font-semibold text-white">Order not found</h1>
+        <p className="mt-2 text-sm text-slate-400">
           {getOrderApiErrorMessage(
             orderQuery.error,
             "We could not load this order right now.",
@@ -284,7 +284,7 @@ function OrderDetailPage() {
         </p>
         <Link
           to="/orders"
-          className="mt-5 inline-flex rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+          className="mt-5 inline-flex rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
         >
           Back to Orders
         </Link>
@@ -310,14 +310,14 @@ function OrderDetailPage() {
         <div>
           <Link
             to="/orders"
-            className="text-sm font-medium text-accent hover:underline"
+            className="text-sm font-medium text-[var(--ck-accent)] hover:underline"
           >
             ← Back to Orders
           </Link>
-          <h1 className="mt-1 text-2xl font-bold text-primary">
+          <h1 className="mt-1 text-2xl font-bold text-white">
             Order #{order.orderNumber || order.id}
           </h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm text-slate-400">
             Placed on {formatDate(order.placedAt)}
           </p>
         </div>
@@ -326,7 +326,7 @@ function OrderDetailPage() {
           type="button"
           onClick={() => reorderMutation.mutate()}
           disabled={reorderMutation.isPending || !order.items?.length}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:bg-white/20"
         >
           {reorderMutation.isPending ? "Adding Items..." : "Re-order"}
         </button>
@@ -358,8 +358,8 @@ function OrderDetailPage() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-5">
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-primary">
+          <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
+            <h2 className="text-base font-semibold text-white">
               Order Progress
             </h2>
             <div className="mt-4 grid grid-cols-3 gap-3">
@@ -373,14 +373,14 @@ function OrderDetailPage() {
                     <div
                       className={`rounded-md border px-3 py-3 text-center text-xs font-semibold ${
                         isDone || isCurrent
-                          ? "border-accent bg-accent/10 text-accent"
-                          : "border-slate-200 bg-slate-50 text-muted"
+                          ? "border-accent bg-[var(--ck-accent)]/10 text-[var(--ck-accent)]"
+                          : "border-white/10 bg-[var(--ck-surface-deep)] text-slate-400"
                       }`}
                     >
                       {formatLabel(step)}
                     </div>
                     {index < ORDER_PROGRESS_STEPS.length - 1 ? (
-                      <span className="absolute -right-2 top-1/2 hidden h-0.5 w-4 -translate-y-1/2 bg-slate-300 sm:block" />
+                      <span className="absolute -right-2 top-1/2 hidden h-0.5 w-4 -translate-y-1/2 bg-white/20 sm:block" />
                     ) : null}
                   </div>
                 );
@@ -388,12 +388,12 @@ function OrderDetailPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-4 py-3">
-              <h2 className="text-base font-semibold text-primary">Items</h2>
+          <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)]">
+            <div className="border-b border-white/10 px-4 py-3">
+              <h2 className="text-base font-semibold text-white">Items</h2>
             </div>
 
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-white/10">
               {(order.items || []).map((item) => (
                 <article
                   key={item.id}
@@ -402,19 +402,19 @@ function OrderDetailPage() {
                   <img
                     src={item.imageUrl}
                     alt={item.name}
-                    className="h-16 w-16 rounded-md border border-slate-200 object-cover sm:h-[72px] sm:w-[72px]"
+                    className="h-16 w-16 rounded-md border border-white/10 object-cover sm:h-[72px] sm:w-[72px]"
                   />
 
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">
+                    <p className="text-sm font-semibold text-white">
                       {item.name}
                     </p>
-                    <p className="mt-1 text-xs text-muted">
+                    <p className="mt-1 text-xs text-slate-400">
                       Qty: {item.quantity} × {formatPrice(item.unitPrice)}
                     </p>
                   </div>
 
-                  <p className="whitespace-nowrap text-sm font-semibold text-slate-800">
+                  <p className="whitespace-nowrap text-sm font-semibold text-white">
                     {formatPrice(item.subtotal)}
                   </p>
                 </article>
@@ -424,41 +424,41 @@ function OrderDetailPage() {
         </div>
 
         <aside className="space-y-5">
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-primary">
+          <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
+            <h2 className="text-base font-semibold text-white">
               Order Details
             </h2>
-            <div className="mt-3 space-y-2 text-sm text-slate-700">
+            <div className="mt-3 space-y-2 text-sm text-slate-400">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-muted">Status</span>
+                <span className="text-slate-400">Status</span>
                 <OrderStatusBadge status={order.status} />
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-muted">Payment</span>
+                <span className="text-slate-400">Payment</span>
                 <span className="font-medium">
                   {formatLabel(order.paymentMethod || "cod")}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-muted">Payment Status</span>
+                <span className="text-slate-400">Payment Status</span>
                 {orderPayment ? (
                   <OrderStatusBadge status={orderPayment.status} />
                 ) : (
-                  <span className="font-medium text-slate-700">N/A</span>
+                  <span className="font-medium text-slate-400">N/A</span>
                 )}
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-muted">Items</span>
+                <span className="text-slate-400">Items</span>
                 <span className="font-medium">{order.itemCount}</span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-primary">
+          <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
+            <h2 className="text-base font-semibold text-white">
               Delivery Address
             </h2>
-            <div className="mt-3 space-y-1 text-sm text-slate-700">
+            <div className="mt-3 space-y-1 text-sm text-slate-400">
               {order.deliveryAddress?.fullName ? (
                 <p>{order.deliveryAddress.fullName}</p>
               ) : null}
@@ -472,26 +472,26 @@ function OrderDetailPage() {
                 <p>{order.deliveryAddress.areaCity}</p>
               ) : null}
               {order.deliveryAddress?.notes ? (
-                <p className="pt-1 text-xs text-muted">
+                <p className="pt-1 text-xs text-slate-400">
                   Notes: {order.deliveryAddress.notes}
                 </p>
               ) : null}
               {!order.deliveryAddress?.display ? (
-                <p className="text-sm text-muted">
+                <p className="text-sm text-slate-400">
                   No address details available.
                 </p>
               ) : null}
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-primary">Summary</h2>
+          <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
+            <h2 className="text-base font-semibold text-white">Summary</h2>
             <div className="mt-3 space-y-2 text-sm">
-              <div className="flex items-center justify-between text-muted">
+              <div className="flex items-center justify-between text-slate-400">
                 <span>Subtotal</span>
                 <span>{formatPrice(order.subtotal)}</span>
               </div>
-              <div className="flex items-center justify-between text-base font-bold text-primary">
+              <div className="flex items-center justify-between text-base font-bold text-white">
                 <span>Total</span>
                 <span>{formatPrice(order.total)}</span>
               </div>
@@ -504,3 +504,7 @@ function OrderDetailPage() {
 }
 
 export default OrderDetailPage;
+
+
+
+

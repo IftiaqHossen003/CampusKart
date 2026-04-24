@@ -113,25 +113,31 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
     typeof unreadCountQuery.data === "number" ? unreadCountQuery.data : 0;
 
   useEffect(() => {
-    if (location.pathname !== "/shop") {
+    const params = new URLSearchParams(location.search);
+    if (location.pathname === "/shop") {
+      setSearchInput(params.get("search") || "");
       return;
     }
 
-    const params = new URLSearchParams(location.search);
-    setSearchInput(params.get("search") || "");
+    setSearchInput("");
   }, [location.pathname, location.search]);
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
 
     const normalizedSearch = searchInput.trim();
-    const next = new URLSearchParams();
-    next.set("page", "1");
+    const next =
+      location.pathname === "/shop"
+        ? new URLSearchParams(location.search)
+        : new URLSearchParams();
 
     if (normalizedSearch) {
       next.set("search", normalizedSearch);
+    } else {
+      next.delete("search");
     }
 
+    next.set("page", "1");
     navigate(`/shop?${next.toString()}`);
     setMobileOpen(false);
   };
@@ -186,21 +192,29 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
   }, [user]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-primary text-white">
-      <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40">
+      {!showSidebarToggle ? (
+        <div className="bg-[var(--ck-accent)] px-4 py-1 text-center text-[11px] font-medium tracking-wide text-[#111111] sm:text-xs">
+          Free shipping on orders over BDT 3,500 | Use code CAMPUS2026
+        </div>
+      ) : null}
+
+      <div className="border-b border-white/10 bg-[var(--ck-surface-deep)]/95 backdrop-blur">
+        <div className="flex w-full items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <button
           type="button"
           onClick={
             showSidebarToggle ? onToggleSidebar : () => setMobileOpen((v) => !v)
           }
-          className="rounded-md border border-white/30 px-2 py-1 text-sm md:hidden"
+          className="rounded-md border border-white/25 px-2 py-1 text-sm text-white md:hidden"
           aria-label="Toggle navigation"
         >
           Menu
         </button>
 
-        <Link to="/" className="shrink-0 text-lg font-semibold tracking-wide">
-          CampusKart
+        <Link to="/" className="shrink-0 text-xl font-bold tracking-tight">
+          <span className="text-white">Campus</span>
+          <span className="text-[var(--ck-accent)]">Kart</span>
         </Link>
 
         <div className="hidden flex-1 items-center justify-center md:flex">
@@ -210,18 +224,18 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Search products, shops, categories"
-              className="w-full rounded-md border border-white/25 bg-white/10 px-3 py-2 text-sm placeholder:text-slate-200 focus:border-accent focus:outline-none"
+              className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#b9b9b9] focus:border-[var(--ck-accent)] focus:outline-none"
             />
           </form>
         </div>
 
-        <nav className="hidden items-center gap-3 text-sm md:flex">
+        <nav className="hidden items-center gap-1 text-sm md:flex">
           {links.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `rounded px-2 py-1 ${isActive ? "bg-white/20" : "hover:bg-white/10"}`
+                `rounded-lg px-2.5 py-1.5 transition ${isActive ? "bg-white/15 text-[var(--ck-accent)]" : "text-white/90 hover:bg-white/10 hover:text-white"}`
               }
             >
               {item.label}
@@ -233,11 +247,11 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
           {showCart ? (
             <Link
               to="/cart"
-              className="relative rounded-md border border-white/30 px-2 py-1 text-xs"
+              className="relative rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-white/90 transition hover:border-[var(--ck-accent)] hover:text-white"
             >
               Cart
               {totalItems > 0 ? (
-                <span className="absolute -right-1.5 -top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-semibold">
+                <span className="absolute -right-1.5 -top-1.5 rounded-full bg-[var(--ck-accent)] px-1.5 text-[10px] font-semibold text-[#111111]">
                   {totalItems > 99 ? "99+" : totalItems}
                 </span>
               ) : null}
@@ -249,7 +263,7 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
               <button
                 type="button"
                 onClick={() => setNotificationOpen((value) => !value)}
-                className="relative rounded-md border border-white/30 px-2 py-1 text-xs hover:bg-white/10"
+                className="relative rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-white/90 transition hover:border-[var(--ck-accent)] hover:bg-white/10 hover:text-white"
                 aria-label="Open notifications"
                 title="Notifications"
               >
@@ -261,20 +275,20 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
                 </svg>
 
                 {unreadCount > 0 ? (
-                  <span className="absolute -right-1.5 -top-1.5 rounded-full bg-accent px-1.5 text-[10px] font-semibold">
+                  <span className="absolute -right-1.5 -top-1.5 rounded-full bg-[var(--ck-accent)] px-1.5 text-[10px] font-semibold text-[#111111]">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 ) : null}
               </button>
 
               {notificationOpen ? (
-                <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-slate-200 bg-white text-slate-800 shadow-xl">
-                  <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
-                    <p className="text-sm font-semibold text-primary">
+                <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-white/15 bg-[var(--ck-surface)] text-white shadow-2xl">
+                  <div className="flex items-center justify-between border-b border-white/10 px-3 py-2.5">
+                    <p className="text-sm font-semibold text-white">
                       Notifications
                     </p>
                     {unreadCount > 0 ? (
-                      <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
+                      <span className="rounded-full bg-[var(--ck-accent)] px-2 py-0.5 text-[10px] font-semibold text-[#111111]">
                         {unreadCount} unread
                       </span>
                     ) : null}
@@ -282,14 +296,14 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
 
                   <div className="max-h-96 overflow-y-auto">
                     {notificationsQuery.isLoading ? (
-                      <p className="px-3 py-4 text-xs text-muted">
+                      <p className="px-3 py-4 text-xs text-[#d9d9d9]">
                         Loading notifications...
                       </p>
                     ) : null}
 
                     {!notificationsQuery.isLoading &&
                     latestNotifications.length === 0 ? (
-                      <p className="px-3 py-4 text-xs text-muted">
+                      <p className="px-3 py-4 text-xs text-[#d9d9d9]">
                         No notifications yet.
                       </p>
                     ) : null}
@@ -303,21 +317,21 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
                             onClick={() =>
                               handleNotificationClick(notification)
                             }
-                            className="w-full border-b border-slate-100 px-3 py-3 text-left transition hover:bg-slate-50"
+                            className="w-full border-b border-white/10 px-3 py-3 text-left transition hover:bg-white/5"
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div>
-                                <p className="text-xs font-semibold text-slate-900">
+                                <p className="text-xs font-semibold text-white">
                                   {notification.title}
                                 </p>
-                                <p className="mt-0.5 line-clamp-2 text-xs text-slate-700">
+                                <p className="mt-0.5 line-clamp-2 text-xs text-[#d9d9d9]">
                                   {notification.message}
                                 </p>
                               </div>
 
                               {!notification.is_read ? (
                                 <span
-                                  className="mt-1 inline-flex h-2 w-2 rounded-full bg-accent"
+                                  className="mt-1 inline-flex h-2 w-2 rounded-full bg-[var(--ck-accent)]"
                                   aria-hidden="true"
                                 />
                               ) : null}
@@ -330,7 +344,7 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
                   <Link
                     to="/notifications"
                     onClick={() => setNotificationOpen(false)}
-                    className="block border-t border-slate-200 px-3 py-2 text-center text-xs font-semibold text-accent hover:bg-slate-50"
+                    className="block border-t border-white/10 px-3 py-2.5 text-center text-xs font-semibold text-[var(--ck-accent)] hover:bg-white/5"
                   >
                     See all notifications
                   </Link>
@@ -342,7 +356,7 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
           <Link
             to={profilePath}
             aria-label="Open profile"
-            className="rounded-full border border-white/40 bg-white/10 px-2 py-1 text-xs font-semibold transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/70"
+            className="rounded-full border border-white/30 bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:border-[var(--ck-accent)] hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[var(--ck-accent)]"
           >
             {user?.full_name?.charAt(0)?.toUpperCase() || "G"}
           </Link>
@@ -350,23 +364,24 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
             <button
               type="button"
               onClick={onLogout}
-              className="rounded-md bg-accent px-2.5 py-1 text-xs font-semibold"
+              className="rounded-lg bg-[var(--ck-accent)] px-2.5 py-1.5 text-xs font-semibold text-[#111111] transition hover:bg-[var(--ck-accent-hover)]"
             >
               Logout
             </button>
           ) : null}
         </div>
       </div>
+      </div>
 
       {!showSidebarToggle && mobileOpen ? (
-        <div className="border-t border-white/20 px-4 pb-3 md:hidden">
+        <div className="border-t border-white/10 bg-[var(--ck-surface)] px-4 pb-4 md:hidden">
           <form className="mb-3 mt-3" onSubmit={handleSearchSubmit}>
             <input
               type="search"
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Search products, shops, categories"
-              className="w-full rounded-md border border-white/25 bg-white/10 px-3 py-2 text-sm placeholder:text-slate-200 focus:border-accent focus:outline-none"
+              className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-[#b9b9b9] focus:border-[var(--ck-accent)] focus:outline-none"
             />
           </form>
           <nav className="flex flex-col gap-1 text-sm">
@@ -376,7 +391,7 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
                 to={item.to}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
-                  `rounded px-2 py-2 ${isActive ? "bg-white/20" : "hover:bg-white/10"}`
+                  `rounded-lg px-2 py-2.5 transition ${isActive ? "bg-white/15 text-[var(--ck-accent)]" : "text-white/90 hover:bg-white/10 hover:text-white"}`
                 }
               >
                 {item.label}
@@ -388,7 +403,7 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
                 to="/notifications"
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
-                  `rounded px-2 py-2 ${isActive ? "bg-white/20" : "hover:bg-white/10"}`
+                  `rounded-lg px-2 py-2.5 transition ${isActive ? "bg-white/15 text-[var(--ck-accent)]" : "text-white/90 hover:bg-white/10 hover:text-white"}`
                 }
               >
                 Notifications
@@ -402,3 +417,5 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
 }
 
 export default Navbar;
+
+

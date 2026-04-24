@@ -221,14 +221,14 @@ function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-        <h1 className="text-2xl font-bold text-primary">Your cart is empty</h1>
-        <p className="mt-2 text-sm text-muted">
+      <section className="rounded-xl border border-dashed border-white/20 bg-[var(--ck-surface)] p-8 text-center">
+        <h1 className="text-2xl font-bold text-white">Your cart is empty</h1>
+        <p className="mt-2 text-sm text-slate-400">
           Add products before proceeding to checkout.
         </p>
         <Link
           to="/shop"
-          className="mt-5 inline-flex rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+          className="mt-5 inline-flex rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
         >
           Continue Shopping
         </Link>
@@ -238,9 +238,9 @@ function CheckoutPage() {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">Checkout</h1>
-        <p className="mt-1 text-sm text-muted">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+        <h1 className="text-2xl font-bold text-white">Checkout</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Confirm your delivery details and place your order.
         </p>
       </div>
@@ -248,17 +248,17 @@ function CheckoutPage() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
         <form
           onSubmit={handleSubmit((values) => placeOrderMutation.mutate(values))}
-          className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6"
+          className="space-y-5 rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5 sm:p-6"
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">
+              <span className="mb-1 block text-sm font-medium text-slate-400">
                 Full Name
               </span>
               <input
                 type="text"
                 {...register("fullName")}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 placeholder="Your full name"
               />
               {errors.fullName ? (
@@ -269,13 +269,13 @@ function CheckoutPage() {
             </label>
 
             <label className="block">
-              <span className="mb-1 block text-sm font-medium text-slate-700">
+              <span className="mb-1 block text-sm font-medium text-slate-400">
                 Phone
               </span>
               <input
                 type="tel"
                 {...register("phone")}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 placeholder="01XXXXXXXXX"
               />
               {errors.phone ? (
@@ -287,13 +287,13 @@ function CheckoutPage() {
           </div>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">
+            <span className="mb-1 block text-sm font-medium text-slate-400">
               Address Line
             </span>
             <input
               type="text"
               {...register("addressLine")}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+              className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
               placeholder="Hall, building, street, or landmark"
             />
             {errors.addressLine ? (
@@ -304,13 +304,13 @@ function CheckoutPage() {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">
+            <span className="mb-1 block text-sm font-medium text-slate-400">
               Area / City
             </span>
             <input
               type="text"
               {...register("areaCity")}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+              className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
               placeholder="Area, city"
             />
             {errors.areaCity ? (
@@ -321,13 +321,13 @@ function CheckoutPage() {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">
+            <span className="mb-1 block text-sm font-medium text-slate-400">
               Delivery Notes (Optional)
             </span>
             <textarea
               {...register("notes")}
               rows={3}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+              className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
               placeholder="Preferred delivery time, directions, etc."
             />
             {errors.notes ? (
@@ -338,12 +338,12 @@ function CheckoutPage() {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-700">
+            <span className="mb-1 block text-sm font-medium text-slate-400">
               Payment Method
             </span>
             <select
               {...register("paymentMethod")}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+              className="w-full rounded-md border border-white/20 bg-[var(--ck-surface)] px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
             >
               <option value="cod">Cash on Delivery (COD)</option>
               <option value="sslcommerz">SSLCommerz</option>
@@ -358,15 +358,15 @@ function CheckoutPage() {
           <button
             type="submit"
             disabled={placeOrderMutation.isPending}
-            className="inline-flex w-full items-center justify-center rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-slate-400"
+            className="inline-flex w-full items-center justify-center rounded-md bg-[var(--ck-accent)] px-4 py-2.5 text-sm font-semibold text-[#111111] transition hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:bg-white/20"
           >
             {placeOrderMutation.isPending ? "Placing Order..." : "Place Order"}
           </button>
         </form>
 
-        <aside className="h-fit rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-primary">Order Summary</h2>
-          <p className="mt-1 text-xs text-muted">{totalItems} item(s)</p>
+        <aside className="h-fit rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
+          <h2 className="text-lg font-semibold text-white">Order Summary</h2>
+          <p className="mt-1 text-xs text-slate-400">{totalItems} item(s)</p>
 
           <div className="mt-4 space-y-3">
             {items.map((item) => (
@@ -375,28 +375,28 @@ function CheckoutPage() {
                 className="flex items-start justify-between gap-3 text-sm"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-slate-800">
+                  <p className="truncate font-medium text-white">
                     {item.name}
                   </p>
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-slate-400">
                     {item.quantity} × {formatPrice(item.unitPrice)}
                   </p>
                 </div>
-                <p className="whitespace-nowrap font-semibold text-slate-800">
+                <p className="whitespace-nowrap font-semibold text-white">
                   {formatPrice(item.subtotal)}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="my-4 border-t border-slate-200" />
+          <div className="my-4 border-t border-white/10" />
 
           <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between text-muted">
+            <div className="flex items-center justify-between text-slate-400">
               <span>Subtotal</span>
               <span>{formatPrice(totalPrice)}</span>
             </div>
-            <div className="flex items-center justify-between text-base font-bold text-primary">
+            <div className="flex items-center justify-between text-base font-bold text-white">
               <span>Total</span>
               <span>{formatPrice(totalPrice)}</span>
             </div>
@@ -408,3 +408,6 @@ function CheckoutPage() {
 }
 
 export default CheckoutPage;
+
+
+

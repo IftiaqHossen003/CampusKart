@@ -76,21 +76,30 @@ function AdminVendorsPage() {
   const debouncedSearch = useDebouncedValue(searchInput, 400);
 
   useEffect(() => {
+    setSearchInput(initialSearch);
+  }, [initialSearch]);
+
+  useEffect(() => {
     const next = new URLSearchParams(searchParams);
-    if (debouncedSearch.trim()) {
-      next.set("search", debouncedSearch.trim());
+    const normalizedSearch = debouncedSearch.trim();
+    const currentSearch = searchParams.get("search") || "";
+
+    if (normalizedSearch === currentSearch) {
+      return;
+    }
+
+    if (normalizedSearch) {
+      next.set("search", normalizedSearch);
     } else {
       next.delete("search");
     }
 
-    if (page !== 1) {
-      next.set("page", "1");
-    }
+    next.set("page", "1");
 
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next);
     }
-  }, [debouncedSearch, page, searchParams, setSearchParams]);
+  }, [debouncedSearch, searchParams, setSearchParams]);
 
   const vendorsQuery = useQuery({
     queryKey: ["admin-vendors", page, status, debouncedSearch],
@@ -235,30 +244,30 @@ function AdminVendorsPage() {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+        <h1 className="text-2xl font-bold text-white">
           Vendor Approval Queue
         </h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-sm text-slate-400">
           Review vendor registrations and moderation status.
         </p>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
           <input
             type="search"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Search shop, owner, or email"
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+            className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
           />
 
           <button
             type="button"
             onClick={handleExportCsv}
             disabled={exportMutation.isPending}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-md border border-white/20 px-3 py-2 text-sm font-semibold text-slate-400 hover:bg-white/5"
           >
             {exportMutation.isPending ? "Exporting..." : "Export CSV"}
           </button>
@@ -275,8 +284,8 @@ function AdminVendorsPage() {
                 aria-pressed={isActive}
                 className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
                   isActive
-                    ? "bg-primary text-white"
-                    : "border border-slate-300 text-slate-700 hover:bg-slate-100"
+                    ? "bg-[var(--ck-surface)] text-white"
+                    : "border border-white/20 text-slate-400 hover:bg-white/5"
                 }`}
               >
                 {tab.label}
@@ -285,28 +294,28 @@ function AdminVendorsPage() {
           })}
         </div>
 
-        <p className="mt-3 text-sm text-muted">
+        <p className="mt-3 text-sm text-slate-400">
           {totalCount} vendor{totalCount === 1 ? "" : "s"} found.
         </p>
       </div>
 
       {vendorsQuery.isLoading ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, index) => (
               <div
                 key={`admin-vendors-skeleton-${index}`}
-                className="h-12 animate-pulse rounded bg-slate-100"
+                className="h-12 animate-pulse rounded bg-white/5"
               />
             ))}
           </div>
         </div>
       ) : vendorsQuery.isError ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-          <h2 className="text-xl font-semibold text-primary">
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-8 text-center">
+          <h2 className="text-xl font-semibold text-white">
             Could not load vendors
           </h2>
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-2 text-sm text-slate-400">
             {getAdminApiErrorMessage(
               vendorsQuery.error,
               "Please try again in a moment.",
@@ -315,60 +324,60 @@ function AdminVendorsPage() {
           <button
             type="button"
             onClick={() => vendorsQuery.refetch()}
-            className="mt-5 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+            className="mt-5 rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
           >
             Retry
           </button>
         </div>
       ) : vendors.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <h2 className="text-lg font-semibold text-primary">
+        <div className="rounded-xl border border-dashed border-white/20 bg-[var(--ck-surface)] p-8 text-center">
+          <h2 className="text-lg font-semibold text-white">
             No vendors in this view
           </h2>
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-2 text-sm text-slate-400">
             Adjust filters or search to find vendors.
           </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white">
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)]">
           <div className="hidden overflow-x-auto md:block">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
+            <table className="min-w-full divide-y divide-white/10">
+              <thead className="bg-[var(--ck-surface-deep)]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Shop Name
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Owner
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Email
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Registered
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-white/10 bg-[var(--ck-surface)]">
                 {vendors.map((vendor) => (
                   <tr
                     key={vendor.id}
-                    className="cursor-pointer hover:bg-slate-50"
+                    className="cursor-pointer hover:bg-[var(--ck-surface-deep)]"
                     onClick={() => setSelectedVendor(vendor)}
                   >
-                    <td className="px-4 py-3 text-sm font-medium text-slate-800">
+                    <td className="px-4 py-3 text-sm font-medium text-white">
                       {vendor.shop_name}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className="px-4 py-3 text-sm text-slate-400">
                       {deriveOwnerName(vendor)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className="px-4 py-3 text-sm text-slate-400">
                       {vendor.user_email || vendor.contact_email || "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className="px-4 py-3 text-sm text-slate-400">
                       {formatDate(vendor.created_at)}
                     </td>
                     <td className="px-4 py-3 text-sm">
@@ -384,7 +393,7 @@ function AdminVendorsPage() {
             </table>
           </div>
 
-          <div className="divide-y divide-slate-100 md:hidden">
+          <div className="divide-y divide-white/10 md:hidden">
             {vendors.map((vendor) => (
               <article
                 key={vendor.id}
@@ -392,7 +401,7 @@ function AdminVendorsPage() {
                 onClick={() => setSelectedVendor(vendor)}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-800">
+                  <p className="text-sm font-semibold text-white">
                     {vendor.shop_name}
                   </p>
                   <span
@@ -401,13 +410,13 @@ function AdminVendorsPage() {
                     {vendor.status}
                   </span>
                 </div>
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-slate-400">
                   Owner: {deriveOwnerName(vendor)}
                 </p>
-                <p className="text-xs text-muted">
+                <p className="text-xs text-slate-400">
                   {vendor.user_email || vendor.contact_email || "-"}
                 </p>
-                <p className="text-xs text-muted">
+                <p className="text-xs text-slate-400">
                   Registered: {formatDate(vendor.created_at)}
                 </p>
               </article>
@@ -426,12 +435,12 @@ function AdminVendorsPage() {
 
       {selectedVendor ? (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/60 p-4"
+          className="fixed inset-0 z-50 bg-black/70 p-4"
           onClick={closeModal}
           role="presentation"
         >
           <div
-            className="mx-auto mt-8 w-full max-w-xl rounded-xl bg-white p-5 shadow-xl"
+            className="mx-auto mt-8 w-full max-w-xl rounded-xl bg-[var(--ck-surface)] p-5 shadow-xl"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -439,17 +448,17 @@ function AdminVendorsPage() {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold text-primary">
+                <h2 className="text-xl font-semibold text-white">
                   {selectedVendor.shop_name}
                 </h2>
-                <p className="mt-1 text-sm text-muted">
+                <p className="mt-1 text-sm text-slate-400">
                   {selectedVendor.user_email || "No owner email"}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closeModal}
-                className="rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
+                className="rounded-md border border-white/20 px-2 py-1 text-xs text-slate-400 hover:bg-white/5"
               >
                 Close
               </button>
@@ -457,37 +466,37 @@ function AdminVendorsPage() {
 
             <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <p>
-                <span className="font-semibold text-slate-800">Owner:</span>{" "}
-                <span className="text-slate-700">
+                <span className="font-semibold text-white">Owner:</span>{" "}
+                <span className="text-slate-400">
                   {deriveOwnerName(selectedVendor)}
                 </span>
               </p>
               <p>
-                <span className="font-semibold text-slate-800">Status:</span>{" "}
-                <span className="text-slate-700">{selectedVendor.status}</span>
+                <span className="font-semibold text-white">Status:</span>{" "}
+                <span className="text-slate-400">{selectedVendor.status}</span>
               </p>
               <p>
-                <span className="font-semibold text-slate-800">Phone:</span>{" "}
-                <span className="text-slate-700">
+                <span className="font-semibold text-white">Phone:</span>{" "}
+                <span className="text-slate-400">
                   {selectedVendor.contact_phone || "-"}
                 </span>
               </p>
               <p>
-                <span className="font-semibold text-slate-800">
+                <span className="font-semibold text-white">
                   Registered:
                 </span>{" "}
-                <span className="text-slate-700">
+                <span className="text-slate-400">
                   {formatDate(selectedVendor.created_at)}
                 </span>
               </p>
             </div>
 
-            <p className="mt-4 text-sm text-slate-700">
+            <p className="mt-4 text-sm text-slate-400">
               {selectedVendor.description || "No description provided."}
             </p>
 
             <label
-              className="mt-4 block text-sm font-semibold text-slate-800"
+              className="mt-4 block text-sm font-semibold text-white"
               htmlFor="vendor-moderation-reason"
             >
               Moderation Note
@@ -499,7 +508,7 @@ function AdminVendorsPage() {
               value={moderationReason}
               onChange={(event) => setModerationReason(event.target.value)}
               placeholder="Optional reason shown in admin audit logs"
-              className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+              className="mt-2 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
             />
 
             <div className="mt-5 flex flex-wrap justify-end gap-2">
@@ -519,7 +528,7 @@ function AdminVendorsPage() {
                 disabled={
                   approveMutation.isPending || suspendMutation.isPending
                 }
-                className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Approve
               </button>
@@ -532,3 +541,7 @@ function AdminVendorsPage() {
 }
 
 export default AdminVendorsPage;
+
+
+
+

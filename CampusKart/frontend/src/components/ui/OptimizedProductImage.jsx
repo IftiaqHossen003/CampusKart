@@ -95,7 +95,7 @@ function OptimizedProductImage({
         alt={alt}
         loading={loading}
         decoding={decoding}
-        fetchPriority={fetchPriority}
+        fetchpriority={fetchPriority}
         sizes={sizes}
         onLoad={() => setLoadedSource(resolvedSrc)}
         onError={handleError}

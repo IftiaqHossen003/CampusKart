@@ -73,25 +73,25 @@ function getInitials(name) {
 function DetailSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="h-5 w-52 animate-pulse rounded bg-slate-200" />
+      <div className="h-5 w-52 animate-pulse rounded bg-white/10" />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-4">
-          <div className="aspect-[4/3] animate-pulse rounded-xl bg-slate-200" />
+          <div className="aspect-[4/3] animate-pulse rounded-xl bg-white/10" />
           <div className="grid grid-cols-4 gap-2">
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={`thumb-skeleton-${index}`}
-                className="aspect-square animate-pulse rounded bg-slate-200"
+                className="aspect-square animate-pulse rounded bg-white/10"
               />
             ))}
           </div>
         </div>
-        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
-          <div className="h-6 w-3/4 animate-pulse rounded bg-slate-200" />
-          <div className="h-4 w-1/3 animate-pulse rounded bg-slate-200" />
-          <div className="h-8 w-1/4 animate-pulse rounded bg-slate-200" />
-          <div className="h-20 w-full animate-pulse rounded bg-slate-200" />
-          <div className="h-11 w-full animate-pulse rounded bg-slate-200" />
+        <div className="space-y-4 rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
+          <div className="h-6 w-3/4 animate-pulse rounded bg-white/10" />
+          <div className="h-4 w-1/3 animate-pulse rounded bg-white/10" />
+          <div className="h-8 w-1/4 animate-pulse rounded bg-white/10" />
+          <div className="h-20 w-full animate-pulse rounded bg-white/10" />
+          <div className="h-11 w-full animate-pulse rounded bg-white/10" />
         </div>
       </div>
     </div>
@@ -304,16 +304,16 @@ function ProductDetailPage() {
 
   if (productQuery.isError || !product) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-        <h1 className="text-xl font-semibold text-primary">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-8 text-center">
+        <h1 className="text-xl font-semibold text-white">
           Product Not Found
         </h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-slate-400">
           This item may have been removed or is temporarily unavailable.
         </p>
         <Link
           to="/shop"
-          className="mt-5 inline-flex rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+          className="mt-5 inline-flex rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
         >
           Back to Shop
         </Link>
@@ -332,17 +332,17 @@ function ProductDetailPage() {
 
   return (
     <section className="space-y-8">
-      <nav className="text-sm text-muted">
-        <Link to="/shop" className="hover:text-accent">
+      <nav className="text-sm text-slate-400">
+        <Link to="/shop" className="hover:text-[var(--ck-accent)]">
           Shop
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-slate-700">{product.name}</span>
+        <span className="text-slate-400">{product.name}</span>
       </nav>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-3">
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-[var(--ck-surface)]">
             <OptimizedProductImage
               src={selectedImage}
               alt={product.name}
@@ -363,8 +363,8 @@ function ProductDetailPage() {
                 onClick={() => setSelectedImageIndex(index)}
                 className={`overflow-hidden rounded-md border ${
                   index === selectedImageIndex
-                    ? "border-accent ring-1 ring-accent"
-                    : "border-slate-200"
+                    ? "border-[var(--ck-accent)] ring-1 ring-[var(--ck-accent)]"
+                    : "border-white/10"
                 }`}
               >
                 <OptimizedProductImage
@@ -380,14 +380,14 @@ function ProductDetailPage() {
           </div>
         </div>
 
-        <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+        <div className="space-y-5 rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5 sm:p-6">
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-primary">{product.name}</h1>
-            <p className="text-sm text-muted">
+            <h1 className="text-2xl font-bold text-white">{product.name}</h1>
+            <p className="text-sm text-slate-400">
               Sold by {product.vendor_name || "Campus Vendor"}
             </p>
             <div
-              className="flex items-center gap-1 text-warning"
+              className="flex items-center gap-1 text-[var(--ck-accent)]"
               aria-label={`Rating ${product.avg_rating || 0} out of 5`}
             >
               {buildStarRow(product.avg_rating).map((isFilled, index) => (
@@ -398,16 +398,16 @@ function ProductDetailPage() {
                   ★
                 </span>
               ))}
-              <span className="ml-1 text-xs text-muted">
+              <span className="ml-1 text-xs text-slate-400">
                 {toNumber(product.avg_rating).toFixed(1)} (
                 {toNumber(reviewStats.total_reviews)} reviews)
               </span>
             </div>
           </div>
 
-          <div className="rounded-lg bg-slate-50 p-4">
+          <div className="rounded-lg bg-[var(--ck-surface-deep)] p-4">
             <div className="flex items-center gap-2">
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-2xl font-bold text-white">
                 {formatPrice(hasDiscount ? discountPrice : price)}
               </p>
               {hasDiscount ? (
@@ -417,18 +417,18 @@ function ProductDetailPage() {
               ) : null}
             </div>
             {hasDiscount ? (
-              <p className="mt-1 text-sm text-muted line-through">
+              <p className="mt-1 text-sm text-slate-400 line-through">
                 {formatPrice(price)}
               </p>
             ) : null}
           </div>
 
-          <p className="text-sm leading-6 text-slate-700">
+          <p className="text-sm leading-6 text-slate-400">
             {product.description}
           </p>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-700">
+            <span className="rounded-md bg-white/5 px-2 py-1 text-xs text-slate-400">
               SKU: {product.sku || "N/A"}
             </span>
             <span
@@ -445,7 +445,7 @@ function ProductDetailPage() {
             {product.tags?.map((tag) => (
               <span
                 key={tag.id}
-                className="rounded-full border border-accent/30 px-2 py-1 text-xs text-accent"
+                className="rounded-full border border-[var(--ck-accent)]/30 px-2 py-1 text-xs text-[var(--ck-accent)]"
               >
                 #{tag.tag}
               </span>
@@ -454,7 +454,7 @@ function ProductDetailPage() {
 
           <div className="flex items-center gap-3">
             <label
-              className="text-sm font-medium text-slate-700"
+              className="text-sm font-medium text-slate-400"
               htmlFor="quantity"
             >
               Quantity
@@ -475,7 +475,7 @@ function ProductDetailPage() {
                 );
                 setQuantity(next);
               }}
-              className="w-24 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+              className="w-24 rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-2 py-1.5 text-sm text-white"
             />
           </div>
 
@@ -483,7 +483,7 @@ function ProductDetailPage() {
             type="button"
             disabled={product.stock <= 0 || addToCartMutation.isPending}
             onClick={() => addToCartMutation.mutate()}
-            className="w-full rounded-md bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-slate-400"
+            className="w-full rounded-md bg-[var(--ck-accent)] px-4 py-3 text-sm font-semibold text-[#111111] transition hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:bg-white/20"
           >
             {product.stock <= 0
               ? "Out of Stock"
@@ -497,7 +497,7 @@ function ProductDetailPage() {
               type="button"
               onClick={handleStartChat}
               disabled={openChatMutation.isPending || !product.vendor_id}
-              className="w-full rounded-md border border-primary px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-md border border-white/20 px-4 py-3 text-sm font-semibold text-white transition hover:border-[var(--ck-accent)] hover:text-[var(--ck-accent)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {!user
                 ? "Login to Chat with Vendor"
@@ -509,13 +509,13 @@ function ProductDetailPage() {
         </div>
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+      <section className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-primary">
+            <h2 className="text-lg font-semibold text-white">
               Customer Reviews
             </h2>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-xs text-slate-400">
               Verified purchase reviews from CampusKart buyers.
             </p>
           </div>
@@ -524,20 +524,20 @@ function ProductDetailPage() {
             <button
               type="button"
               onClick={() => setIsReviewModalOpen(true)}
-              className="rounded-md bg-accent px-4 py-2 text-xs font-semibold text-white hover:bg-primary"
+              className="rounded-md bg-[var(--ck-accent)] px-4 py-2 text-xs font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
             >
               Write a Review
             </button>
           ) : null}
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 rounded-lg border border-slate-200 p-4 md:grid-cols-[180px_1fr]">
+        <div className="mt-4 grid grid-cols-1 gap-4 rounded-lg border border-white/10 p-4 md:grid-cols-[180px_1fr]">
           <div>
-            <p className="text-4xl font-bold text-primary">
+            <p className="text-4xl font-bold text-white">
               {toNumber(reviewStats.average_rating).toFixed(1)}
             </p>
-            <p className="mt-1 text-xs text-muted">Average rating</p>
-            <p className="mt-2 text-xs text-slate-600">
+            <p className="mt-1 text-xs text-slate-400">Average rating</p>
+            <p className="mt-2 text-xs text-slate-400">
               {toNumber(reviewStats.total_reviews)} total reviews
             </p>
           </div>
@@ -556,12 +556,12 @@ function ProductDetailPage() {
               return (
                 <div
                   key={`summary-star-${star}`}
-                  className="grid grid-cols-[56px_1fr_32px] items-center gap-2 text-xs text-slate-700"
+                  className="grid grid-cols-[56px_1fr_32px] items-center gap-2 text-xs text-slate-400"
                 >
                   <span>{star} stars</span>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-slate-200">
+                  <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
                     <div
-                      className="h-full rounded-full bg-warning"
+                      className="h-full rounded-full bg-[var(--ck-accent)]"
                       style={{ width }}
                     />
                   </div>
@@ -577,18 +577,18 @@ function ProductDetailPage() {
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={`review-skeleton-${index}`}
-                className="rounded-lg border border-slate-200 p-3"
+                className="rounded-lg border border-white/10 p-3"
               >
-                <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
-                <div className="mt-2 h-3 w-24 animate-pulse rounded bg-slate-200" />
-                <div className="mt-3 h-3 w-full animate-pulse rounded bg-slate-200" />
+                <div className="h-4 w-40 animate-pulse rounded bg-white/10" />
+                <div className="mt-2 h-3 w-24 animate-pulse rounded bg-white/10" />
+                <div className="mt-3 h-3 w-full animate-pulse rounded bg-white/10" />
               </div>
             ))}
           </div>
         ) : null}
 
         {!reviewsQuery.isLoading && reviews.length === 0 ? (
-          <p className="mt-4 text-sm text-muted">
+          <p className="mt-4 text-sm text-slate-400">
             No reviews yet for this product.
           </p>
         ) : null}
@@ -598,24 +598,24 @@ function ProductDetailPage() {
             {reviews.map((review) => (
               <article
                 key={review.id}
-                className="rounded-lg border border-slate-200 p-4"
+                className="rounded-lg border border-white/10 p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
+                    <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-xs font-semibold text-slate-400">
                       {getInitials(review.user_name)}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">
+                      <p className="text-sm font-semibold text-white">
                         {review.user_name || "Campus User"}
                       </p>
-                      <p className="text-xs text-muted">
+                      <p className="text-xs text-slate-400">
                         {formatDate(review.created_at)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 text-warning">
+                  <div className="flex items-center gap-1 text-[var(--ck-accent)]">
                     {buildStarRow(review.rating).map((isFilled, index) => (
                       <span
                         key={`${review.id}-rating-${index}`}
@@ -627,7 +627,7 @@ function ProductDetailPage() {
                   </div>
                 </div>
 
-                <p className="mt-3 text-sm text-slate-700">
+                <p className="mt-3 text-sm text-slate-400">
                   {review.comment || "No additional comment provided."}
                 </p>
               </article>
@@ -641,7 +641,7 @@ function ProductDetailPage() {
               type="button"
               onClick={() => reviewsQuery.fetchNextPage()}
               disabled={reviewsQuery.isFetchingNextPage}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md border border-white/20 px-4 py-2 text-sm font-semibold text-slate-400 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {reviewsQuery.isFetchingNextPage ? "Loading..." : "Load More"}
             </button>
@@ -650,19 +650,19 @@ function ProductDetailPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-primary">Related Products</h2>
+        <h2 className="text-lg font-semibold text-white">Related Products</h2>
 
         {relatedQuery.isLoading ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={`related-skeleton-${index}`}
-                className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+                className="overflow-hidden rounded-xl border border-white/10 bg-[var(--ck-surface)]"
               >
-                <div className="aspect-[4/3] animate-pulse bg-slate-200" />
+                <div className="aspect-[4/3] animate-pulse bg-white/10" />
                 <div className="space-y-3 p-4">
-                  <div className="h-4 w-4/5 animate-pulse rounded bg-slate-200" />
-                  <div className="h-3 w-2/5 animate-pulse rounded bg-slate-200" />
+                  <div className="h-4 w-4/5 animate-pulse rounded bg-white/10" />
+                  <div className="h-3 w-2/5 animate-pulse rounded bg-white/10" />
                 </div>
               </div>
             ))}
@@ -670,7 +670,7 @@ function ProductDetailPage() {
         ) : null}
 
         {!relatedQuery.isLoading && relatedProducts.length === 0 ? (
-          <p className="text-sm text-muted">
+          <p className="text-sm text-slate-400">
             No related products found right now.
           </p>
         ) : null}
@@ -686,7 +686,7 @@ function ProductDetailPage() {
 
       {isReviewModalOpen ? (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/60 p-4"
+          className="fixed inset-0 z-50 bg-black/70 p-4"
           onClick={() => {
             if (!submitReviewMutation.isPending) {
               setIsReviewModalOpen(false);
@@ -696,14 +696,14 @@ function ProductDetailPage() {
           role="presentation"
         >
           <div
-            className="mx-auto mt-10 w-full max-w-lg rounded-xl bg-white p-5 shadow-xl"
+            className="mx-auto mt-10 w-full max-w-lg rounded-xl bg-[var(--ck-surface)] p-5 shadow-xl"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Write a review"
           >
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-lg font-semibold text-primary">
+              <h3 className="text-lg font-semibold text-white">
                 Write a Review
               </h3>
               <button
@@ -714,7 +714,7 @@ function ProductDetailPage() {
                     setReviewError("");
                   }
                 }}
-                className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600"
+                className="rounded border border-white/20 px-2 py-1 text-xs text-slate-400"
               >
                 Close
               </button>
@@ -724,7 +724,7 @@ function ProductDetailPage() {
               <div>
                 <label
                   htmlFor="review-order"
-                  className="mb-1 block text-sm font-medium text-slate-700"
+                  className="mb-1 block text-sm font-medium text-slate-400"
                 >
                   Delivered Order
                 </label>
@@ -732,7 +732,7 @@ function ProductDetailPage() {
                   id="review-order"
                   value={activeSelectedOrderId}
                   onChange={(event) => setSelectedOrderId(event.target.value)}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="w-full rounded-md border border-white/20 bg-[var(--ck-surface)] px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 >
                   {eligibleOrders.map((order) => (
                     <option key={order.id} value={order.id}>
@@ -743,10 +743,10 @@ function ProductDetailPage() {
               </div>
 
               <div>
-                <p className="mb-1 text-sm font-medium text-slate-700">
+                <p className="mb-1 text-sm font-medium text-slate-400">
                   Rating
                 </p>
-                <div className="flex items-center gap-1 text-2xl text-warning">
+                <div className="flex items-center gap-1 text-2xl text-[var(--ck-accent)]">
                   {Array.from({ length: 5 }).map((_, index) => {
                     const value = index + 1;
                     const isFilled = selectedRating >= value;
@@ -768,7 +768,7 @@ function ProductDetailPage() {
               <div>
                 <label
                   htmlFor="review-comment"
-                  className="mb-1 block text-sm font-medium text-slate-700"
+                  className="mb-1 block text-sm font-medium text-slate-400"
                 >
                   Comment
                 </label>
@@ -778,7 +778,7 @@ function ProductDetailPage() {
                   value={reviewComment}
                   onChange={(event) => setReviewComment(event.target.value)}
                   placeholder="Share your experience with this product"
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </div>
 
@@ -789,7 +789,7 @@ function ProductDetailPage() {
               <button
                 type="submit"
                 disabled={submitReviewMutation.isPending}
-                className="w-full rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-md bg-[var(--ck-accent)] px-4 py-2.5 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitReviewMutation.isPending
                   ? "Submitting..."
@@ -804,3 +804,7 @@ function ProductDetailPage() {
 }
 
 export default ProductDetailPage;
+
+
+
+

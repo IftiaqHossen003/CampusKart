@@ -101,17 +101,17 @@ function trendClassName(direction) {
   if (direction === "down") {
     return "text-error";
   }
-  return "text-muted";
+  return "text-slate-400";
 }
 
 function trendArrow(direction) {
   if (direction === "up") {
-    return "↑";
+    return "+";
   }
   if (direction === "down") {
-    return "↓";
+    return "-";
   }
-  return "•";
+  return "=";
 }
 
 function trendText(trend) {
@@ -230,16 +230,16 @@ function VendorAnalyticsPage() {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">Vendor Analytics</h1>
-        <p className="mt-1 text-sm text-muted">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+        <h1 className="text-2xl font-bold text-white">Vendor Analytics</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Performance insights for revenue, products, and payouts.
         </p>
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+      <section className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-primary">Overview</h2>
+          <h2 className="text-lg font-semibold text-white">Overview</h2>
         </div>
 
         {overviewQuery.isLoading ? (
@@ -247,7 +247,7 @@ function VendorAnalyticsPage() {
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={`vendor-analytics-overview-skeleton-${index}`}
-                className="h-28 animate-pulse rounded-xl border border-slate-200 bg-slate-100"
+                className="h-28 animate-pulse rounded-xl border border-white/10 bg-white/5"
               />
             ))}
           </div>
@@ -263,12 +263,12 @@ function VendorAnalyticsPage() {
             {cards.map((card) => (
               <article
                 key={card.id}
-                className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm"
+                className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-4 shadow-sm"
               >
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   {card.title}
                 </p>
-                <p className="mt-2 text-2xl font-bold text-primary">
+                <p className="mt-2 text-2xl font-bold text-white">
                   {card.value}
                 </p>
                 <p
@@ -282,9 +282,9 @@ function VendorAnalyticsPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+      <section className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-primary">Revenue Trend</h2>
+          <h2 className="text-lg font-semibold text-white">Revenue Trend</h2>
           <div className="flex flex-wrap gap-2">
             {PERIOD_OPTIONS.map((option) => (
               <button
@@ -293,8 +293,8 @@ function VendorAnalyticsPage() {
                 onClick={() => setPeriod(option.value)}
                 className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
                   period === option.value
-                    ? "bg-primary text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    ? "bg-[var(--ck-surface)] text-white"
+                    : "bg-white/5 text-slate-400 hover:bg-white/10"
                 }`}
               >
                 {option.label}
@@ -304,7 +304,7 @@ function VendorAnalyticsPage() {
         </div>
 
         {revenueQuery.isLoading ? (
-          <div className="h-72 animate-pulse rounded-lg bg-slate-100" />
+          <div className="h-72 animate-pulse rounded-lg bg-white/5" />
         ) : revenueQuery.isError ? (
           <div className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
             {getVendorAnalyticsErrorMessage(
@@ -313,13 +313,13 @@ function VendorAnalyticsPage() {
             )}
           </div>
         ) : chartData.length === 0 ? (
-          <div className="rounded-md bg-slate-100 px-3 py-2 text-sm text-muted">
+          <div className="rounded-md bg-white/5 px-3 py-2 text-sm text-slate-400">
             No revenue data available for this period.
           </div>
         ) : (
           <div className="h-72">
             <Suspense
-              fallback={<div className="h-full animate-pulse rounded-lg bg-slate-100" />}
+              fallback={<div className="h-full animate-pulse rounded-lg bg-white/5" />}
             >
               <VendorRevenueChart data={chartData} />
             </Suspense>
@@ -327,15 +327,15 @@ function VendorAnalyticsPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-        <h2 className="text-lg font-semibold text-primary">Top Products</h2>
+      <section className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5 sm:p-6">
+        <h2 className="text-lg font-semibold text-white">Top Products</h2>
 
         {productsQuery.isLoading ? (
           <div className="mt-4 space-y-2">
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={`vendor-analytics-products-skeleton-${index}`}
-                className="h-12 animate-pulse rounded bg-slate-100"
+                className="h-12 animate-pulse rounded bg-white/5"
               />
             ))}
           </div>
@@ -347,36 +347,36 @@ function VendorAnalyticsPage() {
             )}
           </div>
         ) : topProducts.length === 0 ? (
-          <div className="mt-4 rounded-md bg-slate-100 px-3 py-2 text-sm text-muted">
+          <div className="mt-4 rounded-md bg-white/5 px-3 py-2 text-sm text-slate-400">
             No product analytics available yet.
           </div>
         ) : (
           <>
             <div className="mt-4 hidden overflow-x-auto md:block">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
+              <table className="min-w-full divide-y divide-white/10">
+                <thead className="bg-[var(--ck-surface-deep)]">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Product
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Views
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Sold
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Revenue
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Rating
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
+                <tbody className="divide-y divide-white/10 bg-[var(--ck-surface)]">
                   {topProducts.map((product, index) => (
                     <tr key={`${product.name}-${index}`}>
-                      <td className="px-4 py-3 text-sm text-slate-800">
+                      <td className="px-4 py-3 text-sm text-white">
                         <div className="flex items-center gap-3">
                           {product.image_url ? (
                             <img
@@ -385,21 +385,21 @@ function VendorAnalyticsPage() {
                               className="h-10 w-10 rounded-md object-cover"
                             />
                           ) : (
-                            <div className="h-10 w-10 rounded-md bg-slate-200" />
+                            <div className="h-10 w-10 rounded-md bg-white/10" />
                           )}
                           <span className="font-medium">{product.name}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
+                      <td className="px-4 py-3 text-sm text-slate-400">
                         {formatCount(product.views)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
+                      <td className="px-4 py-3 text-sm text-slate-400">
                         {formatCount(product.sold)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
+                      <td className="px-4 py-3 text-sm text-slate-400">
                         {formatMoney(product.revenue)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
+                      <td className="px-4 py-3 text-sm text-slate-400">
                         {formatRating(product.rating)}
                       </td>
                     </tr>
@@ -412,7 +412,7 @@ function VendorAnalyticsPage() {
               {topProducts.map((product, index) => (
                 <article
                   key={`vendor-analytics-product-mobile-${index}`}
-                  className="rounded-lg border border-slate-200 p-3"
+                  className="rounded-lg border border-white/10 p-3"
                 >
                   <div className="flex items-center gap-3">
                     {product.image_url ? (
@@ -422,13 +422,13 @@ function VendorAnalyticsPage() {
                         className="h-10 w-10 rounded-md object-cover"
                       />
                     ) : (
-                      <div className="h-10 w-10 rounded-md bg-slate-200" />
+                      <div className="h-10 w-10 rounded-md bg-white/10" />
                     )}
-                    <p className="text-sm font-semibold text-slate-800">
+                    <p className="text-sm font-semibold text-white">
                       {product.name}
                     </p>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-700">
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-400">
                     <p>Views: {formatCount(product.views)}</p>
                     <p>Sold: {formatCount(product.sold)}</p>
                     <p>Revenue: {formatMoney(product.revenue)}</p>
@@ -441,9 +441,9 @@ function VendorAnalyticsPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+      <section className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-primary">Payouts</h2>
+          <h2 className="text-lg font-semibold text-white">Payouts</h2>
           <button
             type="button"
             onClick={() => exportCsvMutation.mutate()}
@@ -452,7 +452,7 @@ function VendorAnalyticsPage() {
               payoutsQuery.isLoading ||
               payouts.length === 0
             }
-            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {exportCsvMutation.isPending ? "Downloading..." : "Download CSV"}
           </button>
@@ -464,7 +464,7 @@ function VendorAnalyticsPage() {
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={`vendor-analytics-payout-summary-skeleton-${index}`}
-                  className="h-24 animate-pulse rounded-lg border border-slate-200 bg-slate-100"
+                  className="h-24 animate-pulse rounded-lg border border-white/10 bg-white/5"
                 />
               ))}
             </div>
@@ -472,7 +472,7 @@ function VendorAnalyticsPage() {
               {Array.from({ length: 5 }).map((_, index) => (
                 <div
                   key={`vendor-analytics-payout-row-skeleton-${index}`}
-                  className="h-12 animate-pulse rounded bg-slate-100"
+                  className="h-12 animate-pulse rounded bg-white/5"
                 />
               ))}
             </div>
@@ -487,86 +487,86 @@ function VendorAnalyticsPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <article className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs uppercase tracking-wider text-muted">
+              <article className="rounded-lg border border-white/10 bg-[var(--ck-surface-deep)] px-4 py-3">
+                <p className="text-xs uppercase tracking-wider text-slate-400">
                   Total Earned
                 </p>
-                <p className="mt-1 text-lg font-semibold text-primary">
+                <p className="mt-1 text-lg font-semibold text-white">
                   {formatMoney(payoutsQuery.data?.total_earned)}
                 </p>
               </article>
-              <article className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs uppercase tracking-wider text-muted">
+              <article className="rounded-lg border border-white/10 bg-[var(--ck-surface-deep)] px-4 py-3">
+                <p className="text-xs uppercase tracking-wider text-slate-400">
                   Commission Paid
                 </p>
-                <p className="mt-1 text-lg font-semibold text-primary">
+                <p className="mt-1 text-lg font-semibold text-white">
                   {formatMoney(payoutsQuery.data?.total_commission_paid)}
                 </p>
               </article>
-              <article className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs uppercase tracking-wider text-muted">
+              <article className="rounded-lg border border-white/10 bg-[var(--ck-surface-deep)] px-4 py-3">
+                <p className="text-xs uppercase tracking-wider text-slate-400">
                   Net Received
                 </p>
-                <p className="mt-1 text-lg font-semibold text-primary">
+                <p className="mt-1 text-lg font-semibold text-white">
                   {formatMoney(payoutsQuery.data?.total_net_received)}
                 </p>
               </article>
-              <article className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs uppercase tracking-wider text-muted">
+              <article className="rounded-lg border border-white/10 bg-[var(--ck-surface-deep)] px-4 py-3">
+                <p className="text-xs uppercase tracking-wider text-slate-400">
                   Pending
                 </p>
-                <p className="mt-1 text-lg font-semibold text-primary">
+                <p className="mt-1 text-lg font-semibold text-white">
                   {formatMoney(payoutsQuery.data?.total_pending_amount)}
                 </p>
               </article>
             </div>
 
             {payouts.length === 0 ? (
-              <div className="mt-4 rounded-md bg-slate-100 px-3 py-2 text-sm text-muted">
+              <div className="mt-4 rounded-md bg-white/5 px-3 py-2 text-sm text-slate-400">
                 No payout records available.
               </div>
             ) : (
               <>
                 <div className="mt-4 hidden overflow-x-auto md:block">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
+                  <table className="min-w-full divide-y divide-white/10">
+                    <thead className="bg-[var(--ck-surface-deep)]">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                           Order #
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                           Date
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                           Gross
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                           Commission %
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                           Net
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                           Status
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
+                    <tbody className="divide-y divide-white/10 bg-[var(--ck-surface)]">
                       {payouts.map((payout) => (
                         <tr key={`${payout.order_number}-${payout.date}`}>
-                          <td className="px-4 py-3 text-sm font-medium text-slate-800">
+                          <td className="px-4 py-3 text-sm font-medium text-white">
                             #{payout.order_number}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-700">
+                          <td className="px-4 py-3 text-sm text-slate-400">
                             {formatDate(payout.date)}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-700">
+                          <td className="px-4 py-3 text-sm text-slate-400">
                             {formatMoney(payout.gross)}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-700">
+                          <td className="px-4 py-3 text-sm text-slate-400">
                             {toNumber(payout.commission_percentage).toFixed(2)}%
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-700">
+                          <td className="px-4 py-3 text-sm text-slate-400">
                             {formatMoney(payout.net)}
                           </td>
                           <td className="px-4 py-3 text-sm">
@@ -582,18 +582,18 @@ function VendorAnalyticsPage() {
                   {payouts.map((payout) => (
                     <article
                       key={`vendor-analytics-payout-mobile-${payout.order_number}-${payout.date}`}
-                      className="rounded-lg border border-slate-200 p-3"
+                      className="rounded-lg border border-white/10 p-3"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-slate-800">
+                        <p className="text-sm font-semibold text-white">
                           #{payout.order_number}
                         </p>
                         <OrderStatusBadge status={payout.status} />
                       </div>
-                      <p className="mt-2 text-xs text-muted">
+                      <p className="mt-2 text-xs text-slate-400">
                         {formatDate(payout.date)}
                       </p>
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-700">
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-400">
                         <p>Gross: {formatMoney(payout.gross)}</p>
                         <p>
                           Commission:{" "}
@@ -614,3 +614,8 @@ function VendorAnalyticsPage() {
 }
 
 export default VendorAnalyticsPage;
+
+
+
+
+

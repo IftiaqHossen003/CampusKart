@@ -1,20 +1,15 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { A11y, Autoplay, Pagination } from "swiper/modules";
-import { Swiper, SwiperSlide } from "swiper/react";
-
 import { fetchPublicBanners } from "../api/banners";
 import { fetchCategories, fetchProducts } from "../api/products";
-import { fetchVendorSpotlight } from "../api/vendors";
 import ProductCard from "../components/ui/ProductCard";
 
-import "swiper/css";
-import "swiper/css/pagination";
-
 const SECTION_STALE_TIME = 5 * 60 * 1000;
-const TOP_PRODUCTS_PAGE_SIZE = 10;
+const TOP_PRODUCTS_PAGE_SIZE = 12;
 const NEW_ARRIVALS_PAGE_SIZE = 8;
+const HERO_ROTATION_INTERVAL = 5000;
+const NEW_ARRIVALS_ROTATION_INTERVAL = 3500;
 
 function supportsCloudinaryTransforms(url) {
   return (
@@ -33,79 +28,78 @@ function cloudinaryImage(url, width, height) {
   return `${prefix}/upload/f_auto,q_auto,c_fill,w_${width},h_${height}/${suffix}`;
 }
 
-function cloudinarySrcSet(url, widths, aspectRatio) {
-  if (!supportsCloudinaryTransforms(url)) {
-    return undefined;
-  }
-
-  return widths
-    .map((width) => {
-      const height = Math.round(width / aspectRatio);
-      return `${cloudinaryImage(url, width, height)} ${width}w`;
-    })
-    .join(", ");
-}
-
-function HeroSkeleton() {
-  return (
-    <div className="h-56 animate-pulse rounded-xl bg-slate-200 sm:h-72 lg:h-80" />
-  );
-}
-
 function CategorySkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {Array.from({ length: 8 }).map((_, index) => (
-        <div
-          key={`category-skeleton-${index}`}
-          className="h-24 animate-pulse rounded-xl bg-slate-200"
-        />
-      ))}
-    </div>
-  );
-}
-
-function ProductRowSkeleton() {
-  return (
-    <div className="flex gap-4 overflow-x-auto pb-2">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {Array.from({ length: 4 }).map((_, index) => (
         <div
-          key={`top-product-skeleton-${index}`}
-          className="h-[320px] min-w-[260px] animate-pulse rounded-xl bg-slate-200"
+          key={`category-skeleton-${index}`}
+          className="h-40 animate-pulse rounded-2xl bg-black/40"
         />
       ))}
     </div>
   );
 }
 
-function ProductGridSkeleton() {
+function ProductGridSkeleton({ count = 4 }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {Array.from({ length: 8 }).map((_, index) => (
+      {Array.from({ length: count }).map((_, index) => (
         <div
-          key={`new-product-skeleton-${index}`}
-          className="h-[320px] animate-pulse rounded-xl bg-slate-200"
+          key={`product-skeleton-${index}`}
+          className="h-[320px] animate-pulse rounded-2xl bg-black/40"
         />
       ))}
     </div>
   );
 }
 
-function VendorSpotlightSkeleton() {
+function SectionHeader({ title, subtitle, ctaTo, ctaLabel, dark = false }) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div
-          key={`vendor-skeleton-${index}`}
-          className="h-48 animate-pulse rounded-xl bg-slate-200"
-        />
-      ))}
+    <div className="mb-5 flex items-end justify-between gap-4">
+      <div>
+        <h2
+          className={`text-3xl font-extrabold tracking-tight ${dark ? "text-white" : "text-[#151515]"}`}
+        >
+          {title}
+        </h2>
+        {subtitle ? (
+          <p className={`mt-1 text-sm ${dark ? "text-[#d9d9d9]" : "text-[#313131]"}`}>
+            {subtitle}
+          </p>
+        ) : null}
+      </div>
+      {ctaTo && ctaLabel ? (
+        <Link
+          to={ctaTo}
+          className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${dark ? "text-[var(--ck-accent)] hover:bg-white/10" : "text-[#1e1e1e] hover:bg-black/10"}`}
+        >
+          {ctaLabel}
+        </Link>
+      ) : null}
     </div>
   );
 }
 
 function HomePage() {
   const navigate = useNavigate();
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const [newArrivalStartIndex, setNewArrivalStartIndex] = useState(0);
+  const [cardsPerView, setCardsPerView] = useState(() => {
+    if (typeof window === "undefined") {
+      return 4;
+    }
+
+    if (window.innerWidth >= 1280) {
+      return 4;
+    }
+
+    if (window.innerWidth >= 640) {
+      return 2;
+    }
+
+    return 1;
+  });
 
   const bannersQuery = useQuery({
     queryKey: ["homepage-banners"],
@@ -141,12 +135,6 @@ function HomePage() {
     staleTime: SECTION_STALE_TIME,
   });
 
-  const vendorSpotlightQuery = useQuery({
-    queryKey: ["homepage-vendor-spotlight"],
-    queryFn: () => fetchVendorSpotlight({ limit: 3 }),
-    staleTime: SECTION_STALE_TIME,
-  });
-
   const banners = bannersQuery.data || [];
   const categories = useMemo(() => {
     const categoriesData = categoriesQuery.data;
@@ -160,7 +148,6 @@ function HomePage() {
   }, [categoriesQuery.data]);
   const topProducts = topProductsQuery.data?.results || [];
   const newArrivals = newArrivalsQuery.data?.results || [];
-  const vendorSpotlight = vendorSpotlightQuery.data || [];
 
   const featuredCategories = useMemo(() => {
     const flattened = [];
@@ -181,251 +168,393 @@ function HomePage() {
       unique.push(category);
     });
 
-    return unique.slice(0, 8);
+    return unique.slice(0, 4);
   }, [categories]);
 
+  const flashDeals = useMemo(() => {
+    const catalog = [...newArrivals, ...topProducts];
+    const discounted = catalog.filter((product) => {
+      const price = Number(product.price || 0);
+      const discountPrice = Number(product.discount_price || 0);
+      return discountPrice > 0 && discountPrice < price;
+    });
+
+    if (discounted.length >= 4) {
+      return discounted.slice(0, 4);
+    }
+
+    return catalog.slice(0, 4);
+  }, [newArrivals, topProducts]);
+
+  const activeBanner = banners[activeBannerIndex] || null;
+  const heroImage = activeBanner?.image_url
+    ? cloudinaryImage(activeBanner.image_url, 1600, 900)
+    : null;
+  const maxNewArrivalStart = Math.max(0, newArrivals.length - cardsPerView);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1280) {
+        setCardsPerView(4);
+        return;
+      }
+
+      if (window.innerWidth >= 640) {
+        setCardsPerView(2);
+        return;
+      }
+
+      setCardsPerView(1);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (banners.length <= 1) {
+      setActiveBannerIndex(0);
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setActiveBannerIndex((current) => (current + 1) % banners.length);
+    }, HERO_ROTATION_INTERVAL);
+
+    return () => window.clearInterval(intervalId);
+  }, [banners.length]);
+
+  useEffect(() => {
+    if (newArrivals.length <= cardsPerView) {
+      setNewArrivalStartIndex(0);
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setNewArrivalStartIndex((current) => {
+        if (current >= maxNewArrivalStart) {
+          return 0;
+        }
+
+        return current + 1;
+      });
+    }, NEW_ARRIVALS_ROTATION_INTERVAL);
+
+    return () => window.clearInterval(intervalId);
+  }, [cardsPerView, maxNewArrivalStart, newArrivals.length]);
+
+  useEffect(() => {
+    if (newArrivalStartIndex > maxNewArrivalStart) {
+      setNewArrivalStartIndex(maxNewArrivalStart);
+    }
+  }, [maxNewArrivalStart, newArrivalStartIndex]);
+
   return (
-    <section className="space-y-8">
-      <section className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
-        {bannersQuery.isLoading ? <HeroSkeleton /> : null}
-
-        {!bannersQuery.isLoading && banners.length > 0 ? (
-          <Swiper
-            modules={[Autoplay, Pagination, A11y]}
-            pagination={{ clickable: true }}
-            autoplay={{ delay: 4500, disableOnInteraction: false }}
-            loop={banners.length > 1}
-            className="rounded-xl"
-          >
-            {banners.map((banner, index) => {
-              const srcSet = cloudinarySrcSet(
-                banner.image_url,
-                [640, 960, 1280, 1600],
-                2.5,
-              );
-              const src = cloudinaryImage(banner.image_url, 1280, 512);
-
-              return (
-                <SwiperSlide key={banner.id}>
-                  {banner.link ? (
-                    <a
-                      href={banner.link}
-                      className="block"
-                      aria-label={banner.title || "Homepage banner"}
-                    >
-                      <img
-                        src={src}
-                        srcSet={srcSet}
-                        sizes="(min-width: 1024px) 1200px, 100vw"
-                        alt={banner.title || "CampusKart banner"}
-                        loading={index === 0 ? "eager" : "lazy"}
-                        fetchPriority={index === 0 ? "high" : "auto"}
-                        decoding="async"
-                        className="h-56 w-full rounded-xl object-cover sm:h-72 lg:h-80"
-                      />
-                    </a>
-                  ) : (
-                    <img
-                      src={src}
-                      srcSet={srcSet}
-                      sizes="(min-width: 1024px) 1200px, 100vw"
-                      alt={banner.title || "CampusKart banner"}
-                      loading={index === 0 ? "eager" : "lazy"}
-                      fetchPriority={index === 0 ? "high" : "auto"}
-                      decoding="async"
-                      className="h-56 w-full rounded-xl object-cover sm:h-72 lg:h-80"
-                    />
-                  )}
-                </SwiperSlide>
-              );
-            })}
-          </Swiper>
+    <section className="space-y-0 overflow-hidden rounded-[20px] border border-white/10 bg-[var(--ck-surface-deep)] shadow-[0_20px_45px_rgba(0,0,0,0.25)]">
+      <section className="relative overflow-hidden bg-[var(--ck-surface-deep)]">
+        {heroImage ? (
+          <img
+            src={heroImage}
+            alt="CampusKart hero"
+            className="absolute inset-0 h-full w-full object-cover opacity-30"
+            loading="eager"
+            decoding="async"
+          />
         ) : null}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(200,255,47,0.10),transparent_55%)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/35" />
 
-        {!bannersQuery.isLoading && banners.length === 0 ? (
-          <div className="flex h-56 items-center justify-center rounded-xl bg-gradient-to-r from-primary to-accent text-white sm:h-72 lg:h-80">
-            <div className="text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">
-                CampusKart
-              </p>
-              <h1 className="mt-2 text-3xl font-bold">
-                Shop smarter on campus
-              </h1>
-              <p className="mt-3 text-sm text-white/90">
-                Find trusted vendors, daily deals, and student favorites.
-              </p>
+        <div className="relative grid gap-8 px-5 pb-16 pt-12 sm:px-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-end lg:px-10 lg:pb-20">
+          <div className="max-w-2xl space-y-5">
+            <p className="inline-flex rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-[#d9d9d9]">
+              Campus Lifestyle Marketplace
+            </p>
+            <h1 className="text-4xl font-extrabold leading-[1.08] text-white sm:text-5xl lg:text-6xl">
+              Your Campus
+              <br />
+              <span className="text-[var(--ck-accent)]">Marketplace</span>
+            </h1>
+            <p className="max-w-xl text-sm text-[#d9d9d9] sm:text-base">
+              Everything students need, from textbooks and gadgets to fashion
+              and dorm essentials, delivered with deals that actually matter.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to="/shop"
+                className="rounded-xl bg-[var(--ck-accent)] px-5 py-3 text-sm font-bold text-[#111111] transition hover:bg-[var(--ck-accent-hover)]"
+              >
+                Shop Now
+              </Link>
+              <Link
+                to="/shop?sort=popular"
+                className="rounded-xl border border-white/30 bg-transparent px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Explore Categories
+              </Link>
             </div>
+          </div>
+
+          <div className="hidden justify-self-end lg:block">
+            <div className="grid grid-cols-5 gap-4">
+              {Array.from({ length: 15 }).map((_, index) => (
+                <span
+                  key={`hero-dot-${index}`}
+                  className="h-1.5 w-1.5 rounded-full bg-[var(--ck-accent)]/85"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {banners.length > 1 ? (
+          <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2">
+            {banners.map((banner, index) => (
+              <button
+                key={banner.id || `hero-banner-${index}`}
+                type="button"
+                onClick={() => setActiveBannerIndex(index)}
+                className={`h-2.5 rounded-full transition ${
+                  index === activeBannerIndex
+                    ? "w-7 bg-[var(--ck-accent)]"
+                    : "w-2.5 bg-white/55 hover:bg-white/80"
+                }`}
+                aria-label={`Show banner ${index + 1}`}
+              />
+            ))}
           </div>
         ) : null}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="text-xl font-bold text-primary">
-            Featured Categories
-          </h2>
-          <Link
-            to="/shop"
-            className="text-sm font-semibold text-accent hover:underline"
-          >
-            Browse all
-          </Link>
-        </div>
+      <section className="bg-[var(--ck-bg)] px-5 py-10 sm:px-8 lg:px-10">
+        <SectionHeader
+          title="Shop by Category"
+          subtitle="Find campus essentials faster."
+          ctaTo="/shop"
+          ctaLabel="View All"
+        />
 
         {categoriesQuery.isLoading ? <CategorySkeleton /> : null}
 
         {!categoriesQuery.isLoading && featuredCategories.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {featuredCategories.map((category) => (
               <button
                 key={category.id}
                 type="button"
                 onClick={() => navigate(`/shop?category=${category.id}`)}
-                className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:-translate-y-0.5 hover:border-accent/40 hover:bg-white"
-              >
-                {category.icon_url ? (
-                  <img
-                    src={cloudinaryImage(category.icon_url, 80, 80)}
-                    alt={category.name}
-                    loading="lazy"
-                    decoding="async"
-                    className="mb-2 h-10 w-10 rounded-md object-cover"
-                  />
-                ) : (
-                  <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-xl text-primary">
-                    #
-                  </div>
-                )}
-                <p className="line-clamp-2 text-sm font-semibold text-slate-800">
-                  {category.name}
-                </p>
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        {!categoriesQuery.isLoading && featuredCategories.length === 0 ? (
-          <p className="text-sm text-muted">
-            No categories available right now.
-          </p>
-        ) : null}
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-xl font-bold text-primary">Top Products</h2>
-          <Link
-            to="/shop?sort=popular"
-            className="text-sm font-semibold text-accent hover:underline"
-          >
-            View all
-          </Link>
-        </div>
-
-        {topProductsQuery.isLoading ? <ProductRowSkeleton /> : null}
-
-        {!topProductsQuery.isLoading && topProducts.length > 0 ? (
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {topProducts.map((product) => (
-              <div
-                key={product.id}
-                className="min-w-[260px] max-w-[300px] flex-1"
-              >
-                <ProductCard product={product} />
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        {!topProductsQuery.isLoading && topProducts.length === 0 ? (
-          <p className="text-sm text-muted">
-            Top products are unavailable right now.
-          </p>
-        ) : null}
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-xl font-bold text-primary">New Arrivals</h2>
-          <Link
-            to="/shop?sort=newest"
-            className="text-sm font-semibold text-accent hover:underline"
-          >
-            See all
-          </Link>
-        </div>
-
-        {newArrivalsQuery.isLoading ? <ProductGridSkeleton /> : null}
-
-        {!newArrivalsQuery.isLoading && newArrivals.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {newArrivals.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        ) : null}
-
-        {!newArrivalsQuery.isLoading && newArrivals.length === 0 ? (
-          <p className="text-sm text-muted">
-            No new arrivals available right now.
-          </p>
-        ) : null}
-      </section>
-
-      <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="text-xl font-bold text-primary">Vendor Spotlight</h2>
-          <Link
-            to="/shop"
-            className="text-sm font-semibold text-accent hover:underline"
-          >
-            Shop by vendor
-          </Link>
-        </div>
-
-        {vendorSpotlightQuery.isLoading ? <VendorSpotlightSkeleton /> : null}
-
-        {!vendorSpotlightQuery.isLoading && vendorSpotlight.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {vendorSpotlight.map((vendor) => (
-              <button
-                key={vendor.id}
-                type="button"
-                onClick={() => navigate(`/shop?vendor=${vendor.id}`)}
-                className="overflow-hidden rounded-xl border border-slate-200 text-left transition hover:-translate-y-0.5 hover:shadow-md"
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[var(--ck-surface)] text-left"
               >
                 <img
                   src={
-                    cloudinaryImage(vendor.banner_url, 800, 320) ||
-                    cloudinaryImage(vendor.logo_url, 800, 320) ||
-                    "https://placehold.co/800x320/e2e8f0/334155?text=Campus+Vendor"
+                    cloudinaryImage(category.icon_url, 640, 480) ||
+                    "https://placehold.co/640x480/2A2A2A/D9D9D9?text=CampusKart"
                   }
-                  alt={vendor.shop_name}
+                  alt={category.name}
                   loading="lazy"
                   decoding="async"
-                  className="h-32 w-full object-cover"
+                  className="h-36 w-full object-cover opacity-85 transition duration-300 group-hover:scale-105 group-hover:opacity-95 sm:h-44"
                 />
-                <div className="space-y-1 p-4">
-                  <h3 className="text-base font-semibold text-slate-900">
-                    {vendor.shop_name}
-                  </h3>
-                  <p className="line-clamp-2 text-sm text-slate-600">
-                    {vendor.description || "Trusted campus vendor"}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-3">
+                  <p className="line-clamp-2 text-base font-semibold text-white">
+                    {category.name}
                   </p>
+                  <p className="text-xs text-[#d9d9d9]">Explore now</p>
                 </div>
               </button>
             ))}
           </div>
         ) : null}
 
-        {!vendorSpotlightQuery.isLoading && vendorSpotlight.length === 0 ? (
-          <p className="text-sm text-muted">
-            No spotlight vendors available yet.
+        {!categoriesQuery.isLoading && featuredCategories.length === 0 ? (
+          <p className="text-sm text-[#313131]">
+            No categories are available right now.
           </p>
         ) : null}
+      </section>
+
+      <section className="bg-[var(--ck-surface)] px-5 py-10 sm:px-8 lg:px-10">
+        <SectionHeader
+          title="New Arrivals"
+          subtitle="Fresh picks just for you."
+          ctaTo="/shop?sort=newest"
+          ctaLabel="View All"
+          dark
+        />
+
+        {newArrivalsQuery.isLoading ? <ProductGridSkeleton /> : null}
+
+        {!newArrivalsQuery.isLoading && newArrivals.length > 0 ? (
+          <div className="space-y-4">
+            <div className="overflow-hidden">
+              <div
+                className="-mx-2 flex transition-transform duration-500 ease-out"
+                style={{
+                  transform: `translateX(-${newArrivalStartIndex * (100 / cardsPerView)}%)`,
+                }}
+              >
+                {newArrivals.map((product) => (
+                  <div
+                    key={product.id}
+                    className="shrink-0 px-2"
+                    style={{ width: `${100 / cardsPerView}%` }}
+                  >
+                    <ProductCard product={product} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {newArrivals.length > cardsPerView ? (
+              <div className="flex justify-center gap-2">
+                {Array.from({ length: maxNewArrivalStart + 1 }).map((_, index) => (
+                  <button
+                    key={`new-arrival-dot-${index}`}
+                    type="button"
+                    onClick={() => setNewArrivalStartIndex(index)}
+                    className={`h-2.5 rounded-full transition ${
+                      index === newArrivalStartIndex
+                        ? "w-7 bg-[var(--ck-accent)]"
+                        : "w-2.5 bg-white/45 hover:bg-white/75"
+                    }`}
+                    aria-label={`Go to new arrivals slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {!newArrivalsQuery.isLoading && newArrivals.length === 0 ? (
+          <p className="text-sm text-[#d9d9d9]">
+            No new arrivals available right now.
+          </p>
+        ) : null}
+      </section>
+
+      <section className="bg-[var(--ck-bg)] px-5 py-10 sm:px-8 lg:px-10">
+        <SectionHeader
+          title="Best Sellers"
+          subtitle="Student favorites across campus."
+          ctaTo="/shop?sort=popular"
+          ctaLabel="View All"
+        />
+
+        {topProductsQuery.isLoading ? <ProductGridSkeleton /> : null}
+
+        {!topProductsQuery.isLoading && topProducts.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {topProducts.slice(0, 4).map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : null}
+
+        {!topProductsQuery.isLoading && topProducts.length === 0 ? (
+          <p className="text-sm text-[#313131]">
+            Best sellers are unavailable right now.
+          </p>
+        ) : null}
+      </section>
+
+      <section className="bg-[var(--ck-accent)] px-5 py-10 sm:px-8 lg:px-10">
+        <SectionHeader
+          title="Flash Deals"
+          subtitle="Limited-time offers with student-friendly prices."
+          ctaTo="/shop?discounted=true"
+          ctaLabel="View All"
+        />
+
+        {topProductsQuery.isLoading || newArrivalsQuery.isLoading ? (
+          <ProductGridSkeleton />
+        ) : null}
+
+        {!topProductsQuery.isLoading &&
+        !newArrivalsQuery.isLoading &&
+        flashDeals.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {flashDeals.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : null}
+
+        {!topProductsQuery.isLoading &&
+        !newArrivalsQuery.isLoading &&
+        flashDeals.length === 0 ? (
+          <p className="text-sm text-[#1f1f1f]">No flash deals are live yet.</p>
+        ) : null}
+      </section>
+
+      <section className="bg-[var(--ck-surface-deep)] px-5 py-10 sm:px-8 lg:px-10">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          {[
+            {
+              title: "Free Shipping",
+              description: "On orders over BDT 3,500",
+            },
+            {
+              title: "Easy Returns",
+              description: "30-day return policy",
+            },
+            {
+              title: "Secure Payment",
+              description: "100% secure transactions",
+            },
+          ].map((item) => (
+            <article
+              key={item.title}
+              className="rounded-2xl border border-white/10 bg-black/30 p-5"
+            >
+              <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--ck-accent)]/20 text-[var(--ck-accent)]">
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--ck-accent)]" />
+              </div>
+              <h3 className="text-lg font-bold text-white">{item.title}</h3>
+              <p className="mt-1 text-sm text-[#d9d9d9]">{item.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-[var(--ck-bg)] px-5 py-10 sm:px-8 lg:px-10">
+        <h2 className="text-center text-3xl font-extrabold tracking-tight text-[#181818]">
+          What Students Say
+        </h2>
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+          {[
+            {
+              quote:
+                "CampusKart made shopping for dorm gear so easy. Fast shipping and great prices.",
+              author: "Sarah M.",
+            },
+            {
+              quote:
+                "I found quality textbooks here for half the campus bookstore price. Highly recommended.",
+              author: "James L.",
+            },
+            {
+              quote:
+                "I love the variety and student-friendly deals. My go-to for everything campus.",
+              author: "Emily R.",
+            },
+          ].map((testimonial) => (
+            <article
+              key={testimonial.author}
+              className="rounded-2xl border border-white/15 bg-[var(--ck-surface)] p-5"
+            >
+              <p className="text-sm text-[#d9d9d9]">{testimonial.quote}</p>
+              <p className="mt-3 text-sm font-semibold text-white">
+                {testimonial.author}
+              </p>
+            </article>
+          ))}
+        </div>
       </section>
     </section>
   );
 }
 
 export default HomePage;
+
+

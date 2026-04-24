@@ -44,7 +44,7 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
         type="button"
         disabled={safeCurrentPage <= 1}
         onClick={() => onPageChange(safeCurrentPage - 1)}
-        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-lg border border-white/20 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
       >
         Prev
       </button>
@@ -53,7 +53,7 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
         page === 'ellipsis-left' || page === 'ellipsis-right' ? (
           <span
             key={page}
-            className="px-2 py-1.5 text-sm font-medium text-slate-500"
+            className="px-2 py-1.5 text-sm font-medium text-slate-400"
             aria-hidden="true"
           >
             ...
@@ -65,8 +65,8 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
             onClick={() => onPageChange(page)}
             className={`rounded-md px-3 py-1.5 text-sm font-medium ${
               page === safeCurrentPage
-                ? 'bg-primary text-white'
-                : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
+                ? 'bg-[var(--ck-accent)] text-[#111111]'
+                : 'border border-white/20 text-slate-600 hover:bg-white/10 hover:text-white'
             }`}
             aria-current={page === safeCurrentPage ? 'page' : undefined}
           >
@@ -79,7 +79,7 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
         type="button"
         disabled={safeCurrentPage >= totalPages}
         onClick={() => onPageChange(safeCurrentPage + 1)}
-        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-lg border border-white/20 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
       >
         Next
       </button>
@@ -88,3 +88,5 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
 }
 
 export default Pagination
+
+

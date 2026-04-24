@@ -39,6 +39,27 @@ const VendorProductsPage = lazy(() => import("./pages/VendorProductsPage"));
 const WishlistPage = lazy(() => import("./pages/WishlistPage"));
 
 const queryClient = new QueryClient();
+let bootstrapAuthPromise = null;
+
+async function ensureBootstrappedAuth() {
+  if (!bootstrapAuthPromise) {
+    bootstrapAuthPromise = (async () => {
+      await apiClient.get("/auth/csrf/");
+      const response = await apiClient.post("/auth/bootstrap/", {});
+      const { access, user } = response.data || {};
+
+      if (access && user) {
+        return { access, user };
+      }
+
+      return null;
+    })().finally(() => {
+      bootstrapAuthPromise = null;
+    });
+  }
+
+  return bootstrapAuthPromise;
+}
 
 function RouteLoadingFallback() {
   return (
@@ -61,15 +82,13 @@ function App() {
       startAuthBootstrap();
 
       try {
-        await apiClient.get("/auth/csrf/");
-        const response = await apiClient.post("/auth/bootstrap/", {});
-
+        const sessionData = await ensureBootstrappedAuth();
         if (cancelled) {
           return;
         }
 
-        const { access, user } = response.data || {};
-        if (access && user) {
+        if (sessionData?.access && sessionData?.user) {
+          const { access, user } = sessionData;
           completeAuthBootstrap({ token: access, user });
           return;
         }
@@ -91,7 +110,9 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <ToastViewport />
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>

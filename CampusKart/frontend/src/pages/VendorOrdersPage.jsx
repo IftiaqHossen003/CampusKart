@@ -189,15 +189,15 @@ function VendorOrdersPage() {
   if (vendorOrdersQuery.isLoading) {
     return (
       <section className="space-y-4">
-        <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-          <h1 className="text-2xl font-bold text-primary">Vendor Orders</h1>
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+          <h1 className="text-2xl font-bold text-white">Vendor Orders</h1>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, index) => (
               <div
                 key={`vendor-orders-skeleton-${index}`}
-                className="h-14 animate-pulse rounded bg-slate-200"
+                className="h-14 animate-pulse rounded bg-white/10"
               />
             ))}
           </div>
@@ -208,11 +208,11 @@ function VendorOrdersPage() {
 
   if (vendorOrdersQuery.isError) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-        <h1 className="text-xl font-semibold text-primary">
+      <section className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-8 text-center">
+        <h1 className="text-xl font-semibold text-white">
           Could not load vendor orders
         </h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-slate-400">
           {getOrderApiErrorMessage(
             vendorOrdersQuery.error,
             "Please try again in a moment.",
@@ -221,7 +221,7 @@ function VendorOrdersPage() {
         <button
           type="button"
           onClick={() => vendorOrdersQuery.refetch()}
-          className="mt-5 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+          className="mt-5 rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
         >
           Retry
         </button>
@@ -232,18 +232,18 @@ function VendorOrdersPage() {
   if (orders.length === 0) {
     return (
       <section className="space-y-5">
-        <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-          <h1 className="text-2xl font-bold text-primary">Vendor Orders</h1>
-          <p className="mt-1 text-sm text-muted">
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+          <h1 className="text-2xl font-bold text-white">Vendor Orders</h1>
+          <p className="mt-1 text-sm text-slate-400">
             Manage incoming orders from students.
           </p>
         </div>
 
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <h2 className="text-xl font-semibold text-primary">
+        <div className="rounded-xl border border-dashed border-white/20 bg-[var(--ck-surface)] p-8 text-center">
+          <h2 className="text-xl font-semibold text-white">
             No orders found
           </h2>
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-2 text-sm text-slate-400">
             New customer orders will appear here.
           </p>
         </div>
@@ -253,17 +253,17 @@ function VendorOrdersPage() {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-primary">Vendor Orders</h1>
-            <p className="mt-1 text-sm text-muted">
+            <h1 className="text-2xl font-bold text-white">Vendor Orders</h1>
+            <p className="mt-1 text-sm text-slate-400">
               Track and update the status of customer orders.
             </p>
           </div>
 
           <label
-            className="flex items-center gap-2 text-sm text-slate-700"
+            className="flex items-center gap-2 text-sm text-slate-400"
             htmlFor="vendor-order-status-filter"
           >
             <span>Status</span>
@@ -271,7 +271,7 @@ function VendorOrdersPage() {
               id="vendor-order-status-filter"
               value={statusFilter}
               onChange={(event) => handleFilterChange(event.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+              className="rounded-md border border-white/20 bg-[var(--ck-surface)] px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
             >
               {STATUS_FILTER_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -283,36 +283,36 @@ function VendorOrdersPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-4 py-3 text-sm text-muted">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)]">
+        <div className="border-b border-white/10 px-4 py-3 text-sm text-slate-400">
           {totalCount} order{totalCount === 1 ? "" : "s"} found
         </div>
 
         <div className="hidden overflow-x-auto md:block">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
+          <table className="min-w-full divide-y divide-white/10">
+            <thead className="bg-[var(--ck-surface-deep)]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Order
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Customer
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Date
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Total
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Current
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Update Status
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-white/10 bg-[var(--ck-surface)]">
               {orders.map((order) => {
                 const targetOrderId = order.statusUpdateId || order.id;
                 const transitionOptions = getAllowedTransitions(order.status);
@@ -323,16 +323,16 @@ function VendorOrdersPage() {
 
                 return (
                   <tr key={order.id || order.orderNumber}>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-800">
+                    <td className="px-4 py-3 text-sm font-medium text-white">
                       #{order.orderNumber || order.id}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className="px-4 py-3 text-sm text-slate-400">
                       {order.customerName || "Customer"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className="px-4 py-3 text-sm text-slate-400">
                       {formatDate(order.placedAt)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className="px-4 py-3 text-sm text-slate-400">
                       {formatPrice(order.total)}
                     </td>
                     <td className="px-4 py-3 text-sm">
@@ -353,7 +353,7 @@ function VendorOrdersPage() {
                             status: nextStatus,
                           });
                         }}
-                        className="w-full max-w-[180px] rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
+                        className="w-full max-w-[180px] rounded-md border border-white/20 bg-[var(--ck-surface)] px-2 py-1.5 text-sm focus:border-[var(--ck-accent)] focus:outline-none disabled:cursor-not-allowed disabled:bg-white/5"
                       >
                         {transitionOptions.map((status) => (
                           <option
@@ -372,7 +372,7 @@ function VendorOrdersPage() {
           </table>
         </div>
 
-        <div className="divide-y divide-slate-100 md:hidden">
+        <div className="divide-y divide-white/10 md:hidden">
           {orders.map((order) => {
             const targetOrderId = order.statusUpdateId || order.id;
             const transitionOptions = getAllowedTransitions(order.status);
@@ -388,20 +388,20 @@ function VendorOrdersPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">
+                    <p className="text-sm font-semibold text-white">
                       Order #{order.orderNumber || order.id}
                     </p>
-                    <p className="text-xs text-muted">
+                    <p className="text-xs text-slate-400">
                       {order.customerName || "Customer"}
                     </p>
-                    <p className="mt-1 text-xs text-muted">
+                    <p className="mt-1 text-xs text-slate-400">
                       {formatDate(order.placedAt)}
                     </p>
                   </div>
                   <OrderStatusBadge status={order.status} />
                 </div>
 
-                <div className="flex items-center justify-between text-sm text-slate-700">
+                <div className="flex items-center justify-between text-sm text-slate-400">
                   <span>Total</span>
                   <span className="font-semibold">
                     {formatPrice(order.total)}
@@ -422,7 +422,7 @@ function VendorOrdersPage() {
                       status: nextStatus,
                     });
                   }}
-                  className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
+                  className="w-full rounded-md border border-white/20 bg-[var(--ck-surface)] px-2 py-1.5 text-sm focus:border-[var(--ck-accent)] focus:outline-none disabled:cursor-not-allowed disabled:bg-white/5"
                 >
                   {transitionOptions.map((status) => (
                     <option
@@ -451,3 +451,7 @@ function VendorOrdersPage() {
 }
 
 export default VendorOrdersPage;
+
+
+
+

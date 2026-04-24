@@ -456,20 +456,20 @@ function ChatPage() {
 
   return (
     <section className="space-y-4">
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">Chat</h1>
-        <p className="mt-1 text-sm text-muted">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+        <h1 className="text-2xl font-bold text-white">Chat</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Real-time conversations with buyers and vendors.
         </p>
       </div>
 
-      <div className="h-[calc(100vh-14rem)] min-h-[560px] overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="h-[calc(100vh-14rem)] min-h-[560px] overflow-hidden rounded-xl border border-white/10 bg-[var(--ck-surface)]">
         <div className="flex h-full">
           <aside
-            className={`w-full border-r border-slate-200 md:w-[340px] ${isRoomListHiddenOnMobile ? "hidden md:block" : "block"}`}
+            className={`w-full border-r border-white/10 md:w-[340px] ${isRoomListHiddenOnMobile ? "hidden md:block" : "block"}`}
           >
-            <header className="border-b border-slate-200 px-4 py-3">
-              <h2 className="text-sm font-semibold text-slate-800">
+            <header className="border-b border-white/10 px-4 py-3">
+              <h2 className="text-sm font-semibold text-white">
                 Conversations
               </h2>
             </header>
@@ -480,14 +480,14 @@ function ChatPage() {
                   {Array.from({ length: 6 }).map((_, index) => (
                     <div
                       key={`chat-room-skeleton-${index}`}
-                      className="h-16 animate-pulse rounded-lg bg-slate-100"
+                      className="h-16 animate-pulse rounded-lg bg-white/5"
                     />
                   ))}
                 </div>
               ) : null}
 
               {!roomsQuery.isLoading && rooms.length === 0 ? (
-                <div className="p-5 text-sm text-muted">
+                <div className="p-5 text-sm text-slate-400">
                   No conversations yet. Start a chat from any product page.
                 </div>
               ) : null}
@@ -505,29 +505,29 @@ function ChatPage() {
                         key={room.id}
                         type="button"
                         onClick={() => openRoom(room.id)}
-                        className={`w-full border-b border-slate-100 px-4 py-3 text-left transition ${
-                          isSelected ? "bg-primary/5" : "hover:bg-slate-50"
+                        className={`w-full border-b border-white/10 px-4 py-3 text-left transition ${
+                          isSelected ? "bg-white/5" : "hover:bg-[var(--ck-surface-deep)]"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-slate-900">
+                            <p className="truncate text-sm font-semibold text-white">
                               {roomTitle}
                             </p>
-                            <p className="mt-0.5 truncate text-xs text-slate-600">
+                            <p className="mt-0.5 truncate text-xs text-slate-400">
                               {room.last_message?.message || roomSubtitle}
                             </p>
                           </div>
 
                           <div className="flex shrink-0 flex-col items-end gap-1">
                             {roomTime ? (
-                              <span className="text-[11px] text-slate-500">
+                              <span className="text-[11px] text-slate-400">
                                 {roomTime}
                               </span>
                             ) : null}
 
                             {room.unread_count > 0 ? (
-                              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--ck-accent)] px-1.5 py-0.5 text-[10px] font-semibold text-[#111111]">
                                 {room.unread_count}
                               </span>
                             ) : null}
@@ -545,21 +545,21 @@ function ChatPage() {
           >
             {selectedRoom ? (
               <>
-                <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+                <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={clearRoomSelection}
-                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 md:hidden"
+                      className="rounded border border-white/20 px-2 py-1 text-xs text-slate-400 md:hidden"
                     >
                       Back
                     </button>
 
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-sm font-semibold text-white">
                         {getRoomDisplayName(selectedRoom, userRole)}
                       </p>
-                      <p className="text-xs text-muted">
+                      <p className="text-xs text-slate-400">
                         {selectedRoom.product_name || "General conversation"}
                       </p>
                     </div>
@@ -578,21 +578,21 @@ function ChatPage() {
 
                 <div
                   ref={threadRef}
-                  className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4"
+                  className="flex-1 space-y-3 overflow-y-auto bg-[var(--ck-surface-deep)] p-4"
                 >
                   {messagesQuery.isLoading ? (
                     <div className="space-y-3">
                       {Array.from({ length: 5 }).map((_, index) => (
                         <div
                           key={`message-skeleton-${index}`}
-                          className="h-14 animate-pulse rounded-lg bg-slate-200"
+                          className="h-14 animate-pulse rounded-lg bg-white/10"
                         />
                       ))}
                     </div>
                   ) : null}
 
                   {!messagesQuery.isLoading && messages.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-5 text-sm text-muted">
+                    <div className="rounded-lg border border-dashed border-white/20 bg-[var(--ck-surface)] p-5 text-sm text-slate-400">
                       No messages yet. Start the conversation.
                     </div>
                   ) : null}
@@ -613,8 +613,8 @@ function ChatPage() {
                             <div
                               className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm sm:max-w-[70%] ${
                                 isMine
-                                  ? "rounded-br-sm bg-primary text-white"
-                                  : "rounded-bl-sm bg-white text-slate-800"
+                                  ? "rounded-br-sm bg-[var(--ck-surface)] text-white"
+                                  : "rounded-bl-sm bg-[var(--ck-surface)] text-white"
                               }`}
                             >
                               <p className="whitespace-pre-wrap break-words">
@@ -622,7 +622,7 @@ function ChatPage() {
                               </p>
                               <div
                                 className={`mt-1 flex items-center justify-end gap-2 text-[11px] ${
-                                  isMine ? "text-white/85" : "text-slate-500"
+                                  isMine ? "text-white/85" : "text-slate-400"
                                 }`}
                               >
                                 <span>{formatDateTime(message.sent_at)}</span>
@@ -636,14 +636,14 @@ function ChatPage() {
 
                   {isPeerTyping ? (
                     <div className="flex justify-start">
-                      <div className="rounded-2xl rounded-bl-sm bg-white px-3 py-2 text-xs text-slate-600 shadow-sm">
+                      <div className="rounded-2xl rounded-bl-sm bg-[var(--ck-surface)] px-3 py-2 text-xs text-slate-400 shadow-sm">
                         typing...
                       </div>
                     </div>
                   ) : null}
                 </div>
 
-                <footer className="border-t border-slate-200 bg-white p-3">
+                <footer className="border-t border-white/10 bg-[var(--ck-surface)] p-3">
                   <div className="flex items-end gap-2">
                     <textarea
                       value={draft}
@@ -654,13 +654,13 @@ function ChatPage() {
                           ? "Type a message"
                           : "Waiting for connection..."
                       }
-                      className="max-h-32 min-h-[44px] flex-1 resize-y rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                      className="max-h-32 min-h-[44px] flex-1 resize-y rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={handleSendMessage}
                       disabled={!draft.trim() || !isConnected}
-                      className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Send
                     </button>
@@ -670,10 +670,10 @@ function ChatPage() {
             ) : (
               <div className="flex h-full items-center justify-center p-6 text-center">
                 <div>
-                  <h2 className="text-lg font-semibold text-primary">
+                  <h2 className="text-lg font-semibold text-white">
                     Select a conversation
                   </h2>
-                  <p className="mt-1 text-sm text-muted">
+                  <p className="mt-1 text-sm text-slate-400">
                     Choose a chat from the left panel to view messages.
                   </p>
                 </div>
@@ -687,3 +687,7 @@ function ChatPage() {
 }
 
 export default ChatPage;
+
+
+
+

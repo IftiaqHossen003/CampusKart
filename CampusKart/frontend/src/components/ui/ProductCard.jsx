@@ -43,14 +43,14 @@ function ProductCard({
     : null;
   const hasDiscount = discountPrice !== null && discountPrice < price;
   const discountPercent = hasDiscount
-    ? Math.round(((price - discountPrice) / price) * 100)
+    ? Math.round(((price - discountPrice) / Math.max(price, 1)) * 100)
     : 0;
   const hasStockInfo = product.stock !== null && product.stock !== undefined;
   const isOutOfStock = hasStockInfo && toNumber(product.stock) <= 0;
   const imageUrl =
     product.images?.find((image) => image.is_primary)?.image_url ||
     product.images?.[0]?.image_url ||
-    "https://placehold.co/800x600/e2e8f0/334155?text=CampusKart";
+    "https://placehold.co/800x600/1C1C1C/D9D9D9?text=CampusKart";
 
   const addToCartMutation = useMutation({
     mutationFn: () => addItem({ product, quantity: 1 }),
@@ -70,8 +70,8 @@ function ProductCard({
   const productIsWishlisted = isWishlisted(product.id);
 
   return (
-    <article className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+    <article className="group overflow-hidden rounded-2xl border border-white/10 bg-[var(--ck-surface)] shadow-[0_10px_30px_rgba(0,0,0,0.25)] transition duration-300 hover:-translate-y-1 hover:border-white/20">
+      <div className="relative aspect-[4/3] overflow-hidden bg-black/30">
         <button
           type="button"
           onClick={() => toggleProductWishlist(product)}
@@ -81,7 +81,7 @@ function ProductCard({
           aria-label={
             productIsWishlisted ? "Remove from wishlist" : "Add to wishlist"
           }
-          className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-white/90 text-slate-500 shadow-sm transition hover:scale-105 hover:border-slate-200 hover:text-error"
+          className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white shadow-sm transition hover:scale-105 hover:border-[var(--ck-accent)] hover:text-[var(--ck-accent)]"
           disabled={isTogglingWishlist}
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
@@ -90,7 +90,11 @@ function ProductCard({
               fill={productIsWishlisted ? "currentColor" : "none"}
               stroke="currentColor"
               strokeWidth="1.75"
-              className={productIsWishlisted ? "text-error" : "text-slate-500"}
+              className={
+                productIsWishlisted
+                  ? "text-[var(--ck-accent)]"
+                  : "text-[#d9d9d9]"
+              }
             />
           </svg>
         </button>
@@ -101,10 +105,11 @@ function ProductCard({
           width={640}
           height={480}
           className="h-full w-full"
-          imgClassName="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+          imgClassName="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
         />
+
         {hasDiscount ? (
-          <span className="absolute left-3 top-3 rounded-full bg-error px-2.5 py-1 text-xs font-semibold text-white">
+          <span className="absolute left-3 top-3 rounded-full bg-[var(--ck-danger)] px-2.5 py-1 text-xs font-semibold text-white">
             {discountPercent}% OFF
           </span>
         ) : null}
@@ -114,22 +119,22 @@ function ProductCard({
         <div>
           <Link
             to={`/shop/products/${product.slug}`}
-            className="line-clamp-2 text-sm font-semibold text-slate-900 hover:text-accent"
+            className="line-clamp-2 text-sm font-semibold text-white transition hover:text-[var(--ck-accent)]"
           >
             {product.name}
           </Link>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs text-[#d9d9d9]">
             by {product.vendor_name || "Campus Vendor"}
           </p>
         </div>
 
         <div className="flex items-end justify-between">
           <div className="space-y-1">
-            <p className="text-base font-bold text-primary">
+            <p className="text-base font-bold text-white">
               {formatPrice(hasDiscount ? discountPrice : price)}
             </p>
             {hasDiscount ? (
-              <p className="text-xs text-muted line-through">
+              <p className="text-xs text-[#a7a7a7] line-through">
                 {formatPrice(price)}
               </p>
             ) : null}
@@ -137,18 +142,23 @@ function ProductCard({
         </div>
 
         <div
-          className="flex items-center gap-1 text-warning"
+          className="flex items-center gap-1"
           aria-label={`Rating ${product.avg_rating || 0} out of 5`}
         >
           {buildStarRow(product.avg_rating).map((isFilled, index) => (
-            <span
+            <svg
               key={`${product.id}-star-${index}`}
-              className={isFilled ? "opacity-100" : "opacity-25"}
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              className={`h-3.5 w-3.5 ${isFilled ? "text-[var(--ck-accent)]" : "text-white/30"}`}
             >
-              ★
-            </span>
+              <path
+                fill="currentColor"
+                d="m12 17.27 5.15 3.11-1.37-5.86 4.55-3.94-6-.51L12 4.5 9.67 10.07l-6 .51 4.55 3.94-1.37 5.86z"
+              />
+            </svg>
           ))}
-          <span className="ml-1 text-xs text-muted">
+          <span className="ml-1 text-xs text-[#d9d9d9]">
             ({toNumber(product.avg_rating).toFixed(1)})
           </span>
         </div>
@@ -157,7 +167,7 @@ function ProductCard({
           type="button"
           disabled={isOutOfStock || addToCartMutation.isPending}
           onClick={() => addToCartMutation.mutate()}
-          className="w-full rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="w-full rounded-xl bg-[var(--ck-accent)] px-3 py-2.5 text-sm font-semibold text-[#111111] transition hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:bg-[#7f7f7f] disabled:text-[#2b2b2b]"
         >
           {isOutOfStock
             ? "Out of Stock"

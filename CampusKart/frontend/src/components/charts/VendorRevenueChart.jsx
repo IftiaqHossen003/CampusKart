@@ -52,14 +52,14 @@ function RevenueTooltip({ active, payload }) {
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white px-3 py-2 shadow-md">
-      <p className="text-xs font-semibold text-slate-700">
+    <div className="rounded-md border border-white/10 bg-[var(--ck-surface)] px-3 py-2 shadow-md">
+      <p className="text-xs font-semibold text-slate-400">
         {formatDate(point.date)}
       </p>
-      <p className="mt-1 text-xs text-slate-700">
+      <p className="mt-1 text-xs text-slate-400">
         Revenue: {formatMoney(point.revenue)}
       </p>
-      <p className="text-xs text-slate-700">
+      <p className="text-xs text-slate-400">
         Orders: {formatCount(point.orders)}
       </p>
     </div>
@@ -70,24 +70,24 @@ function VendorRevenueChart({ data }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
         <XAxis
           dataKey="shortDate"
           interval="preserveStartEnd"
-          tick={{ fontSize: 12, fill: "#64748B" }}
+          tick={{ fontSize: 12, fill: "#A7A7A7" }}
         />
         <YAxis
-          tick={{ fontSize: 12, fill: "#64748B" }}
+          tick={{ fontSize: 12, fill: "#A7A7A7" }}
           tickFormatter={(value) => `${Math.round(toNumber(value) / 1000)}k`}
         />
         <Tooltip content={<RevenueTooltip />} />
         <Line
           type="monotone"
           dataKey="revenue"
-          stroke="#2E86AB"
+          stroke="#C8FF2F"
           strokeWidth={3}
           dot={false}
-          activeDot={{ r: 5 }}
+          activeDot={{ r: 5, fill: "#C8FF2F" }}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -95,3 +95,4 @@ function VendorRevenueChart({ data }) {
 }
 
 export default VendorRevenueChart;
+

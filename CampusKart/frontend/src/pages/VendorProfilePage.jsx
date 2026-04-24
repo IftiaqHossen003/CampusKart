@@ -144,26 +144,26 @@ function VendorProfilePage() {
 
   return (
     <section className="space-y-5">
-      <article className="rounded-xl border border-slate-200 bg-white p-5">
-        <h1 className="text-2xl font-bold text-primary">Vendor Profile</h1>
-        <p className="mt-1 text-sm text-muted">
+      <article className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
+        <h1 className="text-2xl font-bold text-white">Vendor Profile</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Manage account details and storefront profile information.
         </p>
       </article>
 
       {isLoading ? (
-        <article className="rounded-xl border border-slate-200 bg-white p-5">
+        <article className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
           <div className="space-y-2">
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={`vendor-profile-skeleton-${index}`}
-                className="h-10 animate-pulse rounded bg-slate-100"
+                className="h-10 animate-pulse rounded bg-white/5"
               />
             ))}
           </div>
         </article>
       ) : isError ? (
-        <article className="rounded-xl border border-slate-200 bg-white p-5">
+        <article className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
           <p className="rounded-md bg-error/10 px-3 py-2 text-sm text-error">
             {getApiErrorMessage(
               profileQuery.error || vendorProfileQuery.error,
@@ -173,25 +173,25 @@ function VendorProfilePage() {
         </article>
       ) : (
         <>
-          <article className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="text-lg font-semibold text-primary">
+          <article className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
+            <h2 className="text-lg font-semibold text-white">
               Account Details
             </h2>
             <form className="mt-4 space-y-4" onSubmit={onSubmitUser}>
               <label className="block text-sm">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Email
                 </span>
                 <input
                   type="email"
                   value={profileQuery.data?.email || ""}
                   readOnly
-                  className="mt-1 w-full rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-600"
+                  className="mt-1 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-slate-400"
                 />
               </label>
 
               <label className="block text-sm">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Full name
                 </span>
                 <input
@@ -204,12 +204,12 @@ function VendorProfilePage() {
                       full_name: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </label>
 
               <label className="block text-sm">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Phone
                 </span>
                 <input
@@ -221,7 +221,7 @@ function VendorProfilePage() {
                       phone: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </label>
 
@@ -229,7 +229,7 @@ function VendorProfilePage() {
                 <button
                   type="submit"
                   disabled={updateUserMutation.isPending}
-                  className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {updateUserMutation.isPending ? "Saving..." : "Save Account"}
                 </button>
@@ -237,13 +237,13 @@ function VendorProfilePage() {
             </form>
           </article>
 
-          <article className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="text-lg font-semibold text-primary">
+          <article className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
+            <h2 className="text-lg font-semibold text-white">
               Storefront Profile
             </h2>
             <form className="mt-4 space-y-4" onSubmit={onSubmitVendor}>
               <label className="block text-sm">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Shop name
                 </span>
                 <input
@@ -256,12 +256,12 @@ function VendorProfilePage() {
                       shop_name: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </label>
 
               <label className="block text-sm">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Description
                 </span>
                 <textarea
@@ -273,12 +273,12 @@ function VendorProfilePage() {
                       description: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </label>
 
               <label className="block text-sm">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Contact email
                 </span>
                 <input
@@ -290,12 +290,12 @@ function VendorProfilePage() {
                       contact_email: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </label>
 
               <label className="block text-sm">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Contact phone
                 </span>
                 <input
@@ -307,12 +307,12 @@ function VendorProfilePage() {
                       contact_phone: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </label>
 
               <label className="block text-sm">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Address
                 </span>
                 <textarea
@@ -324,12 +324,12 @@ function VendorProfilePage() {
                       address: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </label>
 
               <label className="block text-sm">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Logo URL
                 </span>
                 <input
@@ -341,12 +341,12 @@ function VendorProfilePage() {
                       logo_url: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </label>
 
               <label className="block text-sm">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Banner URL
                 </span>
                 <input
@@ -358,7 +358,7 @@ function VendorProfilePage() {
                       banner_url: event.target.value,
                     }))
                   }
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
               </label>
 
@@ -366,7 +366,7 @@ function VendorProfilePage() {
                 <button
                   type="submit"
                   disabled={updateVendorMutation.isPending}
-                  className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {updateVendorMutation.isPending
                     ? "Saving..."
@@ -382,3 +382,7 @@ function VendorProfilePage() {
 }
 
 export default VendorProfilePage;
+
+
+
+

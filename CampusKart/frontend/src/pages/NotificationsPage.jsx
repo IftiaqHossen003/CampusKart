@@ -120,16 +120,16 @@ function NotificationsPage() {
   if (notificationsQuery.isLoading) {
     return (
       <section className="space-y-4">
-        <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-          <h1 className="text-2xl font-bold text-primary">Notifications</h1>
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+          <h1 className="text-2xl font-bold text-white">Notifications</h1>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
           <div className="space-y-3">
             {Array.from({ length: 8 }).map((_, index) => (
               <div
                 key={`notification-skeleton-${index}`}
-                className="h-16 animate-pulse rounded bg-slate-200"
+                className="h-16 animate-pulse rounded bg-white/10"
               />
             ))}
           </div>
@@ -144,15 +144,15 @@ function NotificationsPage() {
       "Could not load notifications right now.";
 
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-        <h1 className="text-xl font-semibold text-primary">
+      <section className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-8 text-center">
+        <h1 className="text-xl font-semibold text-white">
           Could not load notifications
         </h1>
-        <p className="mt-2 text-sm text-muted">{detail}</p>
+        <p className="mt-2 text-sm text-slate-400">{detail}</p>
         <button
           type="button"
           onClick={() => notificationsQuery.refetch()}
-          className="mt-5 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+          className="mt-5 rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
         >
           Retry
         </button>
@@ -162,11 +162,11 @@ function NotificationsPage() {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-primary">Notifications</h1>
-            <p className="mt-1 text-sm text-muted">
+            <h1 className="text-2xl font-bold text-white">Notifications</h1>
+            <p className="mt-1 text-sm text-slate-400">
               Stay on top of order, payment, and system updates.
             </p>
           </div>
@@ -175,7 +175,7 @@ function NotificationsPage() {
             type="button"
             onClick={() => markAllMutation.mutate()}
             disabled={markAllMutation.isPending}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-white/20 px-3 py-2 text-sm font-semibold text-slate-400 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {markAllMutation.isPending ? "Updating..." : "Mark all as read"}
           </button>
@@ -187,8 +187,8 @@ function NotificationsPage() {
             onClick={() => handleFilterChange("all")}
             className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
               currentFilter === "all"
-                ? "bg-primary text-white"
-                : "border border-slate-300 text-slate-700"
+                ? "bg-[var(--ck-surface)] text-white"
+                : "border border-white/20 text-slate-400"
             }`}
           >
             All
@@ -198,8 +198,8 @@ function NotificationsPage() {
             onClick={() => handleFilterChange("unread")}
             className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
               currentFilter === "unread"
-                ? "bg-primary text-white"
-                : "border border-slate-300 text-slate-700"
+                ? "bg-[var(--ck-surface)] text-white"
+                : "border border-white/20 text-slate-400"
             }`}
           >
             Unread
@@ -209,8 +209,8 @@ function NotificationsPage() {
             onClick={() => handleFilterChange("read")}
             className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
               currentFilter === "read"
-                ? "bg-primary text-white"
-                : "border border-slate-300 text-slate-700"
+                ? "bg-[var(--ck-surface)] text-white"
+                : "border border-white/20 text-slate-400"
             }`}
           >
             Read
@@ -219,46 +219,46 @@ function NotificationsPage() {
       </div>
 
       {results.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <h2 className="text-lg font-semibold text-primary">
+        <div className="rounded-xl border border-dashed border-white/20 bg-[var(--ck-surface)] p-8 text-center">
+          <h2 className="text-lg font-semibold text-white">
             No notifications found
           </h2>
-          <p className="mt-2 text-sm text-muted">
+          <p className="mt-2 text-sm text-slate-400">
             Try a different filter or come back later.
           </p>
           <Link
             to="/shop"
-            className="mt-5 inline-flex rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+            className="mt-5 inline-flex rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
           >
             Browse Products
           </Link>
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white">
-          <div className="divide-y divide-slate-100">
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)]">
+          <div className="divide-y divide-white/10">
             {results.map((notification) => (
               <button
                 key={notification.id}
                 type="button"
                 onClick={() => openNotification(notification)}
-                className="w-full px-4 py-4 text-left transition hover:bg-slate-50"
+                className="w-full px-4 py-4 text-left transition hover:bg-[var(--ck-surface-deep)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-slate-900">
+                    <p className="text-sm font-semibold text-white">
                       {notification.title}
                     </p>
-                    <p className="text-sm text-slate-700">
+                    <p className="text-sm text-slate-400">
                       {notification.message}
                     </p>
-                    <p className="text-xs text-muted">
+                    <p className="text-xs text-slate-400">
                       {formatDate(notification.created_at)}
                     </p>
                   </div>
 
                   {!notification.is_read ? (
                     <span
-                      className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-accent"
+                      className="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-[var(--ck-accent)]"
                       aria-hidden="true"
                     />
                   ) : null}
@@ -281,3 +281,7 @@ function NotificationsPage() {
 }
 
 export default NotificationsPage;
+
+
+
+

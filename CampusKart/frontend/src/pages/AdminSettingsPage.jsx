@@ -172,18 +172,18 @@ function AdminSettingsPage() {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">Admin Settings</h1>
-        <p className="mt-1 text-sm text-muted">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+        <h1 className="text-2xl font-bold text-white">Admin Settings</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Manage catalog taxonomy and audit operations from one place.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_1fr]">
-        <article className="rounded-xl border border-slate-200 bg-white p-5">
+        <article className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-primary">Categories</h2>
-            <span className="text-xs text-muted">
+            <h2 className="text-lg font-semibold text-white">Categories</h2>
+            <span className="text-xs text-slate-400">
               {categories.length} total
             </span>
           </div>
@@ -193,7 +193,7 @@ function AdminSettingsPage() {
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={`category-skeleton-${index}`}
-                  className="h-12 animate-pulse rounded bg-slate-100"
+                  className="h-12 animate-pulse rounded bg-white/5"
                 />
               ))}
             </div>
@@ -205,7 +205,7 @@ function AdminSettingsPage() {
               )}
             </p>
           ) : categories.length === 0 ? (
-            <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-muted">
+            <p className="rounded-md bg-white/5 px-3 py-2 text-sm text-slate-400">
               No categories found.
             </p>
           ) : (
@@ -213,13 +213,13 @@ function AdminSettingsPage() {
               {categories.map((category) => (
                 <article
                   key={category.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-white/10 p-3"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">
+                    <p className="text-sm font-semibold text-white">
                       {category.name}
                     </p>
-                    <p className="text-xs text-muted">/{category.slug}</p>
+                    <p className="text-xs text-slate-400">/{category.slug}</p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -227,7 +227,7 @@ function AdminSettingsPage() {
                       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                         category.is_active
                           ? "bg-success/15 text-success"
-                          : "bg-slate-100 text-slate-700"
+                          : "bg-white/5 text-slate-400"
                       }`}
                     >
                       {category.is_active ? "Active" : "Inactive"}
@@ -236,7 +236,7 @@ function AdminSettingsPage() {
                     <button
                       type="button"
                       onClick={() => startEditCategory(category)}
-                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                      className="rounded-md border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:bg-white/5"
                     >
                       Edit
                     </button>
@@ -258,15 +258,15 @@ function AdminSettingsPage() {
 
         <article
           ref={categoryFormCardRef}
-          className="rounded-xl border border-slate-200 bg-white p-5"
+          className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5"
         >
-          <h2 className="text-lg font-semibold text-primary">
+          <h2 className="text-lg font-semibold text-white">
             {editingCategory ? "Edit Category" : "Create Category"}
           </h2>
 
           <form className="mt-4 space-y-3" onSubmit={handleCategorySubmit}>
             <label className="block text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Name
               </span>
               <input
@@ -280,12 +280,12 @@ function AdminSettingsPage() {
                     name: event.target.value,
                   }))
                 }
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
               />
             </label>
 
             <label className="block text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Slug (optional)
               </span>
               <input
@@ -297,12 +297,12 @@ function AdminSettingsPage() {
                     slug: event.target.value,
                   }))
                 }
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
               />
             </label>
 
             <label className="block text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Icon URL (optional)
               </span>
               <input
@@ -314,11 +314,11 @@ function AdminSettingsPage() {
                     icon_url: event.target.value,
                   }))
                 }
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
               />
             </label>
 
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-slate-400">
               <input
                 type="checkbox"
                 checked={categoryForm.is_active}
@@ -347,7 +347,7 @@ function AdminSettingsPage() {
                   type="button"
                   onClick={resetCategoryForm}
                   disabled={isCategoryBusy}
-                  className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-md border border-white/20 px-4 py-2 text-sm font-semibold text-slate-400 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel
                 </button>
@@ -356,7 +356,7 @@ function AdminSettingsPage() {
               <button
                 type="submit"
                 disabled={isCategoryBusy}
-                className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saveCategoryMutation.isPending
                   ? "Saving..."
@@ -369,16 +369,16 @@ function AdminSettingsPage() {
         </article>
       </div>
 
-      <article className="rounded-xl border border-slate-200 bg-white p-5">
+      <article className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-primary">
+          <h2 className="text-lg font-semibold text-white">
             Recent Admin Audit Logs
           </h2>
 
           <select
             value={auditResourceFilter}
             onChange={(event) => setAuditResourceFilter(event.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+            className="rounded-md border border-white/20 bg-[var(--ck-surface)] px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
           >
             <option value="">All resources</option>
             <option value="banner">Banner</option>
@@ -394,7 +394,7 @@ function AdminSettingsPage() {
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={`audit-skeleton-${index}`}
-                className="h-11 animate-pulse rounded bg-slate-100"
+                className="h-11 animate-pulse rounded bg-white/5"
               />
             ))}
           </div>
@@ -406,42 +406,42 @@ function AdminSettingsPage() {
             )}
           </p>
         ) : auditLogs.length === 0 ? (
-          <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-muted">
+          <p className="rounded-md bg-white/5 px-3 py-2 text-sm text-slate-400">
             No audit logs found for this filter.
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
+            <table className="min-w-full divide-y divide-white/10">
+              <thead className="bg-[var(--ck-surface-deep)]">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Action
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Resource
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Actor
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-muted">
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     When
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-white/10 bg-[var(--ck-surface)]">
                 {auditLogs.slice(0, 10).map((log) => (
                   <tr key={log.id}>
-                    <td className="px-3 py-2 text-sm text-slate-800">
+                    <td className="px-3 py-2 text-sm text-white">
                       {log.action}
                     </td>
-                    <td className="px-3 py-2 text-sm text-slate-700">
+                    <td className="px-3 py-2 text-sm text-slate-400">
                       {log.resource_type}
                       {log.resource_id ? ` #${log.resource_id}` : ""}
                     </td>
-                    <td className="px-3 py-2 text-sm text-slate-700">
+                    <td className="px-3 py-2 text-sm text-slate-400">
                       {log.actor_email || "System"}
                     </td>
-                    <td className="px-3 py-2 text-sm text-muted">
+                    <td className="px-3 py-2 text-sm text-slate-400">
                       {formatDate(log.created_at)}
                     </td>
                   </tr>
@@ -456,3 +456,7 @@ function AdminSettingsPage() {
 }
 
 export default AdminSettingsPage;
+
+
+
+

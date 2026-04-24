@@ -135,7 +135,10 @@ function ProductListingPage() {
       } else if (!next.get("page")) {
         next.set("page", "1");
       }
-      setSearchParams(next);
+
+      if (next.toString() !== searchParams.toString()) {
+        setSearchParams(next);
+      }
     },
     [searchParams, setSearchParams],
   );
@@ -156,12 +159,8 @@ function ProductListingPage() {
   }, [debouncedSearchInput, searchTerm, updateParams]);
 
   useEffect(() => {
-    if (searchInput === searchTerm) {
-      return;
-    }
-
     setSearchInput(searchTerm);
-  }, [searchInput, searchTerm]);
+  }, [searchTerm]);
 
   const productFilters = useMemo(
     () => ({
@@ -587,30 +586,30 @@ function ProductListingPage() {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white px-4 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-4 py-5 sm:px-6">
+        <h1 className="text-2xl font-bold text-white">
           Shop Campus Essentials
         </h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-sm text-slate-400">
           Discover verified products from trusted campus vendors.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+        <aside className="space-y-4 rounded-xl border border-white/10 bg-[var(--ck-surface)] p-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-primary">Filters</h2>
+            <h2 className="text-base font-semibold text-white">Filters</h2>
             <button
               type="button"
               onClick={handleResetFilters}
-              className="text-xs font-medium text-accent hover:underline"
+              className="text-xs font-medium text-[var(--ck-accent)] hover:underline"
             >
               Reset
             </button>
           </div>
 
-          <div className="border-t border-slate-200 pt-4">
-            <p className="mb-2 text-sm font-semibold text-slate-800">
+          <div className="border-t border-white/10 pt-4">
+            <p className="mb-2 text-sm font-semibold text-white">
               Category
             </p>
             <div className="space-y-1 text-sm">
@@ -619,8 +618,8 @@ function ProductListingPage() {
                 onClick={() => handleCategorySelect("")}
                 className={`block w-full rounded px-2 py-1 text-left ${
                   !category
-                    ? "bg-primary/10 text-primary"
-                    : "hover:bg-slate-100"
+                    ? "bg-white/10 text-white"
+                    : "text-slate-300 hover:bg-white/5"
                 }`}
               >
                 All Categories
@@ -633,8 +632,8 @@ function ProductListingPage() {
                     onClick={() => handleCategorySelect(rootCategory.id)}
                     className={`block w-full rounded px-2 py-1 text-left font-medium ${
                       String(category) === String(rootCategory.id)
-                        ? "bg-primary/10 text-primary"
-                        : "hover:bg-slate-100"
+                        ? "bg-white/10 text-white"
+                        : "text-slate-300 hover:bg-white/5"
                     }`}
                   >
                     {rootCategory.name}
@@ -647,8 +646,8 @@ function ProductListingPage() {
                       onClick={() => handleCategorySelect(child.id)}
                       className={`ml-3 block w-[calc(100%-12px)] rounded px-2 py-1 text-left text-xs ${
                         String(category) === String(child.id)
-                          ? "bg-accent/10 text-accent"
-                          : "hover:bg-slate-100"
+                          ? "bg-[var(--ck-accent)]/10 text-[var(--ck-accent)]"
+                          : "text-slate-300 hover:bg-white/5"
                       }`}
                     >
                       {child.name}
@@ -659,14 +658,14 @@ function ProductListingPage() {
             </div>
           </div>
 
-          <div className="border-t border-slate-200 pt-4">
-            <p className="mb-2 text-sm font-semibold text-slate-800">
+          <div className="border-t border-white/10 pt-4">
+            <p className="mb-2 text-sm font-semibold text-white">
               Price Range
             </p>
             <div className="space-y-3">
               <div>
                 <label
-                  className="mb-1 block text-xs text-muted"
+                  className="mb-1 block text-xs text-slate-400"
                   htmlFor="min-price-range"
                 >
                   Minimum: BDT {safeMinValue}
@@ -685,12 +684,12 @@ function ProductListingPage() {
                     );
                     handlePriceApply(nextMin, safeMaxValue);
                   }}
-                  className="w-full accent-accent"
+                  className="w-full accent-[var(--ck-accent)]"
                 />
               </div>
               <div>
                 <label
-                  className="mb-1 block text-xs text-muted"
+                  className="mb-1 block text-xs text-slate-400"
                   htmlFor="max-price-range"
                 >
                   Maximum: BDT {safeMaxValue}
@@ -709,39 +708,39 @@ function ProductListingPage() {
                     );
                     handlePriceApply(safeMinValue, nextMax);
                   }}
-                  className="w-full accent-accent"
+                  className="w-full accent-[var(--ck-accent)]"
                 />
               </div>
             </div>
           </div>
 
-          <div className="border-t border-slate-200 pt-4">
-            <p className="mb-2 text-sm font-semibold text-slate-800">Tags</p>
+          <div className="border-t border-white/10 pt-4">
+            <p className="mb-2 text-sm font-semibold text-white">Tags</p>
             <div className="space-y-2">
               {tagsQuery.isLoading ? (
-                <p className="text-xs text-muted">Loading tags...</p>
+                <p className="text-xs text-slate-400">Loading tags...</p>
               ) : null}
               {!tagsQuery.isLoading && tagOptions.length > 0
                 ? tagOptions.map((tagOption) => (
                     <label
                       key={tagOption.tag}
-                      className="flex items-center gap-2 text-sm text-slate-700"
+                      className="flex items-center gap-2 text-sm text-slate-400"
                     >
                       <input
                         type="checkbox"
                         checked={selectedTags.includes(tagOption.tag)}
                         onChange={() => handleTagToggle(tagOption.tag)}
-                        className="h-4 w-4 rounded border-slate-300 text-accent focus:ring-accent"
+                        className="h-4 w-4 rounded border-white/20 text-[var(--ck-accent)] focus:ring-1 focus:ring-[var(--ck-accent)]"
                       />
                       <span>{tagOption.tag}</span>
-                      <span className="text-xs text-muted">
+                      <span className="text-xs text-slate-400">
                         ({tagOption.count})
                       </span>
                     </label>
                   ))
                 : null}
               {!tagsQuery.isLoading && tagOptions.length === 0 ? (
-                <p className="text-xs text-muted">
+                <p className="text-xs text-slate-400">
                   No global tags available yet.
                 </p>
               ) : null}
@@ -750,7 +749,7 @@ function ProductListingPage() {
         </aside>
 
         <div className="space-y-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
               <div className="relative" ref={searchDropdownRef}>
                 <input
@@ -783,18 +782,18 @@ function ProductListingPage() {
                       ? `shop-search-suggestion-${boundedActiveSuggestionIndex}`
                       : undefined
                   }
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
 
                 {isSuggestionsOpen && flatSuggestions.length > 0 ? (
                   <div
                     id="shop-search-suggestions"
                     role="listbox"
-                    className="absolute z-30 mt-1 max-h-80 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+                    className="absolute z-30 mt-1 max-h-80 w-full overflow-auto rounded-md border border-white/10 bg-[var(--ck-surface)] py-1 shadow-lg"
                   >
                     {suggestionGroups.map((group) => (
                       <div key={group.title} className="py-1">
-                        <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                        <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                           {group.title}
                         </p>
 
@@ -814,14 +813,14 @@ function ProductListingPage() {
                               onClick={() => handleSuggestionSelect(item)}
                               className={`flex w-full items-start justify-between gap-3 px-3 py-2 text-left text-sm ${
                                 isActive
-                                  ? "bg-primary/10 text-primary"
-                                  : "hover:bg-slate-50"
+                                  ? "bg-white/10 text-white"
+                                  : "hover:bg-[var(--ck-surface-deep)]"
                               }`}
                             >
                               <span className="line-clamp-1 font-medium">
                                 {item.label}
                               </span>
-                              <span className="shrink-0 text-xs text-muted">
+                              <span className="shrink-0 text-xs text-slate-400">
                                 {item.description}
                               </span>
                             </button>
@@ -833,14 +832,14 @@ function ProductListingPage() {
                 ) : null}
               </div>
 
-              <p className="text-sm text-muted">
+              <p className="text-sm text-slate-400">
                 {isInitialLoading
                   ? "Loading results..."
                   : `${totalCount} result${totalCount === 1 ? "" : "s"}`}
               </p>
 
               <label
-                className="flex items-center gap-2 text-sm text-slate-700"
+                className="flex items-center gap-2 text-sm text-slate-400"
                 htmlFor="sort-by"
               >
                 <span>Sort</span>
@@ -848,7 +847,7 @@ function ProductListingPage() {
                   id="sort-by"
                   value={currentSort}
                   onChange={(event) => handleSortChange(event.target.value)}
-                  className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-accent focus:outline-none"
+                  className="rounded-md border border-white/20 bg-[var(--ck-surface)] px-2 py-1.5 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 >
                   {SORT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -899,3 +898,5 @@ function ProductListingPage() {
 }
 
 export default ProductListingPage;
+
+

@@ -25,21 +25,21 @@ function AdminRevenueChart({ data }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
         <XAxis
           dataKey="shortDate"
           interval={4}
-          tick={{ fontSize: 12, fill: "#64748B" }}
+          tick={{ fontSize: 12, fill: "#A7A7A7" }}
         />
         <YAxis
-          tick={{ fontSize: 12, fill: "#64748B" }}
+          tick={{ fontSize: 12, fill: "#A7A7A7" }}
           tickFormatter={(value) => `${Math.round(toNumber(value) / 1000)}k`}
         />
         <Tooltip
           formatter={(value) => formatMoney(value)}
           labelFormatter={(label) => `Date: ${label}`}
         />
-        <Bar dataKey="revenue" fill="#2E86AB" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="revenue" fill="#C8FF2F" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

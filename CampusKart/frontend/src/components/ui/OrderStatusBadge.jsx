@@ -16,26 +16,26 @@ function toStatusLabel(status) {
 const statusClasses = {
   pending: "bg-warning/15 text-warning",
   initiated: "bg-warning/15 text-warning",
-  confirmed: "bg-sky-100 text-sky-700",
-  processing: "bg-sky-100 text-sky-700",
-  shipped: "bg-indigo-100 text-indigo-700",
-  partially_shipped: "bg-indigo-100 text-indigo-700",
+  confirmed: "bg-[var(--ck-accent)]/20 text-[var(--ck-accent)]",
+  processing: "bg-[var(--ck-accent)]/20 text-[var(--ck-accent)]",
+  shipped: "bg-[var(--ck-accent)]/20 text-[var(--ck-accent)]",
+  partially_shipped: "bg-[var(--ck-accent)]/20 text-[var(--ck-accent)]",
   delivered: "bg-success/15 text-success",
   success: "bg-success/15 text-success",
   completed: "bg-success/15 text-success",
-  ready: "bg-sky-100 text-sky-700",
+  ready: "bg-[var(--ck-accent)]/20 text-[var(--ck-accent)]",
   paid: "bg-success/15 text-success",
   cancelled: "bg-error/15 text-error",
   canceled: "bg-error/15 text-error",
   failed: "bg-error/15 text-error",
-  refunded: "bg-slate-100 text-slate-700",
+  refunded: "bg-white/10 text-slate-600",
 };
 
 function OrderStatusBadge({ status, className = "" }) {
   const normalized = String(status || "pending")
     .trim()
     .toLowerCase();
-  const classes = statusClasses[normalized] || "bg-slate-100 text-slate-700";
+  const classes = statusClasses[normalized] || "bg-white/10 text-slate-600";
 
   return (
     <span
@@ -47,3 +47,5 @@ function OrderStatusBadge({ status, className = "" }) {
 }
 
 export default OrderStatusBadge;
+
+
