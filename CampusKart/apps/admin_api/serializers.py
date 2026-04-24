@@ -65,6 +65,7 @@ class AdminStatsSerializer(serializers.Serializer):
     failed_payouts = serializers.IntegerField()
     cancelled_payouts = serializers.IntegerField()
     total_paid_out = serializers.DecimalField(max_digits=14, decimal_places=2)
+    admin_profit = serializers.DecimalField(max_digits=14, decimal_places=2)
 
     generated_at = serializers.DateTimeField()
 

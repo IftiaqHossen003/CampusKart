@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import { fetchAdminStats } from "../api/admin";
 import {
   fetchPayouts,
   getPaymentApiErrorMessage,
@@ -50,6 +51,12 @@ function AdminPayoutsPage() {
     staleTime: 30 * 1000,
   });
 
+  const statsQuery = useQuery({
+    queryKey: ["admin-dashboard", "stats"],
+    queryFn: () => fetchAdminStats(),
+    staleTime: 60 * 1000,
+  });
+
   const markPaidMutation = useMutation({
     mutationFn: ({ payoutId, payoutReference }) =>
       markPayoutPaid(payoutId, payoutReference),
@@ -68,6 +75,8 @@ function AdminPayoutsPage() {
   const payouts = payoutsQuery.data?.results || [];
   const totalPages = payoutsQuery.data?.totalPages || 1;
   const totalCount = payoutsQuery.data?.count || 0;
+  const totalPaidOut = statsQuery.data?.total_paid_out;
+  const adminProfit = statsQuery.data?.admin_profit;
 
   const handlePageChange = (page) => {
     const next = new URLSearchParams(searchParams);
@@ -104,6 +113,10 @@ function AdminPayoutsPage() {
       <section className="space-y-4">
         <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
           <h1 className="text-2xl font-bold text-white">Admin Payouts</h1>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="h-24 animate-pulse rounded-xl border border-white/10 bg-white/5" />
+          <div className="h-24 animate-pulse rounded-xl border border-white/10 bg-white/5" />
         </div>
         <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
           <div className="space-y-3">
@@ -152,6 +165,25 @@ function AdminPayoutsPage() {
           </p>
         </div>
 
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <article className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Total Paid Out
+            </p>
+            <p className="mt-2 text-2xl font-bold text-white">
+              {statsQuery.isError ? "N/A" : formatPrice(totalPaidOut)}
+            </p>
+          </article>
+          <article className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Admin Profit
+            </p>
+            <p className="mt-2 text-2xl font-bold text-white">
+              {statsQuery.isError ? "N/A" : formatPrice(adminProfit)}
+            </p>
+          </article>
+        </div>
+
         <div className="rounded-xl border border-dashed border-white/20 bg-[var(--ck-surface)] p-8 text-center">
           <h2 className="text-xl font-semibold text-white">
             No payouts found
@@ -171,6 +203,29 @@ function AdminPayoutsPage() {
         <p className="mt-1 text-sm text-slate-400">
           {totalCount} payout{totalCount === 1 ? "" : "s"} found.
         </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <article className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Total Paid Out
+          </p>
+          <p className="mt-2 text-2xl font-bold text-white">
+            {statsQuery.isLoading || statsQuery.isError
+              ? "N/A"
+              : formatPrice(totalPaidOut)}
+          </p>
+        </article>
+        <article className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Admin Profit
+          </p>
+          <p className="mt-2 text-2xl font-bold text-white">
+            {statsQuery.isLoading || statsQuery.isError
+              ? "N/A"
+              : formatPrice(adminProfit)}
+          </p>
+        </article>
       </div>
 
       <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)]">

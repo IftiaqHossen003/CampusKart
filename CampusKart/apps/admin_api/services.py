@@ -111,6 +111,10 @@ def build_admin_stats(*, from_date: date | None = None, to_date: date | None = N
         total_paid_out=Coalesce(Sum("net_amount", filter=Q(status=VendorPayout.Status.PAID)), decimal_zero),
     )
 
+    admin_profit = (payment_stats["collected_revenue"] or Decimal("0.00")) - (
+        payout_stats["total_paid_out"] or Decimal("0.00")
+    )
+
     return {
         **user_stats,
         **order_stats,
@@ -118,6 +122,7 @@ def build_admin_stats(*, from_date: date | None = None, to_date: date | None = N
         **vendor_stats,
         **product_stats,
         **payout_stats,
+        "admin_profit": admin_profit,
         "generated_at": timezone.now(),
     }
 

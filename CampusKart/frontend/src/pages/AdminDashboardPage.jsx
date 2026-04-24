@@ -204,6 +204,24 @@ function AdminDashboardPage() {
           yesterdayStats.collected_revenue,
         ),
       },
+      {
+        id: "total-paid-out",
+        title: "Total Paid Out",
+        value: formatMoney(summaryStats.total_paid_out),
+        delta: calculateDelta(
+          summaryStats.total_paid_out,
+          yesterdayStats.total_paid_out,
+        ),
+      },
+      {
+        id: "admin-profit",
+        title: "Admin Profit",
+        value: formatMoney(summaryStats.admin_profit),
+        delta: calculateDelta(
+          summaryStats.admin_profit,
+          yesterdayStats.admin_profit,
+        ),
+      },
     ],
     [summaryStats, todayStats, yesterdayStats],
   );
@@ -227,8 +245,8 @@ function AdminDashboardPage() {
             Loading dashboard metrics...
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, index) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7">
+          {Array.from({ length: 7 }).map((_, index) => (
             <div
               key={`admin-dashboard-card-skeleton-${index}`}
               className="h-28 animate-pulse rounded-xl border border-white/10 bg-white/5"
@@ -272,7 +290,7 @@ function AdminDashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7">
         {cards.map((card) => (
           <article
             key={card.id}

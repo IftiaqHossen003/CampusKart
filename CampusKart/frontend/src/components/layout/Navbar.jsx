@@ -193,12 +193,6 @@ function Navbar({ user, onLogout, onToggleSidebar, showSidebarToggle }) {
 
   return (
     <header className="sticky top-0 z-40">
-      {!showSidebarToggle ? (
-        <div className="bg-[var(--ck-accent)] px-4 py-1 text-center text-[11px] font-medium tracking-wide text-[#111111] sm:text-xs">
-          Free shipping on orders over BDT 3,500 | Use code CAMPUS2026
-        </div>
-      ) : null}
-
       <div className="border-b border-white/10 bg-[var(--ck-surface-deep)]/95 backdrop-blur">
         <div className="flex w-full items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <button

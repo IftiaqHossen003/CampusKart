@@ -197,11 +197,27 @@ function HomePage() {
       return discountPrice > 0 && discountPrice < price;
     });
 
+    const dedupeById = (items) => {
+      const unique = [];
+      const seen = new Set();
+
+      items.forEach((product) => {
+        const key = product?.id;
+        if (key == null || seen.has(key)) {
+          return;
+        }
+        seen.add(key);
+        unique.push(product);
+      });
+
+      return unique;
+    };
+
     if (discounted.length >= 4) {
-      return discounted.slice(0, 4);
+      return dedupeById(discounted).slice(0, 4);
     }
 
-    return catalog.slice(0, 4);
+    return dedupeById(catalog).slice(0, 4);
   }, [newArrivals, topProducts]);
 
   const activeBanner = banners[activeBannerIndex] || null;

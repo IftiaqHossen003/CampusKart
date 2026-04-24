@@ -32,6 +32,7 @@ const RoutePlaceholderPage = lazy(() => import("./pages/RoutePlaceholderPage"));
 const StudentProfilePage = lazy(() => import("./pages/StudentProfilePage"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
 const VendorProfilePage = lazy(() => import("./pages/VendorProfilePage"));
+const VendorDashboardPage = lazy(() => import("./pages/VendorDashboardPage"));
 const VendorOrdersPage = lazy(() => import("./pages/VendorOrdersPage"));
 const VendorAnalyticsPage = lazy(() => import("./pages/VendorAnalyticsPage"));
 const VendorPayoutsPage = lazy(() => import("./pages/VendorPayoutsPage"));
@@ -251,7 +252,7 @@ function App() {
                 path="/vendor/dashboard"
                 element={
                   <ProtectedRoute allowedRoles={["vendor"]}>
-                    <RoutePlaceholderPage title="Vendor Dashboard" />
+                    <VendorDashboardPage />
                   </ProtectedRoute>
                 }
               />
