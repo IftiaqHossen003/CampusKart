@@ -19,7 +19,7 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView as BaseTokenVerifyView,
 )
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from django_ratelimit.core import is_ratelimited
 
@@ -273,61 +273,59 @@ class BootstrapSessionView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        unauthenticated_payload = {
+            "authenticated": False,
+            "access": None,
+            "user": None,
+        }
         refresh_token = _normalize_token_value(get_refresh_cookie(request))
 
         if not refresh_token:
-            response = Response(
-                {"detail": "No active session."},
-                status=status.HTTP_401_UNAUTHORIZED,
+            return Response(
+                {
+                    **unauthenticated_payload,
+                    "detail": "No active session.",
+                },
+                status=status.HTTP_200_OK,
             )
-            clear_refresh_cookie(response)
-            return response
-
-        serializer = TokenRefreshSerializer(data={"refresh": refresh_token})
 
         try:
-            serializer.is_valid(raise_exception=True)
+            refresh = RefreshToken(refresh_token)  # type: ignore[arg-type]
+            user_id = refresh.get("user_id")
+            user = User.objects.get(pk=user_id)
+            access_token = str(refresh.access_token)
         except Exception:
             response = Response(
-                {"detail": "Session is invalid or expired."},
-                status=status.HTTP_401_UNAUTHORIZED,
+                {
+                    **unauthenticated_payload,
+                    "detail": "Session is invalid or expired.",
+                },
+                status=status.HTTP_200_OK,
             )
             clear_refresh_cookie(response)
             return response
-
-        validated_data = serializer.validated_data if isinstance(serializer.validated_data, dict) else {}
-        access_token = validated_data.get("access")
 
         if not access_token:
             response = Response(
-                {"detail": "Unable to issue access token."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-            clear_refresh_cookie(response)
-            return response
-
-        try:
-            token = AccessToken(access_token)
-            user_id = token.get("user_id")
-            user = User.objects.get(pk=user_id)
-        except Exception:
-            response = Response(
-                {"detail": "Unable to resolve session user."},
-                status=status.HTTP_401_UNAUTHORIZED,
+                {
+                    **unauthenticated_payload,
+                    "detail": "Unable to issue access token.",
+                },
+                status=status.HTTP_200_OK,
             )
             clear_refresh_cookie(response)
             return response
 
         response = Response(
             {
+                "authenticated": True,
                 "access": access_token,
                 "user": CustomUserSerializer(user).data,
             },
             status=status.HTTP_200_OK,
         )
-
-        rotated_refresh_token = _normalize_token_value(validated_data.get("refresh"))
-        set_refresh_cookie(response, rotated_refresh_token or refresh_token)
+        # Keep bootstrap idempotent: do not rotate/blacklist refresh here.
+        set_refresh_cookie(response, refresh_token)
         return response
 
 

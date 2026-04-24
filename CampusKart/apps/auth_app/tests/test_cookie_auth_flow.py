@@ -78,6 +78,25 @@ class CookieAuthFlowTests(APITestCase):
         response = self.client.post(self.bootstrap_url, {}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data.get("authenticated"))
         self.assertIn("access", response.data)
         self.assertIn("user", response.data)
         self.assertEqual(response.data["user"]["email"], self.user.email)
+
+    def test_bootstrap_without_cookie_returns_unauthenticated_payload(self):
+        response = self.client.post(self.bootstrap_url, {}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data.get("authenticated"))
+        self.assertIsNone(response.data.get("access"))
+        self.assertIsNone(response.data.get("user"))
+
+    def test_bootstrap_with_invalid_cookie_returns_unauthenticated_and_clears_cookie(self):
+        self.client.cookies[settings.AUTH_REFRESH_COOKIE_NAME] = "invalid-refresh-token"
+
+        response = self.client.post(self.bootstrap_url, {}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data.get("authenticated"))
+        self.assertIn(settings.AUTH_REFRESH_COOKIE_NAME, response.cookies)
+        self.assertEqual(response.cookies[settings.AUTH_REFRESH_COOKIE_NAME].value, "")
