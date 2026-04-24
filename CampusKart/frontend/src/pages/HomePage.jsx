@@ -54,7 +54,15 @@ function ProductGridSkeleton({ count = 4 }) {
   );
 }
 
-function SectionHeader({ title, subtitle, ctaTo, ctaLabel, dark = false }) {
+function SectionHeader({
+  title,
+  subtitle,
+  ctaTo,
+  ctaLabel,
+  dark = false,
+  ctaClassName = "",
+  showArrow = false,
+}) {
   return (
     <div className="mb-5 flex items-end justify-between gap-4">
       <div>
@@ -72,9 +80,21 @@ function SectionHeader({ title, subtitle, ctaTo, ctaLabel, dark = false }) {
       {ctaTo && ctaLabel ? (
         <Link
           to={ctaTo}
-          className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${dark ? "text-[var(--ck-accent)] hover:bg-white/10" : "text-[#1e1e1e] hover:bg-black/10"}`}
+          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition ${dark ? "text-[var(--ck-accent)] hover:bg-white/10" : "text-[#1e1e1e] hover:bg-black/10"} ${ctaClassName}`}
         >
-          {ctaLabel}
+          <span>{ctaLabel}</span>
+          {showArrow ? (
+            <svg
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+              className="h-4 w-4"
+            >
+              <path
+                fill="currentColor"
+                d="M11.3 4.3a1 1 0 0 1 1.4 0l4 4a1 1 0 0 1 0 1.4l-4 4a1 1 0 1 1-1.4-1.4L13.59 10H4a1 1 0 1 1 0-2h9.59L11.3 5.7a1 1 0 0 1 0-1.4Z"
+              />
+            </svg>
+          ) : null}
         </Link>
       ) : null}
     </div>
@@ -439,6 +459,7 @@ function HomePage() {
           subtitle="Student favorites across campus."
           ctaTo="/shop?sort=popular"
           ctaLabel="View All"
+          ctaClassName="text-[#b7f51e] hover:text-[#b7f51e]"
         />
 
         {topProductsQuery.isLoading ? <ProductGridSkeleton /> : null}
@@ -464,6 +485,8 @@ function HomePage() {
           subtitle="Limited-time offers with student-friendly prices."
           ctaTo="/shop?discounted=true"
           ctaLabel="View All"
+          ctaClassName="rounded-xl bg-[#101010] px-5 py-2 text-[#b7f51e] hover:bg-black hover:text-[#b7f51e]"
+          showArrow
         />
 
         {topProductsQuery.isLoading || newArrivalsQuery.isLoading ? (

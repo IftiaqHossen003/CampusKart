@@ -9,7 +9,7 @@
   --ck-surface: #1c1c1c;
   --ck-surface-deep: #111111;
   --ck-text: #ffffff;
-  --ck-text-default: #1f1f1f;
+  --ck-text-default: #ffffff;
   --ck-text-muted: #d9d9d9;
   --ck-border: #a7a7a7;
   --ck-accent: #c8ff2f;
@@ -27,6 +27,26 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body :is(
+  [class*="bg-[var(--ck-surface)]"],
+  [class*="bg-[var(--ck-surface-deep)]"],
+  [class*="bg-black"],
+  [class*="bg-white/5"],
+  [class*="bg-white/10"]
+) {
+  color: var(--ck-text);
+}
+
+body :is(
+  [class*="bg-[var(--ck-surface)]"],
+  [class*="bg-[var(--ck-surface-deep)]"],
+  [class*="bg-black"],
+  [class*="bg-white/5"],
+  [class*="bg-white/10"]
+) :is(.text-slate-300, .text-slate-400, .text-slate-500, .text-slate-600, .text-slate-700) {
+  color: var(--ck-text) !important;
 }
 
 #root {

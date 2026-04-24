@@ -70,7 +70,7 @@ function ProductCard({
   const productIsWishlisted = isWishlisted(product.id);
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-white/10 bg-[var(--ck-surface)] shadow-[0_10px_30px_rgba(0,0,0,0.25)] transition duration-300 hover:-translate-y-1 hover:border-white/20">
+    <article className="group overflow-hidden rounded-2xl bg-[var(--ck-surface)] shadow-[0_10px_30px_rgba(0,0,0,0.25)] transition duration-300 hover:-translate-y-1">
       <div className="relative aspect-[4/3] overflow-hidden bg-black/30">
         <button
           type="button"

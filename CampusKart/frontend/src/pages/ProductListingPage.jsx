@@ -782,7 +782,7 @@ function ProductListingPage() {
                       ? `shop-search-suggestion-${boundedActiveSuggestionIndex}`
                       : undefined
                   }
-                  className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
+                  className="w-full rounded-md border border-white/20 bg-white px-3 py-2 text-sm text-black placeholder:text-slate-500 focus:border-[var(--ck-accent)] focus:outline-none"
                 />
 
                 {isSuggestionsOpen && flatSuggestions.length > 0 ? (
