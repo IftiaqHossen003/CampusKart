@@ -260,7 +260,7 @@ function AdminVendorsPage() {
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Search shop, owner, or email"
-            className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
+            className="w-full rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-[var(--ck-accent)] focus:outline-none"
           />
 
           <button

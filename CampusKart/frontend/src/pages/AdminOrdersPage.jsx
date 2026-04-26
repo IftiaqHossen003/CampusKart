@@ -249,7 +249,7 @@ function AdminOrdersPage() {
             value={search}
             onChange={handleSearchChange}
             placeholder="Search order number, customer, or address"
-            className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
+            className="w-full rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-[var(--ck-accent)] focus:outline-none"
           />
           <select
             value={status}

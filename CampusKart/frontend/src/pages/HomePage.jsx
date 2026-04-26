@@ -28,6 +28,32 @@ function cloudinaryImage(url, width, height) {
   return `${prefix}/upload/f_auto,q_auto,c_fill,w_${width},h_${height}/${suffix}`;
 }
 
+function resolveAssetUrl(url) {
+  if (!url) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  const apiBaseUrl =
+    import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+
+  try {
+    const parsedApiBase = new URL(apiBaseUrl);
+    return new URL(
+      url,
+      `${parsedApiBase.protocol}//${parsedApiBase.host}`,
+    ).toString();
+  } catch {
+    if (typeof window !== "undefined") {
+      return new URL(url, window.location.origin).toString();
+    }
+    return url;
+  }
+}
+
 function CategorySkeleton() {
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -358,7 +384,6 @@ function HomePage() {
             />
           ) : null}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(200,255,47,0.10),transparent_55%)]" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/35" />
 
           <div className="relative z-10 grid grid-cols-1 items-center gap-6 px-5 py-10 sm:px-8 lg:grid-cols-2 lg:px-10">
             <div className="hidden justify-self-end lg:block">
@@ -413,7 +438,9 @@ function HomePage() {
                 >
                   <img
                     src={
-                      cloudinaryImage(category.icon_url, 640, 480) ||
+                      resolveAssetUrl(
+                        cloudinaryImage(category.icon_url, 640, 480),
+                      ) ||
                       "https://placehold.co/640x480/2A2A2A/D9D9D9?text=CampusKart"
                     }
                     alt={category.name}
@@ -601,17 +628,17 @@ function HomePage() {
               {
                 quote:
                   "CampusKart made shopping for dorm gear so easy. Fast shipping and great prices.",
-                author: "Sarah M.",
+                author: "Abdullah Saeid",
               },
               {
                 quote:
                   "I found quality textbooks here for half the campus bookstore price. Highly recommended.",
-                author: "James L.",
+                author: "Dewan Zisan",
               },
               {
                 quote:
                   "I love the variety and student-friendly deals. My go-to for everything campus.",
-                author: "Emily R.",
+                author: "Tawhid Hasan",
               },
             ].map((testimonial) => (
               <article
