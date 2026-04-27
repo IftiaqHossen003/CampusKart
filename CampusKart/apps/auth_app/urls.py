@@ -6,8 +6,11 @@ from .views import (
     TokenRefreshView,
     TokenVerifyView,
     SessionPolicyView,
+<<<<<<< HEAD
     CsrfCookieView,
     BootstrapSessionView,
+=======
+>>>>>>> 8766e707e08953d49f6d53d75b211c81d25301cf
     VerifyEmailView,
     ResendVerificationView,
     ForgotPasswordView,
@@ -32,8 +35,11 @@ urlpatterns = [
     path("token/refresh/",        TokenRefreshView.as_view(),        name="token-refresh"),
     path("token/verify/",         TokenVerifyView.as_view(),         name="token-verify"),
     path("session-policy/",       SessionPolicyView.as_view(),       name="session-policy"),
+<<<<<<< HEAD
     path("csrf/",                 CsrfCookieView.as_view(),          name="csrf-cookie"),
     path("bootstrap/",            BootstrapSessionView.as_view(),    name="bootstrap-session"),
+=======
+>>>>>>> 8766e707e08953d49f6d53d75b211c81d25301cf
     path("logout/",               LogoutView.as_view(),              name="logout"),
 
     # Profile management
