@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import OptimizedProductImage from '../components/ui/OptimizedProductImage'
 import { useToast } from '../hooks/useToast'
 import { useCartStore } from '../store/cartStore'
 
@@ -69,16 +70,16 @@ function CartPage() {
   if (isLoading) {
     return (
       <section className="space-y-4">
-        <h1 className="text-2xl font-bold text-primary">Your Cart</h1>
-        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">
+        <h1 className="text-2xl font-bold text-white">Your Cart</h1>
+        <div className="space-y-3 rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
           {Array.from({ length: 3 }).map((_, index) => (
             <div key={`cart-skeleton-${index}`} className="grid grid-cols-[80px_1fr_120px] items-center gap-3">
-              <div className="h-20 w-20 animate-pulse rounded bg-slate-200" />
+              <div className="h-20 w-20 animate-pulse rounded bg-white/10" />
               <div className="space-y-2">
-                <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200" />
-                <div className="h-3 w-1/4 animate-pulse rounded bg-slate-200" />
+                <div className="h-4 w-2/3 animate-pulse rounded bg-white/10" />
+                <div className="h-3 w-1/4 animate-pulse rounded bg-white/10" />
               </div>
-              <div className="h-4 w-full animate-pulse rounded bg-slate-200" />
+              <div className="h-4 w-full animate-pulse rounded bg-white/10" />
             </div>
           ))}
         </div>
@@ -88,12 +89,12 @@ function CartPage() {
 
   if (items.length === 0) {
     return (
-      <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-        <h1 className="text-2xl font-bold text-primary">Your cart is empty</h1>
-        <p className="mt-2 text-sm text-muted">Add products to your cart and come back to checkout.</p>
+      <section className="rounded-xl border border-dashed border-white/20 bg-[var(--ck-surface)] p-8 text-center">
+        <h1 className="text-2xl font-bold text-white">Your cart is empty</h1>
+        <p className="mt-2 text-sm text-slate-400">Add products to your cart and come back to checkout.</p>
         <Link
           to="/shop"
-          className="mt-5 inline-flex rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+          className="mt-5 inline-flex rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
         >
           Continue Shopping
         </Link>
@@ -104,13 +105,13 @@ function CartPage() {
   return (
     <section className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-primary">Your Cart</h1>
-        <p className="mt-1 text-sm text-muted">{totalItems} item(s) ready for checkout</p>
+        <h1 className="text-2xl font-bold text-white">Your Cart</h1>
+        <p className="mt-1 text-sm text-slate-400">{totalItems} item(s) ready for checkout</p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[2fr_1fr]">
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="hidden grid-cols-[80px_1fr_130px_120px_90px] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted md:grid">
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-[var(--ck-surface)]">
+          <div className="hidden grid-cols-[80px_1fr_130px_120px_90px] gap-3 border-b border-white/10 bg-[var(--ck-surface-deep)] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 md:grid">
             <span>Item</span>
             <span>Description</span>
             <span>Quantity</span>
@@ -118,30 +119,33 @@ function CartPage() {
             <span className="text-right">Action</span>
           </div>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-white/10">
             {items.map((item) => (
               <article
                 key={item.id}
                 className="grid grid-cols-1 gap-3 px-4 py-4 md:grid-cols-[80px_1fr_130px_120px_90px] md:items-center"
               >
                 <Link to={item.productSlug ? `/shop/products/${item.productSlug}` : '/shop'} className="block">
-                  <img
+                  <OptimizedProductImage
                     src={item.imageUrl}
                     alt={item.name}
-                    className="h-20 w-20 rounded-md border border-slate-200 object-cover"
+                    width={160}
+                    height={160}
+                    className="h-20 w-20 rounded-md border border-white/10"
+                    imgClassName="h-full w-full object-cover"
                   />
                 </Link>
 
                 <div>
                   <Link
                     to={item.productSlug ? `/shop/products/${item.productSlug}` : '/shop'}
-                    className="text-sm font-semibold text-slate-900 hover:text-accent"
+                    className="text-sm font-semibold text-white hover:text-[var(--ck-accent)]"
                   >
                     {item.name}
                   </Link>
-                  <p className="mt-1 text-xs text-muted">Unit price: {formatPrice(item.unitPrice)}</p>
+                  <p className="mt-1 text-xs text-slate-400">Unit price: {formatPrice(item.unitPrice)}</p>
                   {toNumber(item.stock) > 0 ? (
-                    <p className="mt-1 text-xs text-muted">Stock: {item.stock}</p>
+                    <p className="mt-1 text-xs text-slate-400">Stock: {item.stock}</p>
                   ) : null}
                 </div>
 
@@ -150,7 +154,7 @@ function CartPage() {
                     type="button"
                     onClick={() => decrement(item)}
                     disabled={item.quantity <= 1 || updateQuantityMutation.isPending}
-                    className="h-8 w-8 rounded border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="h-8 w-8 rounded border border-white/20 text-sm font-semibold text-slate-400 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label={`Decrease quantity for ${item.name}`}
                   >
                     -
@@ -169,7 +173,7 @@ function CartPage() {
                         quantity: next,
                       })
                     }}
-                    className="h-8 w-14 rounded border border-slate-300 px-2 text-center text-sm"
+                    className="h-8 w-14 rounded border border-white/20 bg-[var(--ck-surface-deep)] px-2 text-center text-sm text-white"
                     aria-label={`Quantity for ${item.name}`}
                   />
 
@@ -180,14 +184,14 @@ function CartPage() {
                       updateQuantityMutation.isPending ||
                       (toNumber(item.stock) > 0 && item.quantity >= toNumber(item.stock))
                     }
-                    className="h-8 w-8 rounded border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="h-8 w-8 rounded border border-white/20 text-sm font-semibold text-slate-400 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label={`Increase quantity for ${item.name}`}
                   >
                     +
                   </button>
                 </div>
 
-                <p className="text-sm font-semibold text-slate-900">{formatPrice(item.subtotal)}</p>
+                <p className="text-sm font-semibold text-white">{formatPrice(item.subtotal)}</p>
 
                 <div className="flex justify-start md:justify-end">
                   <button
@@ -204,19 +208,19 @@ function CartPage() {
           </div>
         </div>
 
-        <aside className="h-fit rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-primary">Order Summary</h2>
+        <aside className="h-fit rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
+          <h2 className="text-lg font-semibold text-white">Order Summary</h2>
           <div className="mt-4 space-y-2 text-sm">
-            <div className="flex items-center justify-between text-muted">
+            <div className="flex items-center justify-between text-slate-400">
               <span>Subtotal ({totalItems} items)</span>
               <span>{formatPrice(totalPrice)}</span>
             </div>
-            <div className="flex items-center justify-between text-muted">
+            <div className="flex items-center justify-between text-slate-400">
               <span>Delivery</span>
               <span>Calculated at checkout</span>
             </div>
-            <div className="my-3 border-t border-slate-200" />
-            <div className="flex items-center justify-between text-base font-bold text-primary">
+            <div className="my-3 border-t border-white/10" />
+            <div className="flex items-center justify-between text-base font-bold text-white">
               <span>Order Total</span>
               <span>{formatPrice(totalPrice)}</span>
             </div>
@@ -224,7 +228,7 @@ function CartPage() {
 
           <Link
             to="/checkout"
-            className="mt-5 inline-flex w-full items-center justify-center rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary"
+            className="mt-5 inline-flex w-full items-center justify-center rounded-md bg-[var(--ck-accent)] px-4 py-2.5 text-sm font-semibold text-[#111111] transition hover:bg-[var(--ck-accent-hover)]"
           >
             Proceed to Checkout
           </Link>
@@ -235,3 +239,7 @@ function CartPage() {
 }
 
 export default CartPage
+
+
+
+

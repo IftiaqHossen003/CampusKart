@@ -19,16 +19,12 @@ class CartProductSummarySerializer(serializers.Serializer):
 
     def get_thumbnail(self, obj):
         images = list(obj.images.all())
+        primary = next((image for image in images if image.is_primary and image.image_url), None)
+        if primary:
+            return primary.image_url
 
-        for image in images:
-            if image.is_primary and image.image_url:
-                return image.image_url
-
-        for image in images:
-            if image.image_url:
-                return image.image_url
-
-        return None
+        fallback = next((image for image in images if image.image_url), None)
+        return fallback.image_url if fallback else None
 
     def get_price(self, obj):
         return obj.effective_price
@@ -56,15 +52,19 @@ class CartSerializer(serializers.ModelSerializer):
         model = Cart
         fields = ["id", "items", "total_items", "total_quantity", "total_amount"]
 
+    @staticmethod
+    def _get_prefetched_items(obj):
+        return list(obj.items.all())
+
     def get_total_items(self, obj):
-        return len(obj.items.all())
+        return len(self._get_prefetched_items(obj))
 
     def get_total_quantity(self, obj):
-        return sum(item.quantity for item in obj.items.all())
+        return sum(item.quantity for item in self._get_prefetched_items(obj))
 
     def get_total_amount(self, obj):
         total = Decimal("0.00")
-        for item in obj.items.all():
+        for item in self._get_prefetched_items(obj):
             total += item.product.effective_price * item.quantity
         return total
 

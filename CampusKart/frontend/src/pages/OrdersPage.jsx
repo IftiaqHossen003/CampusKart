@@ -56,13 +56,13 @@ function OrdersPage() {
   if (ordersQuery.isLoading) {
     return (
       <section className="space-y-4">
-        <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-          <h1 className="text-2xl font-bold text-primary">My Orders</h1>
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+          <h1 className="text-2xl font-bold text-white">My Orders</h1>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5">
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, index) => (
-              <div key={`orders-skeleton-${index}`} className="h-14 animate-pulse rounded bg-slate-200" />
+              <div key={`orders-skeleton-${index}`} className="h-14 animate-pulse rounded bg-white/10" />
             ))}
           </div>
         </div>
@@ -72,15 +72,15 @@ function OrdersPage() {
 
   if (ordersQuery.isError) {
     return (
-      <section className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-        <h1 className="text-xl font-semibold text-primary">Could not load orders</h1>
-        <p className="mt-2 text-sm text-muted">
+      <section className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-8 text-center">
+        <h1 className="text-xl font-semibold text-white">Could not load orders</h1>
+        <p className="mt-2 text-sm text-slate-400">
           {getOrderApiErrorMessage(ordersQuery.error, 'Please try again in a moment.')}
         </p>
         <button
           type="button"
           onClick={() => ordersQuery.refetch()}
-          className="mt-5 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+          className="mt-5 rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
         >
           Retry
         </button>
@@ -90,12 +90,12 @@ function OrdersPage() {
 
   if (orders.length === 0) {
     return (
-      <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-        <h1 className="text-2xl font-bold text-primary">No orders yet</h1>
-        <p className="mt-2 text-sm text-muted">Once you place an order, it will appear here.</p>
+      <section className="rounded-xl border border-dashed border-white/20 bg-[var(--ck-surface)] p-8 text-center">
+        <h1 className="text-2xl font-bold text-white">No orders yet</h1>
+        <p className="mt-2 text-sm text-slate-400">Once you place an order, it will appear here.</p>
         <Link
           to="/shop"
-          className="mt-5 inline-flex rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+          className="mt-5 inline-flex rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
         >
           Start Shopping
         </Link>
@@ -105,44 +105,44 @@ function OrdersPage() {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-5 sm:px-6">
-        <h1 className="text-2xl font-bold text-primary">My Orders</h1>
-        <p className="mt-1 text-sm text-muted">Track and review your past purchases.</p>
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] px-5 py-5 sm:px-6">
+        <h1 className="text-2xl font-bold text-white">My Orders</h1>
+        <p className="mt-1 text-sm text-slate-400">Track and review your past purchases.</p>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-4 py-3 text-sm text-muted">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)]">
+        <div className="border-b border-white/10 px-4 py-3 text-sm text-slate-400">
           {totalCount} order{totalCount === 1 ? '' : 's'} found
         </div>
 
         <div className="hidden overflow-x-auto md:block">
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
+          <table className="min-w-full divide-y divide-white/10">
+            <thead className="bg-[var(--ck-surface-deep)]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Order</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Items</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Total</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Status</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted">Action</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Order</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Items</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Total</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Status</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-white/10 bg-[var(--ck-surface)]">
               {orders.map((order) => {
                 const orderReference = order.orderNumber || order.id
                 return (
                   <tr key={orderReference}>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-800">#{order.orderNumber || order.id}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{formatDate(order.placedAt)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{order.itemCount}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{formatPrice(order.total)}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-white">#{order.orderNumber || order.id}</td>
+                    <td className="px-4 py-3 text-sm text-slate-400">{formatDate(order.placedAt)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-400">{order.itemCount}</td>
+                    <td className="px-4 py-3 text-sm text-slate-400">{formatPrice(order.total)}</td>
                     <td className="px-4 py-3 text-sm">
                       <OrderStatusBadge status={order.status} />
                     </td>
                     <td className="px-4 py-3 text-right text-sm">
                       <Link
                         to={`/orders/${encodeURIComponent(orderReference)}`}
-                        className="font-medium text-accent hover:underline"
+                        className="font-medium text-[var(--ck-accent)] hover:underline"
                       >
                         View Details
                       </Link>
@@ -154,27 +154,27 @@ function OrdersPage() {
           </table>
         </div>
 
-        <div className="divide-y divide-slate-100 md:hidden">
+        <div className="divide-y divide-white/10 md:hidden">
           {orders.map((order) => {
             const orderReference = order.orderNumber || order.id
             return (
               <article key={orderReference} className="space-y-3 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">Order #{order.orderNumber || order.id}</p>
-                    <p className="text-xs text-muted">{formatDate(order.placedAt)}</p>
+                    <p className="text-sm font-semibold text-white">Order #{order.orderNumber || order.id}</p>
+                    <p className="text-xs text-slate-400">{formatDate(order.placedAt)}</p>
                   </div>
                   <OrderStatusBadge status={order.status} />
                 </div>
 
-                <div className="flex items-center justify-between text-sm text-slate-700">
+                <div className="flex items-center justify-between text-sm text-slate-400">
                   <span>{order.itemCount} item(s)</span>
                   <span className="font-semibold">{formatPrice(order.total)}</span>
                 </div>
 
                 <Link
                   to={`/orders/${encodeURIComponent(orderReference)}`}
-                  className="inline-flex text-sm font-medium text-accent hover:underline"
+                  className="inline-flex text-sm font-medium text-[var(--ck-accent)] hover:underline"
                 >
                   View Details
                 </Link>
@@ -192,3 +192,7 @@ function OrdersPage() {
 }
 
 export default OrdersPage
+
+
+
+
