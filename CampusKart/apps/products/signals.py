@@ -9,12 +9,43 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from .models import Product, ProductImage, ProductTag
+from .models import Category, Product, ProductImage, ProductTag
 
 logger = logging.getLogger(__name__)
 
 # Must match the prefix used in views.py
 _PREFIX = "products"
+
+
+def _cache_delete_safe(key: str) -> None:
+    try:
+        cache.delete(key)
+    except Exception:
+        logger.warning("Cache delete failed for key '%s'; continuing.", key, exc_info=True)
+
+
+def _cache_clear_safe() -> None:
+    try:
+        cache.clear()
+    except Exception:
+        logger.warning("Cache clear failed; continuing.", exc_info=True)
+
+
+def _cache_delete_pattern_safe(pattern: str) -> bool:
+    delete_pattern = getattr(cache, "delete_pattern", None)
+    if not callable(delete_pattern):
+        return False
+
+    try:
+        delete_pattern(pattern)
+        return True
+    except Exception:
+        logger.warning(
+            "Cache delete_pattern failed for pattern '%s'; falling back where possible.",
+            pattern,
+            exc_info=True,
+        )
+        return False
 
 
 def _invalidate_list_caches():
@@ -24,11 +55,13 @@ def _invalidate_list_caches():
     Falls back to cache.clear() for backends without delete_pattern
     (e.g. LocMemCache during unit testing).
     """
-    delete_pattern = getattr(cache, "delete_pattern", None)
-    if callable(delete_pattern):
-        delete_pattern(f"{_PREFIX}:list:*")
-    else:
-        cache.clear()
+    if not _cache_delete_pattern_safe(f"{_PREFIX}:list:*"):
+        _cache_clear_safe()
+
+
+def _invalidate_detail_caches_for_slug(slug: str) -> None:
+    if not _cache_delete_pattern_safe(f"{_PREFIX}:detail:{slug}:*"):
+        _cache_clear_safe()
 
 
 def _invalidate_list_and_tags_caches():
@@ -39,7 +72,18 @@ def _invalidate_list_and_tags_caches():
     during unit testing).
     """
     _invalidate_list_caches()
-    cache.delete(f"{_PREFIX}:tags")
+    _cache_delete_safe(f"{_PREFIX}:tags")
+
+
+def _invalidate_category_caches():
+    """
+    Clears category list/detail caches.
+    """
+    if not _cache_delete_pattern_safe(f"{_PREFIX}:category:*"):
+        _cache_clear_safe()
+
+    _cache_delete_safe(f"{_PREFIX}:categories")
+    _cache_delete_safe(f"{_PREFIX}:categories:v2")
 
 
 @receiver([post_save, post_delete], sender=Product)
@@ -54,7 +98,7 @@ def invalidate_product_cache(sender, instance, **kwargs):
     during unit testing).
     """
     # Detail cache
-    cache.delete(f"{_PREFIX}:detail:{instance.slug}")
+    _invalidate_detail_caches_for_slug(instance.slug)
 
     _invalidate_list_and_tags_caches()
 
@@ -73,7 +117,7 @@ def invalidate_product_tag_cache(sender, instance, **kwargs):
     if instance.product_id:
         slug = Product.objects.filter(pk=instance.product_id).values_list("slug", flat=True).first()
         if slug:
-            cache.delete(f"{_PREFIX}:detail:{slug}")
+            _invalidate_detail_caches_for_slug(slug)
 
     _invalidate_list_and_tags_caches()
 
@@ -86,8 +130,16 @@ def invalidate_product_cache_on_image_change(sender, instance, **kwargs):
     if instance.product_id:
         slug = Product.objects.filter(pk=instance.product_id).values_list("slug", flat=True).first()
         if slug:
-            cache.delete(f"{_PREFIX}:detail:{slug}")
+            _invalidate_detail_caches_for_slug(slug)
 
     _invalidate_list_caches()
 
     logger.debug("Product image cache invalidated for product_id=%s", instance.product_id)
+
+
+@receiver([post_save, post_delete], sender=Category)
+def invalidate_category_cache(sender, instance, **kwargs):
+    """Category mutations should be reflected immediately in category endpoints."""
+    _invalidate_category_caches()
+
+    logger.debug("Category cache invalidated for category_id=%s", instance.id)

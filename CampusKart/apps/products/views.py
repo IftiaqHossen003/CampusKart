@@ -14,6 +14,7 @@ relevant detail key and all list keys via delete_pattern.
 """
 
 import hashlib
+import logging
 import uuid
 from pathlib import Path
 
@@ -21,7 +22,9 @@ import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
 from django.conf import settings
 from django.core.cache import cache
-from django.db.models import Count
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError
+from django.db.models import Count, F, QuerySet
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -33,11 +36,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auth_app.permissions import IsAdmin, IsVendor
+from apps.common.validators import validate_uploaded_image
 
 from .filters import ProductFilter
-from .models import Category, Product, ProductImage, ProductTag
+from .models import Category, Product, ProductImage, ProductTag, ProductViewDaily
+from .services import moderate_product_status
 from .serializers import (
     CategorySerializer,
+    ProductListSerializer,
     ProductSerializer,
     ProductWriteSerializer,
 )
@@ -49,16 +55,55 @@ _TTL_DETAIL   = 10 * 60      # 10 minutes
 _TTL_CATEGORY = 60 * 60      # 1 hour
 _TTL_TAGS     = 5 * 60       # 5 minutes
 _PREFIX       = "products"
-_MAX_IMAGE_SIZE = 5 * 1024 * 1024
-_ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
-_ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+
+logger = logging.getLogger(__name__)
+
+
+def _cache_get_safe(key: str):
+    try:
+        return cache.get(key)
+    except Exception:
+        logger.warning("Cache get failed for key '%s'; serving uncached response.", key, exc_info=True)
+        return None
+
+
+def _cache_set_safe(key: str, value, timeout: int) -> None:
+    try:
+        cache.set(key, value, timeout)
+    except Exception:
+        logger.warning("Cache set failed for key '%s'; continuing without cache.", key, exc_info=True)
 
 
 def _list_cache_key(request) -> str:
-    """Deterministic cache key derived from the full query string."""
+    """Deterministic cache key derived from viewer scope + full query string."""
+    user = getattr(request, "user", None)
+    if user and user.is_authenticated:
+        if getattr(user, "role", "") == "admin":
+            scope = "admin"
+        elif getattr(user, "role", "") == "vendor" and hasattr(user, "vendor_profile"):
+            scope = f"vendor:{user.vendor_profile.id}"
+        else:
+            scope = "authenticated"
+    else:
+        scope = "public"
+
     qs = request.META.get("QUERY_STRING", "")
-    digest = hashlib.md5(qs.encode(), usedforsecurity=False).hexdigest()
+    digest = hashlib.md5(f"{scope}:{qs}".encode(), usedforsecurity=False).hexdigest()
     return f"{_PREFIX}:list:{digest}"
+
+
+def _detail_cache_key(request, *, slug: str) -> str:
+    user = getattr(request, "user", None)
+    if user and user.is_authenticated:
+        if getattr(user, "role", "") == "admin":
+            scope = "admin"
+        elif getattr(user, "role", "") == "vendor" and hasattr(user, "vendor_profile"):
+            scope = f"vendor:{user.vendor_profile.id}"
+        else:
+            scope = "authenticated"
+    else:
+        scope = "public"
+    return f"{_PREFIX}:detail:{slug}:{scope}"
 
 
 def _ensure_vendor_owns_product(user, product: Product) -> None:
@@ -72,17 +117,31 @@ def _ensure_vendor_owns_product(user, product: Product) -> None:
         raise PermissionDenied("You can only manage your own product images.")
 
 
-def _validate_image_file(image_file) -> str:
-    suffix = Path(image_file.name).suffix.lower()
-    content_type = getattr(image_file, "content_type", "")
+def _track_product_view(product_id: int) -> None:
+    if not product_id:
+        return
 
-    if suffix not in _ALLOWED_EXTENSIONS or content_type not in _ALLOWED_MIME_TYPES:
-        raise PermissionDenied("Only jpg, png, and webp images are allowed.")
+    today = timezone.localdate()
+    try:
+        updated = ProductViewDaily.objects.filter(
+            product_id=product_id,
+            view_date=today,
+        ).update(view_count=F("view_count") + 1)
+        if updated:
+            return
 
-    if image_file.size > _MAX_IMAGE_SIZE:
-        raise PermissionDenied("Image file must be smaller than 5MB.")
-
-    return suffix
+        ProductViewDaily.objects.create(
+            product_id=product_id,
+            view_date=today,
+            view_count=1,
+        )
+    except IntegrityError:
+        ProductViewDaily.objects.filter(
+            product_id=product_id,
+            view_date=today,
+        ).update(view_count=F("view_count") + 1)
+    except Exception:
+        logger.warning("Product view tracking failed for product_id=%s", product_id, exc_info=True)
 
 
 # ---------------------------------------------------------------------------
@@ -98,33 +157,33 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class   = CategorySerializer
     permission_classes = [permissions.AllowAny]
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Category]:
         if self.action == "list":
-            # Only root categories; children are prefetched and nested
-            return (
-                Category.objects
-                .filter(is_active=True, parent__isnull=True)
-                .prefetch_related("children")
-            )
+            # Prefer root categories with nested children.
+            # If no root exists, fall back to all active categories so UI still renders options.
+            root_categories = Category.objects.filter(is_active=True, parent__isnull=True)
+            if root_categories.exists():
+                return root_categories.prefetch_related("children")
+            return Category.objects.filter(is_active=True).prefetch_related("children")
         return Category.objects.filter(is_active=True).prefetch_related("children")
 
     def list(self, request, *args, **kwargs):
-        cache_key = f"{_PREFIX}:categories"
-        cached = cache.get(cache_key)
+        cache_key = f"{_PREFIX}:categories:v2"
+        cached = _cache_get_safe(cache_key)
         if cached is not None:
             return Response(cached)
         response = super().list(request, *args, **kwargs)
-        cache.set(cache_key, response.data, _TTL_CATEGORY)
+        _cache_set_safe(cache_key, response.data, _TTL_CATEGORY)
         return response
 
     def retrieve(self, request, *args, **kwargs):
         pk = kwargs.get("pk")
         cache_key = f"{_PREFIX}:category:{pk}"
-        cached = cache.get(cache_key)
+        cached = _cache_get_safe(cache_key)
         if cached is not None:
             return Response(cached)
         response = super().retrieve(request, *args, **kwargs)
-        cache.set(cache_key, response.data, _TTL_CATEGORY)
+        _cache_set_safe(cache_key, response.data, _TTL_CATEGORY)
         return response
 
 
@@ -159,6 +218,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ("create", "update", "partial_update"):
             return ProductWriteSerializer
+        if self.action == "list":
+            return ProductListSerializer
         return ProductSerializer
 
     # ── permissions ───────────────────────────────────────────────────────────
@@ -172,12 +233,12 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     # ── queryset ──────────────────────────────────────────────────────────────
 
-    def get_queryset(self):
-        qs = (
-            Product.objects
-            .select_related("vendor", "category", "approved_by")
-            .prefetch_related("images", "tags")
-        )
+    def get_queryset(self) -> QuerySet[Product]:
+        qs = Product.objects.select_related("vendor", "category", "approved_by")
+        if self.action == "list":
+            qs = qs.prefetch_related("images")
+        else:
+            qs = qs.prefetch_related("images", "tags")
 
         # Access scope for list/retrieve:
         # - public: approved only
@@ -214,23 +275,29 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         cache_key = _list_cache_key(request)
-        cached = cache.get(cache_key)
+        cached = _cache_get_safe(cache_key)
         if cached is not None:
             return Response(cached)
         response = super().list(request, *args, **kwargs)
-        cache.set(cache_key, response.data, _TTL_LIST)
+        _cache_set_safe(cache_key, response.data, _TTL_LIST)
         return response
 
     # ── retrieve — cached 10 minutes ─────────────────────────────────────────
 
     def retrieve(self, request, *args, **kwargs):
         slug = kwargs.get(self.lookup_field)
-        cache_key = f"{_PREFIX}:detail:{slug}"
-        cached = cache.get(cache_key)
+        cache_key = _detail_cache_key(request, slug=slug)
+        cached = _cache_get_safe(cache_key)
         if cached is not None:
+            product_id = cached.get("id") if isinstance(cached, dict) else None
+            if isinstance(product_id, int):
+                _track_product_view(product_id)
             return Response(cached)
         response = super().retrieve(request, *args, **kwargs)
-        cache.set(cache_key, response.data, _TTL_DETAIL)
+        product_id = response.data.get("id") if isinstance(response.data, dict) else None
+        if isinstance(product_id, int):
+            _track_product_view(product_id)
+        _cache_set_safe(cache_key, response.data, _TTL_DETAIL)
         return response
 
     # ── create — auto-attach vendor ───────────────────────────────────────────
@@ -249,20 +316,22 @@ class ProductViewSet(viewsets.ModelViewSet):
         decision = request.data.get("action", "")
 
         if decision == "approve":
-            product.status      = Product.Status.APPROVED
-            product.approved_by = request.user
-            product.approved_at = timezone.now()
+            moderate_product_status(
+                product=product,
+                actor=request.user,
+                target_status=Product.Status.APPROVED,
+            )
         elif decision == "reject":
-            product.status      = Product.Status.REJECTED
-            product.approved_by = request.user
-            product.approved_at = timezone.now()
+            moderate_product_status(
+                product=product,
+                actor=request.user,
+                target_status=Product.Status.REJECTED,
+            )
         else:
             return Response(
                 {"detail": 'action must be \"approve\" or \"reject\".'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        product.save(update_fields=["status", "approved_by", "approved_at"])
         return Response(
             ProductSerializer(product, context={"request": request}).data,
             status=status.HTTP_200_OK,
@@ -275,7 +344,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         Returns globally available approved product tags with usage counts.
         """
         cache_key = f"{_PREFIX}:tags"
-        cached = cache.get(cache_key)
+        cached = _cache_get_safe(cache_key)
         if cached is not None:
             return Response(cached)
 
@@ -287,7 +356,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             .order_by("tag")
         )
 
-        cache.set(cache_key, data, _TTL_TAGS)
+        _cache_set_safe(cache_key, data, _TTL_TAGS)
         return Response(data)
 
 
@@ -311,9 +380,11 @@ class ProductImageUploadView(APIView):
             return Response({"detail": "image file is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            suffix = _validate_image_file(image_file)
-        except PermissionDenied as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            validate_uploaded_image(image_file, field_name="image")
+            suffix = Path(image_file.name).suffix.lower()
+        except DjangoValidationError as exc:
+            message = exc.message_dict.get("image", ["Invalid image upload."])[0]
+            return Response({"detail": message}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create predictable Cloudinary public ID so we can return display URL immediately.
         public_id = f"product-{product.id}-{uuid.uuid4().hex}"
