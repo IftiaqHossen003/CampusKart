@@ -4,6 +4,8 @@ from .views import (
     RegisterView,
     LoginView,
     TokenRefreshView,
+    TokenVerifyView,
+    SessionPolicyView,
     VerifyEmailView,
     ResendVerificationView,
     ForgotPasswordView,
@@ -26,6 +28,8 @@ urlpatterns = [
     # JWT auth
     path("login/",                LoginView.as_view(),               name="login"),
     path("token/refresh/",        TokenRefreshView.as_view(),        name="token-refresh"),
+    path("token/verify/",         TokenVerifyView.as_view(),         name="token-verify"),
+    path("session-policy/",       SessionPolicyView.as_view(),       name="session-policy"),
     path("logout/",               LogoutView.as_view(),              name="logout"),
 
     # Profile management

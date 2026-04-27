@@ -11,6 +11,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def env_bool(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -29,6 +37,7 @@ ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
 # Application definition
 # ---------------------------------------------------------------------------
 DJANGO_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -57,8 +66,10 @@ if importlib.util.find_spec("cloudinary_storage") is not None:
 
 LOCAL_APPS = [
     "apps.auth_app",
+    "apps.admin_api",
     "apps.vendors",
     "apps.products",
+    "apps.wishlist",
     "apps.cart",
     "apps.orders",
     "apps.payments",
@@ -79,6 +90,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.auth_app.middleware.ApiRateLimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -124,11 +136,27 @@ DATABASES = {
 # ---------------------------------------------------------------------------
 # Password validation
 # ---------------------------------------------------------------------------
+PASSWORD_MIN_LENGTH = int(os.environ.get("PASSWORD_MIN_LENGTH", "10"))
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": PASSWORD_MIN_LENGTH},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        "NAME": "apps.auth_app.validators.StrongPasswordValidator",
+        "OPTIONS": {"min_length": PASSWORD_MIN_LENGTH},
+    },
+]
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
 ]
 
 # ---------------------------------------------------------------------------
@@ -161,6 +189,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ---------------------------------------------------------------------------
 # Django REST Framework
 # ---------------------------------------------------------------------------
+GLOBAL_API_RATELIMIT_PER_MINUTE = int(os.environ.get("GLOBAL_API_RATELIMIT_PER_MINUTE", "300"))
+GLOBAL_API_RATELIMIT_WINDOW_SECONDS = int(os.environ.get("GLOBAL_API_RATELIMIT_WINDOW_SECONDS", "60"))
+AUTH_LOGIN_RATELIMIT_PER_MINUTE = int(os.environ.get("AUTH_LOGIN_RATELIMIT_PER_MINUTE", "10"))
+AUTH_REGISTER_RATELIMIT_PER_MINUTE = int(os.environ.get("AUTH_REGISTER_RATELIMIT_PER_MINUTE", "10"))
+AUTH_LOGIN_RATELIMIT = f"{AUTH_LOGIN_RATELIMIT_PER_MINUTE}/m"
+AUTH_REGISTER_RATELIMIT = f"{AUTH_REGISTER_RATELIMIT_PER_MINUTE}/m"
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -169,7 +204,7 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_PAGINATION_CLASS": "CampusKart.pagination.DefaultPageNumberPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
@@ -179,6 +214,8 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "forgot_password": "5/min",
         "reset_password": "10/min",
+        "domain_event_admin_list": os.environ.get("DOMAIN_EVENT_ADMIN_LIST_THROTTLE", "120/min"),
+        "domain_event_admin_retry": os.environ.get("DOMAIN_EVENT_ADMIN_RETRY_THROTTLE", "30/min"),
     },
 }
 
@@ -186,7 +223,7 @@ REST_FRAMEWORK = {
 # Simple JWT
 # ---------------------------------------------------------------------------
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", 60))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", 15))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("JWT_REFRESH_TOKEN_LIFETIME_DAYS", 7))),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -199,10 +236,55 @@ SIMPLE_JWT = {
 }
 
 # ---------------------------------------------------------------------------
+# Auth refresh cookie (HttpOnly session cookie)
+# ---------------------------------------------------------------------------
+AUTH_REFRESH_COOKIE_NAME = os.environ.get("AUTH_REFRESH_COOKIE_NAME", "campuskart_refresh")
+AUTH_REFRESH_COOKIE_PATH = os.environ.get("AUTH_REFRESH_COOKIE_PATH", "/api/v1/auth/")
+AUTH_REFRESH_COOKIE_DOMAIN = os.environ.get("AUTH_REFRESH_COOKIE_DOMAIN") or None
+AUTH_REFRESH_COOKIE_SECURE = env_bool("AUTH_REFRESH_COOKIE_SECURE", False)
+AUTH_REFRESH_COOKIE_HTTPONLY = True
+AUTH_REFRESH_COOKIE_SAMESITE = os.environ.get("AUTH_REFRESH_COOKIE_SAMESITE", "Lax")
+
+# ---------------------------------------------------------------------------
+# SSLCommerz
+# ---------------------------------------------------------------------------
+FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:5173")
+SSLCOMMERZ_STORE_ID = os.environ.get("SSLCOMMERZ_STORE_ID", "")
+SSLCOMMERZ_STORE_PASSWORD = os.environ.get("SSLCOMMERZ_STORE_PASSWORD", "")
+SSLCOMMERZ_IPN_URL = os.environ.get(
+    "SSLCOMMERZ_IPN_URL",
+    "http://localhost:8000/api/v1/payments/webhook/",
+)
+SSLCOMMERZ_SUCCESS_URL = os.environ.get(
+    "SSLCOMMERZ_SUCCESS_URL",
+    "http://localhost:8000/api/v1/payments/return/success/",
+)
+SSLCOMMERZ_FAIL_URL = os.environ.get(
+    "SSLCOMMERZ_FAIL_URL",
+    "http://localhost:8000/api/v1/payments/return/fail/",
+)
+SSLCOMMERZ_CANCEL_URL = os.environ.get(
+    "SSLCOMMERZ_CANCEL_URL",
+    "http://localhost:8000/api/v1/payments/return/cancel/",
+)
+SSLCOMMERZ_IS_SANDBOX = env_bool("SSLCOMMERZ_IS_SANDBOX", True)
+SSLCOMMERZ_VALIDATE_IPN_HASH = env_bool("SSLCOMMERZ_VALIDATE_IPN_HASH", True)
+
+# ---------------------------------------------------------------------------
 # CORS
 # ---------------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "CSRF_TRUSTED_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173",
+    ).split(",")
+    if origin.strip()
+]
+CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")
+CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", False)
 
 # ---------------------------------------------------------------------------
 # Redis
@@ -224,6 +306,17 @@ CACHES = {
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
+SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", False)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
+SESSION_COOKIE_AGE = int(
+    os.environ.get(
+        "SESSION_COOKIE_AGE_SECONDS",
+        int(SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()),
+    )
+)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = os.environ.get("SESSION_EXPIRE_AT_BROWSER_CLOSE", "False") == "True"
+SESSION_SAVE_EVERY_REQUEST = os.environ.get("SESSION_SAVE_EVERY_REQUEST", "True") == "True"
 
 # ---------------------------------------------------------------------------
 # Celery
@@ -238,6 +331,21 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes hard limit
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 200
+
+DOMAIN_EVENT_DISPATCH_INTERVAL_SECONDS = int(
+    os.environ.get("DOMAIN_EVENT_DISPATCH_INTERVAL_SECONDS", "30")
+)
+DOMAIN_EVENT_DISPATCH_BATCH_SIZE = int(
+    os.environ.get("DOMAIN_EVENT_DISPATCH_BATCH_SIZE", "100")
+)
+
+CELERY_BEAT_SCHEDULE = {
+    "dispatch-pending-domain-events": {
+        "task": "apps.orders.tasks.dispatch_pending_domain_events",
+        "schedule": timedelta(seconds=DOMAIN_EVENT_DISPATCH_INTERVAL_SECONDS),
+        "args": (DOMAIN_EVENT_DISPATCH_BATCH_SIZE,),
+    }
+}
 
 # ---------------------------------------------------------------------------
 # Email
@@ -281,7 +389,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.environ.get("REDIS_URL", "redis://localhost:6379/0")],
+            "hosts": [REDIS_URL],
         },
     },
 }
@@ -312,6 +420,11 @@ LOGGING = {
         "django": {
             "handlers": ["console"],
             "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": os.environ.get("SQL_LOG_LEVEL", "WARNING"),
             "propagate": False,
         },
     },

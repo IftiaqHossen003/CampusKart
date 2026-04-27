@@ -1,3 +1,4 @@
+
 import { Suspense, lazy, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -69,6 +70,7 @@ function RouteLoadingFallback() {
     </div>
   );
 }
+
 
 function App() {
   const startAuthBootstrap = useAuthStore((state) => state.startAuthBootstrap);
