@@ -1,16 +1,8 @@
-"""
-WSGI config for CampusKart project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/6.0/howto/deployment/wsgi/
-"""
+"""WSGI config for CampusKart project."""
 
 import os
-
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'CampusKart.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CampusKart.settings.dev")
 
 application = get_wsgi_application()
