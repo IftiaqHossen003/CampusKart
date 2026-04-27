@@ -173,7 +173,7 @@ function CartPage() {
                         quantity: next,
                       })
                     }}
-                    className="h-8 w-14 rounded border border-white/20 px-2 text-center text-sm"
+                    className="h-8 w-14 rounded border border-white/20 bg-[var(--ck-surface-deep)] px-2 text-center text-sm text-white"
                     aria-label={`Quantity for ${item.name}`}
                   />
 

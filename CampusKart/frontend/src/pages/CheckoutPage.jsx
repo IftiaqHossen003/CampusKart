@@ -258,7 +258,7 @@ function CheckoutPage() {
               <input
                 type="text"
                 {...register("fullName")}
-                className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
+                className="w-full rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-[var(--ck-accent)] focus:outline-none"
                 placeholder="Your full name"
               />
               {errors.fullName ? (
@@ -275,7 +275,7 @@ function CheckoutPage() {
               <input
                 type="tel"
                 {...register("phone")}
-                className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
+                className="w-full rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-[var(--ck-accent)] focus:outline-none"
                 placeholder="01XXXXXXXXX"
               />
               {errors.phone ? (
@@ -293,7 +293,7 @@ function CheckoutPage() {
             <input
               type="text"
               {...register("addressLine")}
-              className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
+              className="w-full rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-[var(--ck-accent)] focus:outline-none"
               placeholder="Hall, building, street, or landmark"
             />
             {errors.addressLine ? (
@@ -310,7 +310,7 @@ function CheckoutPage() {
             <input
               type="text"
               {...register("areaCity")}
-              className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
+              className="w-full rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-[var(--ck-accent)] focus:outline-none"
               placeholder="Area, city"
             />
             {errors.areaCity ? (
@@ -327,7 +327,7 @@ function CheckoutPage() {
             <textarea
               {...register("notes")}
               rows={3}
-              className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
+              className="w-full rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-[var(--ck-accent)] focus:outline-none"
               placeholder="Preferred delivery time, directions, etc."
             />
             {errors.notes ? (
@@ -343,7 +343,7 @@ function CheckoutPage() {
             </span>
             <select
               {...register("paymentMethod")}
-              className="w-full rounded-md border border-white/20 bg-[var(--ck-surface)] px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
+              className="w-full rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white focus:border-[var(--ck-accent)] focus:outline-none"
             >
               <option value="cod">Cash on Delivery (COD)</option>
               <option value="sslcommerz">SSLCommerz</option>

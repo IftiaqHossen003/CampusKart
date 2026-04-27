@@ -121,9 +121,9 @@ function StudentProfilePage() {
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Full name
               </span>
-              <input
-                type="text"
-                required
+                <input
+                  type="text"
+                  required
                 value={resolvedFormState.full_name}
                 onChange={(event) =>
                   setFormState((current) => ({
@@ -131,26 +131,26 @@ function StudentProfilePage() {
                     full_name: event.target.value,
                   }))
                 }
-                className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
-              />
-            </label>
+                  className="mt-1 w-full rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white focus:border-[var(--ck-accent)] focus:outline-none"
+                />
+              </label>
 
             <label className="block text-sm">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Phone
               </span>
-              <input
-                type="text"
-                value={resolvedFormState.phone}
+                <input
+                  type="text"
+                  value={resolvedFormState.phone}
                 onChange={(event) =>
                   setFormState((current) => ({
                     ...(current || resolvedFormState),
                     phone: event.target.value,
                   }))
                 }
-                className="mt-1 w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
-              />
-            </label>
+                  className="mt-1 w-full rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white focus:border-[var(--ck-accent)] focus:outline-none"
+                />
+              </label>
 
             <div className="grid gap-3 rounded-lg border border-white/10 bg-[var(--ck-surface-deep)] p-3 text-sm sm:grid-cols-2">
               <div>

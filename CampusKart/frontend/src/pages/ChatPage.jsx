@@ -613,8 +613,8 @@ function ChatPage() {
                             <div
                               className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm sm:max-w-[70%] ${
                                 isMine
-                                  ? "rounded-br-sm bg-[var(--ck-surface)] text-white"
-                                  : "rounded-bl-sm bg-[var(--ck-surface)] text-white"
+                                  ? "rounded-br-sm bg-[var(--ck-accent)] text-[#111111]"
+                                  : "rounded-bl-sm bg-[var(--ck-surface-deep)] text-white"
                               }`}
                             >
                               <p className="whitespace-pre-wrap break-words">
@@ -622,7 +622,7 @@ function ChatPage() {
                               </p>
                               <div
                                 className={`mt-1 flex items-center justify-end gap-2 text-[11px] ${
-                                  isMine ? "text-white/85" : "text-slate-400"
+                                  isMine ? "text-[#111111]/70" : "text-slate-400"
                                 }`}
                               >
                                 <span>{formatDateTime(message.sent_at)}</span>
@@ -654,7 +654,7 @@ function ChatPage() {
                           ? "Type a message"
                           : "Waiting for connection..."
                       }
-                      className="max-h-32 min-h-[44px] flex-1 resize-y rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
+                      className="max-h-32 min-h-[44px] flex-1 resize-y rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-[var(--ck-accent)] focus:outline-none"
                     />
                     <button
                       type="button"
