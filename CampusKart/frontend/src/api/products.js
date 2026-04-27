@@ -70,10 +70,74 @@ function buildQueryString(params) {
   return queryString ? `?${queryString}` : "";
 }
 
+function normalizeListPayload(payload) {
+  if (Array.isArray(payload)) {
+    return {
+      count: payload.length,
+      next: null,
+      previous: null,
+      page: 1,
+      page_size: payload.length,
+      results: payload,
+    };
+  }
+
+  if (Array.isArray(payload?.results)) {
+    return {
+      count: Number(payload.count || payload.results.length),
+      next: payload.next || null,
+      previous: payload.previous || null,
+      page: Number(payload.page || 1),
+      page_size: Number(
+        payload.page_size || payload.pageSize || payload.results.length,
+      ),
+      results: payload.results,
+    };
+  }
+
+  if (Array.isArray(payload?.items)) {
+    return {
+      count: Number(payload.count || payload.items.length),
+      next: payload.next || null,
+      previous: payload.previous || null,
+      page: Number(payload.page || 1),
+      page_size: Number(
+        payload.page_size || payload.pageSize || payload.items.length,
+      ),
+      results: payload.items,
+    };
+  }
+
+  return {
+    count: 0,
+    next: null,
+    previous: null,
+    page: 1,
+    page_size: 0,
+    results: [],
+  };
+}
+
+function normalizeFlatListPayload(payload) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.results)) {
+    return payload.results;
+  }
+
+  if (Array.isArray(payload?.items)) {
+    return payload.items;
+  }
+
+  return [];
+}
+
 export async function fetchProducts(filters) {
   const queryString = buildQueryString(filters);
   const response = await apiClient.get(`/products/${queryString}`);
-  return response.data;
+  return normalizeListPayload(response.data);
 }
 
 export async function fetchProductBySlug(slug) {
@@ -83,12 +147,12 @@ export async function fetchProductBySlug(slug) {
 
 export async function fetchCategories() {
   const response = await apiClient.get("/products/categories/");
-  return response.data;
+  return normalizeFlatListPayload(response.data);
 }
 
 export async function fetchProductTags() {
   const response = await apiClient.get("/products/tags/");
-  return response.data;
+  return normalizeFlatListPayload(response.data);
 }
 
 export async function createProduct(payload) {

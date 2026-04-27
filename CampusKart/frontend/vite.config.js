@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,30 +9,41 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (!id.includes('node_modules')) {
-            return undefined
+          if (!id.includes("node_modules")) {
+            return undefined;
           }
 
-          if (id.includes('swiper')) {
-            return 'vendor-swiper'
+          if (id.includes("swiper")) {
+            return "vendor-swiper";
           }
 
-          if (id.includes('@tanstack/react-query')) {
-            return 'vendor-react-query'
+          if (id.includes("@tanstack/react-query")) {
+            return "vendor-react-query";
           }
 
-          if (id.includes('react-router-dom')) {
-            return 'vendor-router'
+          if (id.includes("react-router-dom")) {
+            return "vendor-router";
           }
 
-          return undefined
+          return undefined;
         },
       },
     },
   },
   server: {
-    host: '0.0.0.0',
+    host: "0.0.0.0",
     port: 5173,
     strictPort: true,
+    proxy: {
+      "/api": {
+        target: process.env.VITE_API_PROXY_TARGET || "http://nginx",
+        changeOrigin: true,
+      },
+      "/ws": {
+        target: process.env.VITE_WS_PROXY_TARGET || "ws://nginx",
+        ws: true,
+        changeOrigin: true,
+      },
+    },
   },
-})
+});

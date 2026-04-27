@@ -12,11 +12,28 @@ x-django-env: &django-env
     DJANGO_SUPERUSER_FULL_NAME: ${DJANGO_SUPERUSER_FULL_NAME:-CampusKart Admin}
 
 services:
+  # ─────────── Nginx Reverse Proxy ──────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+    depends_on:
+      - django
+      - daphne
+
   # ─────────── Frontend (Vite) ──────────────────────────────────────────────
   frontend:
     image: node:20-alpine
     restart: unless-stopped
     working_dir: /app/frontend
+    environment:
+      VITE_API_URL: http://localhost/api/v1
+      VITE_WS_URL: ws://localhost/ws
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
     volumes:
       - .:/app
@@ -74,8 +91,8 @@ services:
       - .:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     depends_on:
       db:
         condition: service_healthy
@@ -92,8 +109,8 @@ services:
     command: daphne -b 0.0.0.0 -p 8001 CampusKart.asgi:application
     volumes:
       - .:/app
-    ports:
-      - "8001:8001"
+    expose:
+      - "8001"
     depends_on:
       db:
         condition: service_healthy
