@@ -1,13 +1,33 @@
 function buildPages(currentPage, totalPages) {
-  const start = Math.max(1, currentPage - 2)
-  const end = Math.min(totalPages, currentPage + 2)
-  const pages = []
-
-  for (let page = start; page <= end; page += 1) {
-    pages.push(page)
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1)
   }
 
-  return pages
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, 'ellipsis-right', totalPages]
+  }
+
+  if (currentPage >= totalPages - 3) {
+    return [
+      1,
+      'ellipsis-left',
+      totalPages - 4,
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    ]
+  }
+
+  return [
+    1,
+    'ellipsis-left',
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    'ellipsis-right',
+    totalPages,
+  ]
 }
 
 function Pagination({ currentPage, totalPages, onPageChange }) {
@@ -15,40 +35,51 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
     return null
   }
 
-  const pages = buildPages(currentPage, totalPages)
+  const safeCurrentPage = Math.max(1, Math.min(currentPage, totalPages))
+  const pages = buildPages(safeCurrentPage, totalPages)
 
   return (
     <nav className="mt-8 flex items-center justify-center gap-1" aria-label="Product pagination">
       <button
         type="button"
-        disabled={currentPage <= 1}
-        onClick={() => onPageChange(currentPage - 1)}
-        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={safeCurrentPage <= 1}
+        onClick={() => onPageChange(safeCurrentPage - 1)}
+        className="rounded-lg border border-white/20 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
       >
         Prev
       </button>
 
       {pages.map((page) => (
-        <button
-          key={page}
-          type="button"
-          onClick={() => onPageChange(page)}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-            page === currentPage
-              ? 'bg-primary text-white'
-              : 'border border-slate-300 text-slate-700 hover:bg-slate-100'
-          }`}
-          aria-current={page === currentPage ? 'page' : undefined}
-        >
-          {page}
-        </button>
+        page === 'ellipsis-left' || page === 'ellipsis-right' ? (
+          <span
+            key={page}
+            className="px-2 py-1.5 text-sm font-medium text-slate-400"
+            aria-hidden="true"
+          >
+            ...
+          </span>
+        ) : (
+          <button
+            key={page}
+            type="button"
+            onClick={() => onPageChange(page)}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+              page === safeCurrentPage
+                ? 'bg-[var(--ck-accent)] text-[#111111]'
+                : 'border border-white/20 text-slate-600 hover:bg-white/10 hover:text-white'
+            }`}
+            aria-current={page === safeCurrentPage ? 'page' : undefined}
+          >
+            {page}
+          </button>
+        )
       ))}
 
       <button
         type="button"
-        disabled={currentPage >= totalPages}
-        onClick={() => onPageChange(currentPage + 1)}
-        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={safeCurrentPage >= totalPages}
+        onClick={() => onPageChange(safeCurrentPage + 1)}
+        className="rounded-lg border border-white/20 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
       >
         Next
       </button>
@@ -57,3 +88,5 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
 }
 
 export default Pagination
+
+
