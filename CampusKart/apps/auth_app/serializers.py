@@ -2,6 +2,8 @@
 Serializers for auth_app.
 """
 
+import re
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -13,8 +15,10 @@ from rest_framework_simplejwt.serializers import (
 )
 
 from .models import StudentProfile, OTP
+from apps.common.validators import validate_uploaded_image
 
 User = get_user_model()
+KUET_STUDENT_EMAIL_RE = re.compile(r"^([a-zA-Z]+)([0-9]+)@stud\.kuet\.ac\.bd$")
 
 
 # ---------------------------------------------------------------------------
@@ -24,8 +28,7 @@ User = get_user_model()
 class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model  = StudentProfile
-        fields = ["student_id", "university", "department", "id_document_url", "is_id_verified"]
-        read_only_fields = ["is_id_verified"]
+        fields = ["student_id", "department"]
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -40,6 +43,17 @@ class CustomUserSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "email", "is_verified", "is_active", "created_at"]
 
+    def validate_avatar(self, value):
+        if value in (None, ""):
+            return value
+
+        try:
+            validate_uploaded_image(value, field_name="avatar")
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict.get("avatar") or exc.messages)
+
+        return value
+
 
 # ---------------------------------------------------------------------------
 # Register  
@@ -53,7 +67,6 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     # Optional student profile fields — included only when role == student
     student_id  = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    university  = serializers.CharField(write_only=True, required=False, allow_blank=True)
     department  = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
@@ -61,7 +74,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = [
             "email", "full_name", "phone", "role",
             "password", "password2",
-            "student_id", "university", "department",
+            "student_id", "department",
         ]
 
     def validate(self, attrs):
@@ -69,20 +82,21 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "Passwords do not match."})
 
         role = attrs.get("role", User.Role.STUDENT)
+        email = attrs.get("email", "")
+
+        if role in (User.Role.STUDENT, User.Role.VENDOR):
+            if not KUET_STUDENT_EMAIL_RE.fullmatch(email):
+                raise serializers.ValidationError({"email": "Invalid KUET email format"})
+
         if role == User.Role.STUDENT:
             if not attrs.get("student_id"):
                 raise serializers.ValidationError(
                     {"student_id": "student_id is required for student accounts."}
                 )
-            if not attrs.get("university"):
-                raise serializers.ValidationError(
-                    {"university": "university is required for student accounts."}
-                )
         return attrs
 
     def create(self, validated_data):
         student_id = validated_data.pop("student_id", None)
-        university = validated_data.pop("university", "")
         department = validated_data.pop("department", "")
 
         user = User.objects.create_user(**validated_data)
@@ -91,7 +105,6 @@ class RegisterSerializer(serializers.ModelSerializer):
             StudentProfile.objects.create(
                 user=user,
                 student_id=student_id,
-                university=university,
                 department=department,
             )
         return user

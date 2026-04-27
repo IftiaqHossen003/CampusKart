@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -46,7 +47,8 @@ class LoginVerificationRequirementTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)
-        self.assertIn("refresh", response.data)
+        self.assertNotIn("refresh", response.data)
         self.assertIn("user", response.data)
         self.assertEqual(response.data["user"]["email"], "verified@example.com")
         self.assertTrue(response.data["user"]["is_verified"])
+        self.assertIn(settings.AUTH_REFRESH_COOKIE_NAME, response.cookies)
