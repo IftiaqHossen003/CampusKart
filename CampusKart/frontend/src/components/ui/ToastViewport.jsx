@@ -1,10 +1,10 @@
 import { useToastStore } from '../../store/toastStore'
 
 const toastClasses = {
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  error: 'border-red-200 bg-red-50 text-red-800',
-  warning: 'border-amber-200 bg-amber-50 text-amber-800',
-  info: 'border-slate-200 bg-white text-slate-800',
+  success: 'border-emerald-500/40 bg-emerald-950/70 text-emerald-200',
+  error: 'border-red-500/40 bg-red-950/70 text-red-200',
+  warning: 'border-amber-500/40 bg-amber-950/70 text-amber-200',
+  info: 'border-white/20 bg-[var(--ck-surface)] text-white',
 }
 
 function ToastViewport() {
@@ -25,7 +25,7 @@ function ToastViewport() {
             <button
               type="button"
               onClick={() => removeToast(toast.id)}
-              className="text-xs font-semibold opacity-70 hover:opacity-100"
+              className="text-xs font-semibold text-slate-600 transition hover:text-white"
             >
               Close
             </button>
