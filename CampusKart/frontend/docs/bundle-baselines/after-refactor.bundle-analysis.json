@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-04-21T13:36:43.057Z",
+  "entryManifestKey": "index.html",
+  "budgetGzipBytes": 204800,
+  "totalRawBytes": 272068,
+  "totalGzipBytes": 90093,
+  "withinBudget": true,
+  "files": [
+    {
+      "file": "assets/vendor-router-B6vWfiDI.js",
+      "rawBytes": 156955,
+      "gzipBytes": 51037
+    },
+    {
+      "file": "assets/client-BblAMs-P.js",
+      "rawBytes": 38274,
+      "gzipBytes": 14895
+    },
+    {
+      "file": "assets/vendor-react-query-D8kzaypX.js",
+      "rawBytes": 37100,
+      "gzipBytes": 11539
+    },
+    {
+      "file": "assets/index-YoEJ22bh.js",
+      "rawBytes": 29460,
+      "gzipBytes": 8198
+    },
+    {
+      "file": "assets/cartStore-BZOOeFme.js",
+      "rawBytes": 5707,
+      "gzipBytes": 1932
+    },
+    {
+      "file": "assets/preload-helper-DgFuoWHe.js",
+      "rawBytes": 1193,
+      "gzipBytes": 681
+    },
+    {
+      "file": "assets/authStore-m5_NssuM.js",
+      "rawBytes": 1267,
+      "gzipBytes": 593
+    },
+    {
+      "file": "assets/notifications-B0Cb5TCa.js",
+      "rawBytes": 1042,
+      "gzipBytes": 545
+    },
+    {
+      "file": "assets/rolldown-runtime-Dw2cE7zH.js",
+      "rawBytes": 685,
+      "gzipBytes": 417
+    },
+    {
+      "file": "assets/toastStore-D5tMZ7Bi.js",
+      "rawBytes": 385,
+      "gzipBytes": 256
+    }
+  ]
+}
