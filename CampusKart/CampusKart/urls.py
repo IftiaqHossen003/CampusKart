@@ -1,21 +1,20 @@
 """
 URL configuration for CampusKart project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
+from apps.admin_api.views import PublicBannerListView
+from apps.products.views import CategoryViewSet
+
+API_V1 = "api/v1/"
 
 urlpatterns = [
     # Admin
@@ -28,15 +27,27 @@ urlpatterns = [
 
     # Application routes
     path(API_V1 + "auth/",          include("apps.auth_app.urls",     namespace="auth")),
+    path(API_V1 + "vendor/analytics/", include("apps.vendors.analytics_urls", namespace="vendor_analytics")),
     path(API_V1 + "vendors/",       include("apps.vendors.urls",      namespace="vendors")),
     path(API_V1 + "products/",      include("apps.products.urls",     namespace="products")),
+    path(API_V1 + "wishlist/",      include("apps.wishlist.urls",     namespace="wishlist")),
     path(API_V1 + "cart/",          include("apps.cart.urls",         namespace="cart")),
     path("api/products/",            include(("apps.products.urls", "products_public"), namespace="products_public")),
     path("api/categories/",          CategoryViewSet.as_view({"get": "list"}), name="categories-public-list"),
     path("api/categories/<int:pk>/", CategoryViewSet.as_view({"get": "retrieve"}), name="categories-public-detail"),
     path(API_V1 + "orders/",        include("apps.orders.urls",       namespace="orders")),
     path(API_V1 + "payments/",      include("apps.payments.urls",     namespace="payments")),
+    path(API_V1 + "banners/",       PublicBannerListView.as_view(), name="banners-public-list"),
+    path(API_V1 + "admin/",         include("apps.admin_api.urls",    namespace="admin_api")),
     path(API_V1 + "chat/",          include("apps.chat.urls",         namespace="chat")),
+    path("api/chat/",               include("apps.chat.urls", namespace="chat_unversioned")),
     path(API_V1 + "notifications/", include("apps.notifications.urls",namespace="notifications")),
     path(API_V1 + "reviews/",       include("apps.reviews.urls",      namespace="reviews")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+    import debug_toolbar  # noqa: E402
+    urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns
