@@ -305,17 +305,17 @@ function VendorProductsPage() {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-primary">Vendor Product Management</h1>
-            <p className="mt-1 text-sm text-muted">Manage your catalog, pricing, and approval status.</p>
+            <h1 className="text-2xl font-bold text-white">Vendor Product Management</h1>
+            <p className="mt-1 text-sm text-slate-400">Manage your catalog, pricing, and approval status.</p>
           </div>
           <button
             type="button"
             onClick={openCreateForm}
             disabled={!isVendorApproved}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:bg-slate-400"
+            className="rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:bg-white/20"
           >
             Add New Product
           </button>
@@ -328,7 +328,7 @@ function VendorProductsPage() {
         ) : null}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="rounded-xl border border-white/10 bg-[var(--ck-surface)] p-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] lg:grid-cols-[1fr_auto_auto]">
           <input
             type="search"
@@ -338,7 +338,7 @@ function VendorProductsPage() {
               setPage(1)
             }}
             placeholder="Search your products"
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+            className="w-full rounded-md border border-white/20 bg-[var(--ck-surface-deep)] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-[var(--ck-accent)] focus:outline-none"
           />
 
           <select
@@ -347,7 +347,7 @@ function VendorProductsPage() {
               setStatusFilter(event.target.value)
               setPage(1)
             }}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+            className="rounded-md border border-white/20 bg-[var(--ck-surface)] px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
           >
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
@@ -355,20 +355,20 @@ function VendorProductsPage() {
             <option value="rejected">Rejected</option>
           </select>
 
-          <p className="self-center text-sm text-muted">{totalCount} products</p>
+          <p className="self-center text-sm text-slate-400">{totalCount} products</p>
         </div>
       </div>
 
       {productsQuery.isLoading ? <ProductGridSkeleton /> : null}
 
       {!productsQuery.isLoading && products.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <h2 className="text-lg font-semibold text-primary">No Products Yet</h2>
-          <p className="mt-2 text-sm text-muted">Add your first product to start selling on CampusKart.</p>
+        <div className="rounded-xl border border-dashed border-white/20 bg-[var(--ck-surface)] p-8 text-center">
+          <h2 className="text-lg font-semibold text-white">No Products Yet</h2>
+          <p className="mt-2 text-sm text-slate-400">Add your first product to start selling on CampusKart.</p>
           <button
             type="button"
             onClick={openCreateForm}
-            className="mt-4 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary"
+            className="mt-4 rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)]"
           >
             Create Product
           </button>
@@ -376,24 +376,24 @@ function VendorProductsPage() {
       ) : null}
 
       {!productsQuery.isLoading && products.length > 0 ? (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-[var(--ck-surface)]">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
+            <table className="min-w-full divide-y divide-white/10">
+              <thead className="bg-[var(--ck-surface-deep)]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Price</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">Stock</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Price</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Stock</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-white/10 bg-[var(--ck-surface)]">
                 {products.map((product) => (
                   <tr key={product.id}>
-                    <td className="px-4 py-3 text-sm text-slate-800">
+                    <td className="px-4 py-3 text-sm text-white">
                       <p className="font-medium">{product.name}</p>
-                      <p className="text-xs text-muted">{product.category_name}</p>
+                      <p className="text-xs text-slate-400">{product.category_name}</p>
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span
@@ -408,17 +408,17 @@ function VendorProductsPage() {
                         {product.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className="px-4 py-3 text-sm text-slate-400">
                       {formatPrice(product.discount_price || product.price)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{product.stock}</td>
+                    <td className="px-4 py-3 text-sm text-slate-400">{product.stock}</td>
                     <td className="px-4 py-3 text-right text-sm">
                       <div className="flex justify-end gap-2">
                         <button
                           type="button"
                           onClick={() => openEditForm(product)}
                           disabled={!isVendorApproved}
-                          className="rounded border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                          className="rounded border border-white/20 px-2.5 py-1 text-xs font-medium text-slate-400 hover:bg-white/5"
                         >
                           Edit
                         </button>
@@ -449,16 +449,16 @@ function VendorProductsPage() {
       ) : null}
 
       {isFormOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-5 sm:p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-[var(--ck-surface)] p-5 sm:p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-primary">
+              <h2 className="text-lg font-semibold text-white">
                 {editingProduct ? 'Edit Product' : 'Add New Product'}
               </h2>
               <button
                 type="button"
                 onClick={closeForm}
-                className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600"
+                className="rounded border border-white/20 px-2 py-1 text-xs text-slate-400"
               >
                 Close
               </button>
@@ -466,14 +466,14 @@ function VendorProductsPage() {
 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="name">
+                <label className="mb-1 block text-sm font-medium text-slate-400" htmlFor="name">
                   Product Name
                 </label>
                 <input
                   id="name"
                   type="text"
                   {...form.register('name')}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
                 {form.formState.errors.name ? (
                   <p className="mt-1 text-xs text-error">{form.formState.errors.name.message}</p>
@@ -481,13 +481,13 @@ function VendorProductsPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="category">
+                <label className="mb-1 block text-sm font-medium text-slate-400" htmlFor="category">
                   Category
                 </label>
                 <select
                   id="category"
                   {...form.register('category')}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="w-full rounded-md border border-white/20 bg-[var(--ck-surface)] px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 >
                   <option value="">Select category</option>
                   {categoryOptions.map((category) => (
@@ -502,14 +502,14 @@ function VendorProductsPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="description">
+                <label className="mb-1 block text-sm font-medium text-slate-400" htmlFor="description">
                   Description
                 </label>
                 <textarea
                   id="description"
                   rows={4}
                   {...form.register('description')}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                 />
                 {form.formState.errors.description ? (
                   <p className="mt-1 text-xs text-error">{form.formState.errors.description.message}</p>
@@ -518,7 +518,7 @@ function VendorProductsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="price">
+                  <label className="mb-1 block text-sm font-medium text-slate-400" htmlFor="price">
                     Price
                   </label>
                   <input
@@ -526,7 +526,7 @@ function VendorProductsPage() {
                     type="number"
                     step="0.01"
                     {...form.register('price')}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                    className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                   />
                   {form.formState.errors.price ? (
                     <p className="mt-1 text-xs text-error">{form.formState.errors.price.message}</p>
@@ -534,7 +534,7 @@ function VendorProductsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="discount_price">
+                  <label className="mb-1 block text-sm font-medium text-slate-400" htmlFor="discount_price">
                     Discount Price
                   </label>
                   <input
@@ -542,7 +542,7 @@ function VendorProductsPage() {
                     type="number"
                     step="0.01"
                     {...form.register('discount_price')}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                    className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                   />
                   {form.formState.errors.discount_price ? (
                     <p className="mt-1 text-xs text-error">{form.formState.errors.discount_price.message}</p>
@@ -552,14 +552,14 @@ function VendorProductsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="stock">
+                  <label className="mb-1 block text-sm font-medium text-slate-400" htmlFor="stock">
                     Stock
                   </label>
                   <input
                     id="stock"
                     type="number"
                     {...form.register('stock')}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                    className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                   />
                   {form.formState.errors.stock ? (
                     <p className="mt-1 text-xs text-error">{form.formState.errors.stock.message}</p>
@@ -567,14 +567,14 @@ function VendorProductsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="sku">
+                  <label className="mb-1 block text-sm font-medium text-slate-400" htmlFor="sku">
                     SKU (optional)
                   </label>
                   <input
                     id="sku"
                     type="text"
                     {...form.register('sku')}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                    className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus:border-[var(--ck-accent)] focus:outline-none"
                   />
                   {form.formState.errors.sku ? (
                     <p className="mt-1 text-xs text-error">{form.formState.errors.sku.message}</p>
@@ -583,7 +583,7 @@ function VendorProductsPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor="product-image">
+                <label className="mb-1 block text-sm font-medium text-slate-400" htmlFor="product-image">
                   Product Image (optional)
                 </label>
                 <input
@@ -594,18 +594,18 @@ function VendorProductsPage() {
                     const file = event.target.files?.[0] || null
                     setSelectedImageFile(file)
                   }}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200 focus:border-accent focus:outline-none"
+                  className="w-full rounded-md border border-white/20 px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-white/5 file:px-3 file:py-1 file:text-sm file:font-medium file:text-slate-400 hover:file:bg-white/10 focus:border-[var(--ck-accent)] focus:outline-none"
                 />
-                <p className="mt-1 text-xs text-muted">Supported formats: JPG, PNG, WEBP (max 5MB).</p>
+                <p className="mt-1 text-xs text-slate-400">Supported formats: JPG, PNG, WEBP (max 5MB).</p>
                 {selectedImageFile ? (
-                  <p className="mt-1 text-xs text-slate-600">Selected: {selectedImageFile.name}</p>
+                  <p className="mt-1 text-xs text-slate-400">Selected: {selectedImageFile.name}</p>
                 ) : null}
               </div>
 
               <button
                 type="submit"
                 disabled={createMutation.isPending || updateMutation.isPending}
-                className="inline-flex items-center rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex items-center rounded-md bg-[var(--ck-accent)] px-4 py-2 text-sm font-semibold text-[#111111] hover:bg-[var(--ck-accent-hover)] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {createMutation.isPending || updateMutation.isPending ? (
                   <span className="inline-flex items-center gap-2">
@@ -627,3 +627,7 @@ function VendorProductsPage() {
 }
 
 export default VendorProductsPage
+
+
+
+
