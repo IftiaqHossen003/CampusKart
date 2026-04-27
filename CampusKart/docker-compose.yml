@@ -28,15 +28,17 @@ services:
 
   # ─────────── Frontend (Vite) ──────────────────────────────────────────────
   frontend:
-    image: node:20-alpine
+    image: node:20-bookworm-slim
     restart: unless-stopped
     working_dir: /app/frontend
     environment:
       VITE_API_URL: http://localhost/api/v1
       VITE_WS_URL: ws://localhost/ws
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+      CHOKIDAR_USEPOLLING: "true"
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
     volumes:
       - .:/app
+      - frontend_node_modules:/app/frontend/node_modules
     ports:
       - "5173:5173"
     depends_on:
@@ -154,3 +156,4 @@ volumes:
   redis_data:
   static_volume:
   media_volume:
+  frontend_node_modules:

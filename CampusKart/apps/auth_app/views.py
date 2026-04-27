@@ -7,12 +7,9 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.conf import settings
-<<<<<<< HEAD
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
-=======
->>>>>>> 8766e707e08953d49f6d53d75b211c81d25301cf
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -631,7 +628,6 @@ class LogoutView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-<<<<<<< HEAD
         refresh_token = _normalize_token_value(
             _get_request_payload_value(request, "refresh") or get_refresh_cookie(request)
         )
@@ -650,35 +646,11 @@ class LogoutView(APIView):
                 already_invalid = True
 
         response = Response(
-=======
-        refresh_token = request.data.get("refresh")
-        if not refresh_token:
-            return Response(
-                {"detail": "refresh token is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            detail = "Logged out successfully."
-            already_invalid = False
-        except Exception:
-            # Keep logout idempotent so frontend can always clear session safely.
-            logger.info("Logout received an invalid or already-blacklisted refresh token.")
-            detail = "Session was already invalidated."
-            already_invalid = True
-
-        return Response(
->>>>>>> 8766e707e08953d49f6d53d75b211c81d25301cf
             {
                 "detail": detail,
                 "already_invalid": already_invalid,
             },
             status=status.HTTP_200_OK,
         )
-<<<<<<< HEAD
         clear_refresh_cookie(response)
         return response
-=======
->>>>>>> 8766e707e08953d49f6d53d75b211c81d25301cf

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { Suspense, lazy, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -59,71 +58,6 @@ async function ensureBootstrappedAuth() {
       bootstrapAuthPromise = null;
     });
   }
-
-=======
-
-import { Suspense, lazy, useEffect } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import apiClient from "./api/client";
-import MainLayout from "./components/layout/MainLayout";
-import ProtectedRoute from "./components/layout/ProtectedRoute";
-import ToastViewport from "./components/ui/ToastViewport";
-import { useAuthStore } from "./store/authStore";
-
-const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
-const HomePage = lazy(() => import("./pages/HomePage"));
-const LoginPage = lazy(() => import("./pages/LoginPage"));
-const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
-const AdminBannersPage = lazy(() => import("./pages/AdminBannersPage"));
-const AdminOrdersPage = lazy(() => import("./pages/AdminOrdersPage"));
-const AdminProductsPage = lazy(() => import("./pages/AdminProductsPage"));
-const AdminPayoutsPage = lazy(() => import("./pages/AdminPayoutsPage"));
-const AdminSettingsPage = lazy(() => import("./pages/AdminSettingsPage"));
-const AdminVendorsPage = lazy(() => import("./pages/AdminVendorsPage"));
-const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
-const ChatPage = lazy(() => import("./pages/ChatPage"));
-const OrderDetailPage = lazy(() => import("./pages/OrderDetailPage"));
-const OrdersPage = lazy(() => import("./pages/OrdersPage"));
-const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage"));
-const ProductListingPage = lazy(() => import("./pages/ProductListingPage"));
-const RegisterPage = lazy(() => import("./pages/RegisterPage"));
-const CartPage = lazy(() => import("./pages/CartPage"));
-const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
-const AdminProfilePage = lazy(() => import("./pages/AdminProfilePage"));
-const ProfileRedirectPage = lazy(() => import("./pages/ProfileRedirectPage"));
-const RoutePlaceholderPage = lazy(() => import("./pages/RoutePlaceholderPage"));
-const StudentProfilePage = lazy(() => import("./pages/StudentProfilePage"));
-const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
-const VendorProfilePage = lazy(() => import("./pages/VendorProfilePage"));
-const VendorDashboardPage = lazy(() => import("./pages/VendorDashboardPage"));
-const VendorOrdersPage = lazy(() => import("./pages/VendorOrdersPage"));
-const VendorAnalyticsPage = lazy(() => import("./pages/VendorAnalyticsPage"));
-const VendorPayoutsPage = lazy(() => import("./pages/VendorPayoutsPage"));
-const VendorProductsPage = lazy(() => import("./pages/VendorProductsPage"));
-const WishlistPage = lazy(() => import("./pages/WishlistPage"));
-
-const queryClient = new QueryClient();
-let bootstrapAuthPromise = null;
-
-async function ensureBootstrappedAuth() {
-  if (!bootstrapAuthPromise) {
-    bootstrapAuthPromise = (async () => {
-      await apiClient.get("/auth/csrf/");
-      const response = await apiClient.post("/auth/bootstrap/", {});
-      const { access, user } = response.data || {};
-
-      if (access && user) {
-        return { access, user };
-      }
-
-      return null;
-    })().finally(() => {
-      bootstrapAuthPromise = null;
-    });
-  }
-
->>>>>>> 8766e707e08953d49f6d53d75b211c81d25301cf
   return bootstrapAuthPromise;
 }
 
@@ -135,10 +69,6 @@ function RouteLoadingFallback() {
   );
 }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 8766e707e08953d49f6d53d75b211c81d25301cf
 function App() {
   const startAuthBootstrap = useAuthStore((state) => state.startAuthBootstrap);
   const completeAuthBootstrap = useAuthStore(
