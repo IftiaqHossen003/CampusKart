@@ -3,19 +3,13 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import MainLayout from './components/layout/MainLayout'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import ToastViewport from './components/ui/ToastViewport'
-import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
-import CheckoutPage from './pages/CheckoutPage'
-import OrderDetailPage from './pages/OrderDetailPage'
-import OrdersPage from './pages/OrdersPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import ProductListingPage from './pages/ProductListingPage'
 import RegisterPage from './pages/RegisterPage'
-import CartPage from './pages/CartPage'
 import RoutePlaceholderPage from './pages/RoutePlaceholderPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
-import VendorOrdersPage from './pages/VendorOrdersPage'
 import VendorProductsPage from './pages/VendorProductsPage'
 
 const queryClient = new QueryClient()
@@ -31,7 +25,6 @@ function App() {
             <Route path="/shop" element={<ProductListingPage />} />
             <Route path="/shop/products/:slug" element={<ProductDetailPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
 
@@ -44,13 +37,20 @@ function App() {
               }
             />
 
-            <Route path="/cart" element={<CartPage />} />
+            <Route
+              path="/cart"
+              element={
+                <ProtectedRoute>
+                  <RoutePlaceholderPage title="Cart" />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/checkout"
               element={
                 <ProtectedRoute allowedRoles={['student']}>
-                  <CheckoutPage />
+                  <RoutePlaceholderPage title="Checkout" />
                 </ProtectedRoute>
               }
             />
@@ -59,7 +59,7 @@ function App() {
               path="/orders"
               element={
                 <ProtectedRoute allowedRoles={['student']}>
-                  <OrdersPage />
+                  <RoutePlaceholderPage title="Order History" />
                 </ProtectedRoute>
               }
             />
@@ -68,7 +68,7 @@ function App() {
               path="/orders/:orderNumber"
               element={
                 <ProtectedRoute allowedRoles={['student']}>
-                  <OrderDetailPage />
+                  <RoutePlaceholderPage title="Order Detail" />
                 </ProtectedRoute>
               }
             />
@@ -149,7 +149,7 @@ function App() {
               path="/vendor/orders"
               element={
                 <ProtectedRoute allowedRoles={['vendor']}>
-                  <VendorOrdersPage />
+                  <RoutePlaceholderPage title="Vendor Orders" />
                 </ProtectedRoute>
               }
             />
